@@ -15,9 +15,9 @@ public struct Stat : IFlatbufferObject
   public ByteBuffer ByteBuffer { get { return __p.bb; } }
   public static void ValidateVersion() { FlatBufferConstants.FLATBUFFERS_2_0_0(); }
   public static Stat GetRootAsStat(ByteBuffer _bb) { return GetRootAsStat(_bb, new Stat()); }
-  public static Stat GetRootAsStat(ByteBuffer _bb, Stat obj) { return (obj.__assign(_bb.GetInt(_bb.Position) + _bb.Position, _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __p = new Table(_i, _bb); }
-  public Stat __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
+  public static Stat GetRootAsStat(ByteBuffer _bb, Stat obj) { return (obj.__assign(_bb.GetLong(_bb.Position) + _bb.Position, _bb)); }
+  public void __init(long _i, ByteBuffer _bb) { __p = new Table(_i, _bb); }
+  public Stat __assign(long _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public string Id { get { int o = __p.__offset(4); return o != 0 ? __p.__string(o + __p.bb_pos) : null; } }
 #if ENABLE_SPAN_T
@@ -57,11 +57,11 @@ public struct Stat : IFlatbufferObject
   }
 
   public static Stat? __lookup_by_key(int vectorLocation, ushort key, ByteBuffer bb) {
-    int span = bb.GetInt(vectorLocation - 4);
+    int span = bb.GetInt(vectorLocation - sizeof(long));
     int start = 0;
     while (span != 0) {
       int middle = span / 2;
-      int tableOffset = Table.__indirect(vectorLocation + 4 * (start + middle), bb);
+      int tableOffset = Table.__indirect(vectorLocation + sizeof(long) * (start + middle), bb);
       int comp = bb.GetUshort(Table.__offset(8, bb.Length - tableOffset, bb)).CompareTo(key);
       if (comp > 0) {
         span = middle;

@@ -2208,8 +2208,12 @@ class FlatBufferBuilder {
     return Offset<const T *>(GetSize());
   }
 
+
   /// @brief The length of a FlatBuffer file header.
-  static const size_t kFileIdentifierLength = 4;
+  static const size_t kFileIdentifierMinimumLength = 4;
+
+  /// @brief The length of a FlatBuffer file header.
+  static const size_t kFileIdentifierLength = 8;
 
   /// @brief Finish serializing a buffer by writing the root offset.
   /// @param[in] file_identifier If a `file_identifier` is given, the buffer
@@ -2249,9 +2253,11 @@ class FlatBufferBuilder {
                  (file_identifier ? kFileIdentifierLength : 0),
              minalign_);
     if (file_identifier) {
-      FLATBUFFERS_ASSERT(strlen(file_identifier) == kFileIdentifierLength);
+      auto file_identifier_length = strnlen(file_identifier, kFileIdentifierLength);
+      FLATBUFFERS_ASSERT(file_identifier_length >= kFileIdentifierMinimumLength);
       PushBytes(reinterpret_cast<const uint8_t *>(file_identifier),
-                kFileIdentifierLength);
+                file_identifier_length);
+      Pad(kFileIdentifierLength - file_identifier_length);
     }
     PushElement(ReferTo(root));  // Location of root.
     if (size_prefix) { PushElement(GetSize()); }
@@ -2363,8 +2369,23 @@ inline const char *GetBufferIdentifier(const void *buf,
 // Helper to see if the identifier in a buffer has the expected value.
 inline bool BufferHasIdentifier(const void *buf, const char *identifier,
                                 bool size_prefixed = false) {
-  return strncmp(GetBufferIdentifier(buf, size_prefixed), identifier,
-                 FlatBufferBuilder::kFileIdentifierLength) == 0;
+  auto file_identifier_length = strnlen(identifier, FlatBufferBuilder::kFileIdentifierLength);
+  FLATBUFFERS_ASSERT(file_identifier_length >= FlatBufferBuilder::kFileIdentifierMinimumLength);
+  if (file_identifier_length == FlatBufferBuilder::kFileIdentifierLength) {
+    return strncmp(GetBufferIdentifier(buf, size_prefixed), identifier,
+                   file_identifier_length) == 0;
+  } else {
+    auto buffer_identifier = GetBufferIdentifier(buf, size_prefixed);
+    if (strncmp(buffer_identifier, identifier,
+        file_identifier_length) != 0)
+      return false;
+    auto p = buffer_identifier + file_identifier_length;
+    auto end = buffer_identifier + FlatBufferBuilder::kFileIdentifierLength;
+    while (p < end)
+      if (*(p++) != 0)
+        return false;
+    return true;
+  }
 }
 
 // Helper class to verify the integrity of a FlatBuffer

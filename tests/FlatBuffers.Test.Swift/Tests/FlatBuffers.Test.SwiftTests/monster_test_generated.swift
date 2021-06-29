@@ -196,7 +196,7 @@ public struct MyGame_Example_Test_Mutable: FlatBufferObject {
   @discardableResult public func mutate(a: Int16) -> Bool { return _accessor.mutate(a, index: 0) }
   public var b: Int8 { return _accessor.readBuffer(of: Int8.self, at: 2) }
   @discardableResult public func mutate(b: Int8) -> Bool { return _accessor.mutate(b, index: 2) }
-  
+
 
   public mutating func unpack() -> MyGame_Example_Test {
     return MyGame_Example_Test(&self)
@@ -284,7 +284,7 @@ public struct MyGame_Example_Vec3_Mutable: FlatBufferObject {
   public var test2: MyGame_Example_Color { return MyGame_Example_Color(rawValue: _accessor.readBuffer(of: UInt8.self, at: 24)) ?? .red }
   @discardableResult public func mutate(test2: MyGame_Example_Color) -> Bool { return _accessor.mutate(test2.rawValue, index: 24) }
   public var test3: MyGame_Example_Test_Mutable { return MyGame_Example_Test_Mutable(_accessor.bb, o: _accessor.postion + 26) }
-  
+
 
   public mutating func unpack() -> MyGame_Example_Vec3 {
     return MyGame_Example_Vec3(&self)
@@ -341,7 +341,7 @@ public struct MyGame_Example_Ability_Mutable: FlatBufferObject {
   @discardableResult public func mutate(id: UInt32) -> Bool { return _accessor.mutate(id, index: 0) }
   public var distance: UInt32 { return _accessor.readBuffer(of: UInt32.self, at: 4) }
   @discardableResult public func mutate(distance: UInt32) -> Bool { return _accessor.mutate(distance, index: 4) }
-  
+
 
   public mutating func unpack() -> MyGame_Example_Ability {
     return MyGame_Example_Ability(&self)
@@ -405,7 +405,7 @@ public struct MyGame_Example_StructOfStructs_Mutable: FlatBufferObject {
   public var a: MyGame_Example_Ability_Mutable { return MyGame_Example_Ability_Mutable(_accessor.bb, o: _accessor.postion + 0) }
   public var b: MyGame_Example_Test_Mutable { return MyGame_Example_Test_Mutable(_accessor.bb, o: _accessor.postion + 8) }
   public var c: MyGame_Example_Ability_Mutable { return MyGame_Example_Ability_Mutable(_accessor.bb, o: _accessor.postion + 12) }
-  
+
 
   public mutating func unpack() -> MyGame_Example_StructOfStructs {
     return MyGame_Example_StructOfStructs(&self)
@@ -434,7 +434,7 @@ public struct MyGame_InParentNamespace: FlatBufferObject, Verifiable, ObjectAPIP
 
   public static func startInParentNamespace(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 0) }
   public static func endInParentNamespace(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
-  
+
 
   public mutating func unpack() -> MyGame_InParentNamespaceT {
     return MyGame_InParentNamespaceT(&self)
@@ -481,7 +481,7 @@ public struct MyGame_Example2_Monster: FlatBufferObject, Verifiable, ObjectAPIPa
 
   public static func startMonster(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 0) }
   public static func endMonster(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
-  
+
 
   public mutating func unpack() -> MyGame_Example2_MonsterT {
     return MyGame_Example2_MonsterT(&self)
@@ -545,7 +545,7 @@ internal struct MyGame_Example_TestSimpleTableWithEnum: FlatBufferObject, Verifi
     MyGame_Example_TestSimpleTableWithEnum.add(color: color, &fbb)
     return MyGame_Example_TestSimpleTableWithEnum.endTestSimpleTableWithEnum(&fbb, start: __start)
   }
-  
+
 
   internal mutating func unpack() -> MyGame_Example_TestSimpleTableWithEnumT {
     return MyGame_Example_TestSimpleTableWithEnumT(&self)
@@ -628,7 +628,7 @@ public struct MyGame_Example_Stat: FlatBufferObject, Verifiable, ObjectAPIPacker
   }
   public static func sortVectorOfStat(offsets:[Offset], _ fbb: inout FlatBufferBuilder) -> Offset {
     var off = offsets
-    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 8, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 8, fbb: fbb.buffer), fbb: fbb.buffer) < 0 } 
+    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 8, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 8, fbb: fbb.buffer), fbb: fbb.buffer) < 0 }
     return fbb.createVector(ofOffsets: off)
   }
   fileprivate static func lookupByKey(vector: Int32, key: UInt16, fbb: ByteBuffer) -> MyGame_Example_Stat? {
@@ -636,7 +636,7 @@ public struct MyGame_Example_Stat: FlatBufferObject, Verifiable, ObjectAPIPacker
     var start: Int32 = 0
     while span != 0 {
       var middle = span / 2
-      let tableOffset = Table.indirect(vector + 4 * (start + middle), fbb)
+      let tableOffset = Table.indirect(vector + 8 * (start + middle), fbb)
       let comp = fbb.read(def: UInt16.self, position: Int(Table.offset(Int32(fbb.capacity) - tableOffset, vOffset: 8, fbb: fbb)))
       if comp > 0 {
         span = middle
@@ -650,7 +650,7 @@ public struct MyGame_Example_Stat: FlatBufferObject, Verifiable, ObjectAPIPacker
     }
     return nil
   }
-  
+
 
   public mutating func unpack() -> MyGame_Example_StatT {
     return MyGame_Example_StatT(&self)
@@ -737,7 +737,7 @@ public struct MyGame_Example_Referrable: FlatBufferObject, Verifiable, ObjectAPI
   }
   public static func sortVectorOfReferrable(offsets:[Offset], _ fbb: inout FlatBufferBuilder) -> Offset {
     var off = offsets
-    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 4, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 4, fbb: fbb.buffer), fbb: fbb.buffer) < 0 } 
+    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 4, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 4, fbb: fbb.buffer), fbb: fbb.buffer) < 0 }
     return fbb.createVector(ofOffsets: off)
   }
   fileprivate static func lookupByKey(vector: Int32, key: UInt64, fbb: ByteBuffer) -> MyGame_Example_Referrable? {
@@ -745,7 +745,7 @@ public struct MyGame_Example_Referrable: FlatBufferObject, Verifiable, ObjectAPI
     var start: Int32 = 0
     while span != 0 {
       var middle = span / 2
-      let tableOffset = Table.indirect(vector + 4 * (start + middle), fbb)
+      let tableOffset = Table.indirect(vector + 8 * (start + middle), fbb)
       let comp = fbb.read(def: UInt64.self, position: Int(Table.offset(Int32(fbb.capacity) - tableOffset, vOffset: 4, fbb: fbb)))
       if comp > 0 {
         span = middle
@@ -759,7 +759,7 @@ public struct MyGame_Example_Referrable: FlatBufferObject, Verifiable, ObjectAPI
     }
     return nil
   }
-  
+
 
   public mutating func unpack() -> MyGame_Example_ReferrableT {
     return MyGame_Example_ReferrableT(&self)
@@ -1155,7 +1155,7 @@ public struct MyGame_Example_Monster: FlatBufferObject, Verifiable, ObjectAPIPac
   }
   public static func sortVectorOfMonster(offsets:[Offset], _ fbb: inout FlatBufferBuilder) -> Offset {
     var off = offsets
-    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 10, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 10, fbb: fbb.buffer), fbb: fbb.buffer) < 0 } 
+    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 10, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 10, fbb: fbb.buffer), fbb: fbb.buffer) < 0 }
     return fbb.createVector(ofOffsets: off)
   }
   fileprivate static func lookupByKey(vector: Int32, key: String, fbb: ByteBuffer) -> MyGame_Example_Monster? {
@@ -1164,7 +1164,7 @@ public struct MyGame_Example_Monster: FlatBufferObject, Verifiable, ObjectAPIPac
     var start: Int32 = 0
     while span != 0 {
       var middle = span / 2
-      let tableOffset = Table.indirect(vector + 4 * (start + middle), fbb)
+      let tableOffset = Table.indirect(vector + 8 * (start + middle), fbb)
       let comp = Table.compare(Table.offset(Int32(fbb.capacity) - tableOffset, vOffset: 10, fbb: fbb), key, fbb: fbb)
       if comp > 0 {
         span = middle
@@ -1178,7 +1178,7 @@ public struct MyGame_Example_Monster: FlatBufferObject, Verifiable, ObjectAPIPac
     }
     return nil
   }
-  
+
 
   public mutating func unpack() -> MyGame_Example_MonsterT {
     return MyGame_Example_MonsterT(&self)
@@ -1747,7 +1747,7 @@ public struct MyGame_Example_TypeAliases: FlatBufferObject, Verifiable, ObjectAP
     MyGame_Example_TypeAliases.addVectorOf(vf64: vf64, &fbb)
     return MyGame_Example_TypeAliases.endTypeAliases(&fbb, start: __start)
   }
-  
+
 
   public mutating func unpack() -> MyGame_Example_TypeAliasesT {
     return MyGame_Example_TypeAliasesT(&self)

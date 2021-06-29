@@ -3406,10 +3406,15 @@ CheckedError Parser::DoParse(const char *source, const char **include_paths,
       NEXT();
       file_identifier_ = attribute_;
       EXPECT(kTokenStringConstant);
-      if (file_identifier_.length() != FlatBufferBuilder::kFileIdentifierLength)
-        return Error("file_identifier must be exactly " +
+      if (file_identifier_.length() < FlatBufferBuilder::kFileIdentifierMinimumLength)
+        return Error("file_identifier must be at least " +
+            NumToString(FlatBufferBuilder::kFileIdentifierMinimumLength) +
+            " characters");
+      if (file_identifier_.length() >= FlatBufferBuilder::kFileIdentifierLength)
+        return Error("file_identifier must be less than " +
                      NumToString(FlatBufferBuilder::kFileIdentifierLength) +
                      " characters");
+      file_identifier_.resize(8);
       EXPECT(';');
     } else if (IsIdent("file_extension")) {
       NEXT();

@@ -1095,7 +1095,7 @@ class _FbFloat32List extends _FbList<double> {
 
   @override
   double operator [](int i) {
-    return bc._getFloat32(offset + 4 + 4 * i);
+    return bc._getFloat32(offset + 8 + 4 * i);
   }
 }
 
@@ -1149,7 +1149,7 @@ class _FbUint32List extends _FbList<int> {
 
   @override
   int operator [](int i) {
-    return bc._getUint32(offset + 4 + 4 * i);
+    return bc._getUint32(offset + 8 + 4 * i);
   }
 }
 

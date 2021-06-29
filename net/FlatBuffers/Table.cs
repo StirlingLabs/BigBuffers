@@ -41,33 +41,33 @@ namespace FlatBuffers
         // present.
         public int __offset(int vtableOffset)
         {
-            int vtable = bb_pos - bb.GetInt(bb_pos);
+            int vtable = bb_pos - bb.GetLong(bb_pos);
             return vtableOffset < bb.GetShort(vtable) ? (int)bb.GetShort(vtable + vtableOffset) : 0;
         }
 
         public static int __offset(int vtableOffset, int offset, ByteBuffer bb)
         {
             int vtable = bb.Length - offset;
-            return (int)bb.GetShort(vtable + vtableOffset - bb.GetInt(vtable)) + vtable;
+            return (int)bb.GetShort(vtable + vtableOffset - bb.GetLong(vtable)) + vtable;
         }
 
         // Retrieve the relative offset stored at "offset"
         public int __indirect(int offset)
         {
-            return offset + bb.GetInt(offset);
+            return offset + bb.GetLong(offset);
         }
 
         public static int __indirect(int offset, ByteBuffer bb)
         {
-            return offset + bb.GetInt(offset);
+            return offset + bb.GetLong(offset);
         }
 
         // Create a .NET String from UTF-8 data stored inside the flatbuffer.
         public string __string(int offset)
         {
-            offset += bb.GetInt(offset);
-            var len = bb.GetInt(offset);
-            var startPos = offset + sizeof(int);
+            offset += bb.GetLong(offset);
+            var len = bb.GetLong(offset);
+            var startPos = offset + sizeof(long);
             return bb.GetStringUTF8(startPos, len);
         }
 
@@ -75,15 +75,15 @@ namespace FlatBuffers
         public int __vector_len(int offset)
         {
             offset += bb_pos;
-            offset += bb.GetInt(offset);
-            return bb.GetInt(offset);
+            offset += bb.GetLong(offset);
+            return bb.GetLong(offset);
         }
 
         // Get the start of data of a vector whose offset is stored at "offset" in this object.
         public int __vector(int offset)
         {
             offset += bb_pos;
-            return offset + bb.GetInt(offset) + sizeof(int);  // data starts after the length
+            return offset + bb.GetLong(offset) + sizeof(long);  // data starts after the length
         }
 
 #if ENABLE_SPAN_T && (UNSAFE_BYTEBUFFER || NETSTANDARD2_1)
@@ -173,12 +173,12 @@ namespace FlatBuffers
         // Compare strings in the ByteBuffer.
         public static int CompareStrings(int offset_1, int offset_2, ByteBuffer bb)
         {
-            offset_1 += bb.GetInt(offset_1);
-            offset_2 += bb.GetInt(offset_2);
-            var len_1 = bb.GetInt(offset_1);
-            var len_2 = bb.GetInt(offset_2);
-            var startPos_1 = offset_1 + sizeof(int);
-            var startPos_2 = offset_2 + sizeof(int);
+            offset_1 += bb.GetLong(offset_1);
+            offset_2 += bb.GetLong(offset_2);
+            var len_1 = bb.GetLong(offset_1);
+            var len_2 = bb.GetLong(offset_2);
+            var startPos_1 = offset_1 + sizeof(long);
+            var startPos_2 = offset_2 + sizeof(long);
             var len = Math.Min(len_1, len_2);
             for(int i = 0; i < len; i++) {
                 byte b1 = bb.Get(i + startPos_1);
@@ -192,10 +192,10 @@ namespace FlatBuffers
         // Compare string from the ByteBuffer with the string object
         public static int CompareStrings(int offset_1, byte[] key, ByteBuffer bb)
         {
-            offset_1 += bb.GetInt(offset_1);
-            var len_1 = bb.GetInt(offset_1);
+            offset_1 += bb.GetLong(offset_1);
+            var len_1 = bb.GetLong(offset_1);
             var len_2 = key.Length;
-            var startPos_1 = offset_1 + sizeof(int);
+            var startPos_1 = offset_1 + sizeof(long);
             var len = Math.Min(len_1, len_2);
             for (int i = 0; i < len; i++) {
                 byte b = bb.Get(i + startPos_1);

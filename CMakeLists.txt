@@ -32,9 +32,9 @@ option(FLATBUFFERS_PACKAGE_DEBIAN
        "Build an deb using the 'package' target."
        OFF)
 option(FLATBUFFERS_BUILD_CPP17
-       "Enable the build of c++17 test target. \"
+       "Enable usage of c++17 and the build of c++17 test target. \"
        Requirements: Clang6, GCC7, MSVC2017 (_MSC_VER >= 1914)  or higher."
-       OFF)
+       ON)
 option(FLATBUFFERS_BUILD_LEGACY
        "Run C++ code generator with '--cpp-std c++0x' switch."
        OFF)
@@ -54,6 +54,13 @@ if(DEFINED FLATBUFFERS_MAX_PARSING_DEPTH)
   # Override the default recursion depth limit.
   add_definitions(-DFLATBUFFERS_MAX_PARSING_DEPTH=${FLATBUFFERS_MAX_PARSING_DEPTH})
   message(STATUS "FLATBUFFERS_MAX_PARSING_DEPTH: ${FLATBUFFERS_MAX_PARSING_DEPTH}")
+endif()
+
+if(DEFINED FLATBUFFERS_BUILD_CPP17)
+  # Enable C.
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED YES)
+  message(STATUS "FLATBUFFERS_BUILD_CPP17: ${FLATBUFFERS_BUILD_CPP17}")
 endif()
 
 # Auto-detect locale-narrow 'strtod_l' and  'strtoull_l' functions.

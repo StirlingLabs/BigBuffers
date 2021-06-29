@@ -42,12 +42,12 @@ public struct Referrable : IFlatbufferObject
   }
 
   public static Referrable? __lookup_by_key(int vectorLocation, ulong key, ByteBuffer bb) {
-    int span = bb.GetInt(vectorLocation - 4);
+    int span = bb.GetInt(vectorLocation - sizeof(long));
     int start = 0;
     while (span != 0) {
       int middle = span / 2;
-      int tableOffset = Table.__indirect(vectorLocation + 4 * (start + middle), bb);
-      int comp = bb.GetUlong(Table.__offset(4, bb.Length - tableOffset, bb)).CompareTo(key);
+      int tableOffset = Table.__indirect(vectorLocation + sizeof(long) * (start + middle), bb);
+      int comp = bb.GetUlong(Table.__offset(sizeof(long), bb.Length - tableOffset, bb)).CompareTo(key);
       if (comp > 0) {
         span = middle;
       } else if (comp < 0) {

@@ -16,8 +16,8 @@ public struct NestedStruct : IFlatbufferObject
   public void __init(int _i, ByteBuffer _bb) { __p = new Struct(_i, _bb); }
   public NestedStruct __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public int A(int j) { return __p.bb.GetInt(__p.bb_pos + 0 + j * 4); }
-  public void MutateA(int j, int a) { __p.bb.PutInt(__p.bb_pos + 0 + j * 4, a); }
+  public int A(int j) { return __p.bb.GetInt(__p.bb_pos + 0 + j * sizeof(long)); }
+  public void MutateA(int j, int a) { __p.bb.PutInt(__p.bb_pos + 0 + j * sizeof(long), a); }
   public MyGame.Example.TestEnum B { get { return (MyGame.Example.TestEnum)__p.bb.GetSbyte(__p.bb_pos + 8); } }
   public void MutateB(MyGame.Example.TestEnum b) { __p.bb.PutSbyte(__p.bb_pos + 8, (sbyte)b); }
   public MyGame.Example.TestEnum C(int j) { return (MyGame.Example.TestEnum)__p.bb.GetSbyte(__p.bb_pos + 9 + j * 1); }
