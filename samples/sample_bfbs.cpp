@@ -45,15 +45,15 @@ int main(int /*argc*/, const char * /*argv*/[]) {
   assert(ok);
 
   // inizialize parser by deserializing bfbs schema
-  flatbuffers::Parser parser2;
-  ok = parser2.Deserialize((uint8_t *)bfbs_file.c_str(), bfbs_file.length());
-  assert(ok);
+  //flatbuffers::Parser parser2;
+  //ok = parser2.Deserialize((uint8_t *)bfbs_file.c_str(), bfbs_file.length());
+  //assert(ok);
 
   // parse json in parser from fbs and bfbs
   ok = parser1.Parse(json_file.c_str(), include_directories);
   assert(ok);
-  ok = parser2.Parse(json_file.c_str(), include_directories);
-  assert(ok);
+  //ok = parser2.Parse(json_file.c_str(), include_directories);
+  //assert(ok);
 
   // to ensure it is correct, we now generate text back from the binary,
   // and compare the two:
@@ -63,14 +63,20 @@ int main(int /*argc*/, const char * /*argv*/[]) {
     return 1;
   }
 
-  std::string jsongen2;
-  if (!GenerateText(parser2, parser2.builder_.GetBufferPointer(), &jsongen2)) {
+  //std::string jsongen2;
+  //if (!GenerateText(parser2, parser2.builder_.GetBufferPointer(), &jsongen2)) {
+  //  printf("Couldn't serialize parsed data to JSON!\n");
+  //  return 1;
+  //}
+
+  //if (jsongen1 != jsongen2) {
+  //  printf("%s----------------\n%s", jsongen1.c_str(), jsongen2.c_str());
+  //}
+
+  std::string filegen1;
+  if (!GenerateText(parser1, parser1.builder_.GetBufferPointer(), &jsongen1)) {
     printf("Couldn't serialize parsed data to JSON!\n");
     return 1;
-  }
-
-  if (jsongen1 != jsongen2) {
-    printf("%s----------------\n%s", jsongen1.c_str(), jsongen2.c_str());
   }
 
   printf("The FlatBuffer has been parsed from JSON successfully.\n");
