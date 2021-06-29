@@ -1500,13 +1500,13 @@ class SwiftGenerator : public BaseGenerator {
     Indent();
     if (IsString(key_field.value.type))
       code_ += "let key = key.utf8.map { $0 }";
-    code_ += "var span = fbb.read(def: Int32.self, position: Int(vector - 4))";
+    code_ += "var span = fbb.read(def: Int32.self, position: Int(vector - 8))"; // TODO: sizeof(?)
     code_ += "var start: Int32 = 0";
     code_ += "while span != 0 {";
     Indent();
     code_ += "var middle = span / 2";
     code_ +=
-        "let tableOffset = Table.indirect(vector + 4 * (start + middle), fbb)";
+        "let tableOffset = Table.indirect(vector + 8 * (start + middle), fbb)"; // TODO: sizeof(?)
     if (IsString(key_field.value.type)) {
       code_ += "let comp = Table.compare(" + offset_reader + ", key, fbb: fbb)";
     } else {

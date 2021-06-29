@@ -3166,7 +3166,7 @@ class CppGenerator : public BaseGenerator {
       const FieldDef &field, std::string *code_ptr, int *id,
       const std::function<void(int bits, std::string *code_ptr, int *id)> &f) {
     if (field.padding) {
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < sizeof(uoffset_t); i++) {
         if (static_cast<int>(field.padding) & (1 << i)) {
           f((1 << i) * 8, code_ptr, id);
         }

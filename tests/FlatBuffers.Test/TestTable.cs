@@ -91,7 +91,7 @@ namespace FlatBuffers.Test
             {
                 return def;
             }
-            return t.bb.GetInt(t.bb_pos + off);
+            return t.bb.GetLong(t.bb_pos + off);
         }
 
         public uint GetSlot(int slot, uint def)

@@ -492,7 +492,7 @@ class CSharpGenerator : public BaseGenerator {
   std::string GenLookupKeyGetter(flatbuffers::FieldDef *key_field) const {
     std::string key_getter = "      ";
     key_getter += "int tableOffset = Table.";
-    key_getter += "__indirect(vectorLocation + 4 * (start + middle)";
+    key_getter += "__indirect(vectorLocation + sizeof(long) * (start + middle)";
     key_getter += ", bb);\n      ";
     if (IsString(key_field->value.type)) {
       key_getter += "int comp = Table.";
@@ -1196,7 +1196,7 @@ class CSharpGenerator : public BaseGenerator {
         code += "System.Text.Encoding.UTF8.GetBytes(key);\n";
       }
       code += "    int span = ";
-      code += "bb.GetInt(vectorLocation - 4);\n";
+      code += "bb.GetInt(vectorLocation - sizeof(long));\n";
       code += "    int start = 0;\n";
       code += "    while (span != 0) {\n";
       code += "      int middle = span / 2;\n";
@@ -1640,7 +1640,7 @@ class CSharpGenerator : public BaseGenerator {
                            property_name + "[_j])";
                 break;
               case BASE_TYPE_UTYPE:
-                property_name = camel_name.substr(0, camel_name.size() - 4);
+                property_name = camel_name.substr(0, camel_name.size() - sizeof(uoffset_t));
                 array_type = WrapInNameSpace(*field.value.type.enum_def);
                 to_array = "_o." + property_name + "[_j].Type";
                 break;
