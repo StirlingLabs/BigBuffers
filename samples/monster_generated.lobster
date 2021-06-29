@@ -50,7 +50,7 @@ class Monster : flatbuffers_handle
     def color():
         return Color(buf_.flatbuffers_field_int8(pos_, 16, 2))
     def weapons(i:int):
-        return MyGame_Sample_Weapon { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 18) + i * 4) }
+        return MyGame_Sample_Weapon { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 18) + i * 8) }
     def weapons_length():
         return buf_.flatbuffers_field_vector_len(pos_, 18)
     def equipped_type():
@@ -110,9 +110,9 @@ def MonsterCreateInventoryVector(b_:flatbuffers_builder, v_:[int]):
     return b_.EndVector(v_.length)
 
 def MonsterStartWeaponsVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateWeaponsVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 
