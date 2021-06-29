@@ -262,13 +262,13 @@ class Monster : flatbuffers_handle
     def test4_length():
         return buf_.flatbuffers_field_vector_len(pos_, 22)
     def testarrayofstring(i:int):
-        return buf_.flatbuffers_string(buf_.flatbuffers_field_vector(pos_, 24) + i * 4)
+        return buf_.flatbuffers_string(buf_.flatbuffers_field_vector(pos_, 24) + i * 8)
     def testarrayofstring_length():
         return buf_.flatbuffers_field_vector_len(pos_, 24)
     /// an example documentation comment: this will end up in the generated code
     /// multiline too
     def testarrayoftables(i:int):
-        return MyGame_Example_Monster { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 26) + i * 4) }
+        return MyGame_Example_Monster { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 26) + i * 8) }
     def testarrayoftables_length():
         return buf_.flatbuffers_field_vector_len(pos_, 26)
     def enemy():
@@ -310,7 +310,7 @@ class Monster : flatbuffers_handle
     def testf3():
         return buf_.flatbuffers_field_float32(pos_, 58, 0.0)
     def testarrayofstring2(i:int):
-        return buf_.flatbuffers_string(buf_.flatbuffers_field_vector(pos_, 60) + i * 4)
+        return buf_.flatbuffers_string(buf_.flatbuffers_field_vector(pos_, 60) + i * 8)
     def testarrayofstring2_length():
         return buf_.flatbuffers_field_vector_len(pos_, 60)
     def testarrayofsortedstruct(i:int):
@@ -337,7 +337,7 @@ class Monster : flatbuffers_handle
         let o = buf_.flatbuffers_field_table(pos_, 72)
         return if o: MyGame_InParentNamespace { buf_, o } else: nil
     def vector_of_referrables(i:int):
-        return MyGame_Example_Referrable { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 74) + i * 4) }
+        return MyGame_Example_Referrable { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 74) + i * 8) }
     def vector_of_referrables_length():
         return buf_.flatbuffers_field_vector_len(pos_, 74)
     def single_weak_reference():
@@ -347,7 +347,7 @@ class Monster : flatbuffers_handle
     def vector_of_weak_references_length():
         return buf_.flatbuffers_field_vector_len(pos_, 78)
     def vector_of_strong_referrables(i:int):
-        return MyGame_Example_Referrable { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 80) + i * 4) }
+        return MyGame_Example_Referrable { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 80) + i * 8) }
     def vector_of_strong_referrables_length():
         return buf_.flatbuffers_field_vector_len(pos_, 80)
     def co_owning_reference():
@@ -389,7 +389,7 @@ class Monster : flatbuffers_handle
     def testrequirednestedflatbuffer_length():
         return buf_.flatbuffers_field_vector_len(pos_, 102)
     def scalar_key_sorted_tables(i:int):
-        return MyGame_Example_Stat { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 104) + i * 4) }
+        return MyGame_Example_Stat { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 104) + i * 8) }
     def scalar_key_sorted_tables_length():
         return buf_.flatbuffers_field_vector_len(pos_, 104)
 
@@ -564,16 +564,16 @@ def MonsterStartTest4Vector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(4, n_, 2)
 
 def MonsterStartTestarrayofstringVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateTestarrayofstringVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 
 def MonsterStartTestarrayoftablesVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateTestarrayoftablesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 
@@ -592,9 +592,9 @@ def MonsterCreateTestarrayofboolsVector(b_:flatbuffers_builder, v_:[int]):
     return b_.EndVector(v_.length)
 
 def MonsterStartTestarrayofstring2Vector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateTestarrayofstring2Vector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 
@@ -626,9 +626,9 @@ def MonsterCreateVectorOfDoublesVector(b_:flatbuffers_builder, v_:[float]):
     return b_.EndVector(v_.length)
 
 def MonsterStartVectorOfReferrablesVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateVectorOfReferrablesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 
@@ -640,9 +640,9 @@ def MonsterCreateVectorOfWeakReferencesVector(b_:flatbuffers_builder, v_:[int]):
     return b_.EndVector(v_.length)
 
 def MonsterStartVectorOfStrongReferrablesVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateVectorOfStrongReferrablesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 
@@ -675,9 +675,9 @@ def MonsterCreateTestrequirednestedflatbufferVector(b_:flatbuffers_builder, v_:[
     return b_.EndVector(v_.length)
 
 def MonsterStartScalarKeySortedTablesVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(4, n_, 4)
+    b_.StartVector(8, n_, 8)
 def MonsterCreateScalarKeySortedTablesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
-    b_.StartVector(4, v_.length, 4)
+    b_.StartVector(8, v_.length, 8)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
 

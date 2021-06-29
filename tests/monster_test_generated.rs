@@ -37,10 +37,6 @@ impl<'a> flatbuffers::Follow<'a> for InParentNamespace<'a> {
 }
 
 impl<'a> InParentNamespace<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.InParentNamespace"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         InParentNamespace { _tab: table }
@@ -53,10 +49,6 @@ impl<'a> InParentNamespace<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> InParentNamespaceT {
-      InParentNamespaceT {
-      }
-    }
 }
 
 impl flatbuffers::Verifiable for InParentNamespace<'_> {
@@ -105,25 +97,6 @@ impl std::fmt::Debug for InParentNamespace<'_> {
       ds.finish()
   }
 }
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct InParentNamespaceT {
-}
-impl Default for InParentNamespaceT {
-  fn default() -> Self {
-    Self {
-    }
-  }
-}
-impl InParentNamespaceT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<InParentNamespace<'b>> {
-    InParentNamespace::create(_fbb, &InParentNamespaceArgs{
-    })
-  }
-}
 #[allow(unused_imports, dead_code)]
 pub mod example_2 {
 
@@ -151,10 +124,6 @@ impl<'a> flatbuffers::Follow<'a> for Monster<'a> {
 }
 
 impl<'a> Monster<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example2.Monster"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         Monster { _tab: table }
@@ -167,10 +136,6 @@ impl<'a> Monster<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> MonsterT {
-      MonsterT {
-      }
-    }
 }
 
 impl flatbuffers::Verifiable for Monster<'_> {
@@ -217,25 +182,6 @@ impl std::fmt::Debug for Monster<'_> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let mut ds = f.debug_struct("Monster");
       ds.finish()
-  }
-}
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct MonsterT {
-}
-impl Default for MonsterT {
-  fn default() -> Self {
-    Self {
-    }
-  }
-}
-impl MonsterT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<Monster<'b>> {
-    Monster::create(_fbb, &MonsterArgs{
-    })
   }
 }
 }  // pub mod Example2
@@ -504,100 +450,6 @@ impl<'a> flatbuffers::Verifiable for Any {
 impl flatbuffers::SimpleToVerifyInSlice for Any {}
 pub struct AnyUnionTableOffset {}
 
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub enum AnyT {
-  NONE,
-  Monster(Box<MonsterT>),
-  TestSimpleTableWithEnum(Box<TestSimpleTableWithEnumT>),
-  MyGameExample2Monster(Box<super::example_2::MonsterT>),
-}
-impl Default for AnyT {
-  fn default() -> Self {
-    Self::NONE
-  }
-}
-impl AnyT {
-  pub fn any_type(&self) -> Any {
-    match self {
-      Self::NONE => Any::NONE,
-      Self::Monster(_) => Any::Monster,
-      Self::TestSimpleTableWithEnum(_) => Any::TestSimpleTableWithEnum,
-      Self::MyGameExample2Monster(_) => Any::MyGame_Example2_Monster,
-    }
-  }
-  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
-    match self {
-      Self::NONE => None,
-      Self::Monster(v) => Some(v.pack(fbb).as_union_value()),
-      Self::TestSimpleTableWithEnum(v) => Some(v.pack(fbb).as_union_value()),
-      Self::MyGameExample2Monster(v) => Some(v.pack(fbb).as_union_value()),
-    }
-  }
-  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
-  pub fn take_monster(&mut self) -> Option<Box<MonsterT>> {
-    if let Self::Monster(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::Monster(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the MonsterT.
-  pub fn as_monster(&self) -> Option<&MonsterT> {
-    if let Self::Monster(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the MonsterT.
-  pub fn as_monster_mut(&mut self) -> Option<&mut MonsterT> {
-    if let Self::Monster(v) = self { Some(v.as_mut()) } else { None }
-  }
-  /// If the union variant matches, return the owned TestSimpleTableWithEnumT, setting the union to NONE.
-  pub fn take_test_simple_table_with_enum(&mut self) -> Option<Box<TestSimpleTableWithEnumT>> {
-    if let Self::TestSimpleTableWithEnum(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::TestSimpleTableWithEnum(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the TestSimpleTableWithEnumT.
-  pub fn as_test_simple_table_with_enum(&self) -> Option<&TestSimpleTableWithEnumT> {
-    if let Self::TestSimpleTableWithEnum(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the TestSimpleTableWithEnumT.
-  pub fn as_test_simple_table_with_enum_mut(&mut self) -> Option<&mut TestSimpleTableWithEnumT> {
-    if let Self::TestSimpleTableWithEnum(v) = self { Some(v.as_mut()) } else { None }
-  }
-  /// If the union variant matches, return the owned super::example_2::MonsterT, setting the union to NONE.
-  pub fn take_my_game_example_2_monster(&mut self) -> Option<Box<super::example_2::MonsterT>> {
-    if let Self::MyGameExample2Monster(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::MyGameExample2Monster(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the super::example_2::MonsterT.
-  pub fn as_my_game_example_2_monster(&self) -> Option<&super::example_2::MonsterT> {
-    if let Self::MyGameExample2Monster(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the super::example_2::MonsterT.
-  pub fn as_my_game_example_2_monster_mut(&mut self) -> Option<&mut super::example_2::MonsterT> {
-    if let Self::MyGameExample2Monster(v) = self { Some(v.as_mut()) } else { None }
-  }
-}
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_ANY_UNIQUE_ALIASES: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
@@ -695,100 +547,6 @@ impl<'a> flatbuffers::Verifiable for AnyUniqueAliases {
 impl flatbuffers::SimpleToVerifyInSlice for AnyUniqueAliases {}
 pub struct AnyUniqueAliasesUnionTableOffset {}
 
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub enum AnyUniqueAliasesT {
-  NONE,
-  M(Box<MonsterT>),
-  TS(Box<TestSimpleTableWithEnumT>),
-  M2(Box<super::example_2::MonsterT>),
-}
-impl Default for AnyUniqueAliasesT {
-  fn default() -> Self {
-    Self::NONE
-  }
-}
-impl AnyUniqueAliasesT {
-  pub fn any_unique_aliases_type(&self) -> AnyUniqueAliases {
-    match self {
-      Self::NONE => AnyUniqueAliases::NONE,
-      Self::M(_) => AnyUniqueAliases::M,
-      Self::TS(_) => AnyUniqueAliases::TS,
-      Self::M2(_) => AnyUniqueAliases::M2,
-    }
-  }
-  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
-    match self {
-      Self::NONE => None,
-      Self::M(v) => Some(v.pack(fbb).as_union_value()),
-      Self::TS(v) => Some(v.pack(fbb).as_union_value()),
-      Self::M2(v) => Some(v.pack(fbb).as_union_value()),
-    }
-  }
-  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
-  pub fn take_m(&mut self) -> Option<Box<MonsterT>> {
-    if let Self::M(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::M(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the MonsterT.
-  pub fn as_m(&self) -> Option<&MonsterT> {
-    if let Self::M(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the MonsterT.
-  pub fn as_m_mut(&mut self) -> Option<&mut MonsterT> {
-    if let Self::M(v) = self { Some(v.as_mut()) } else { None }
-  }
-  /// If the union variant matches, return the owned TestSimpleTableWithEnumT, setting the union to NONE.
-  pub fn take_ts(&mut self) -> Option<Box<TestSimpleTableWithEnumT>> {
-    if let Self::TS(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::TS(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the TestSimpleTableWithEnumT.
-  pub fn as_ts(&self) -> Option<&TestSimpleTableWithEnumT> {
-    if let Self::TS(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the TestSimpleTableWithEnumT.
-  pub fn as_ts_mut(&mut self) -> Option<&mut TestSimpleTableWithEnumT> {
-    if let Self::TS(v) = self { Some(v.as_mut()) } else { None }
-  }
-  /// If the union variant matches, return the owned super::example_2::MonsterT, setting the union to NONE.
-  pub fn take_m2(&mut self) -> Option<Box<super::example_2::MonsterT>> {
-    if let Self::M2(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::M2(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the super::example_2::MonsterT.
-  pub fn as_m2(&self) -> Option<&super::example_2::MonsterT> {
-    if let Self::M2(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the super::example_2::MonsterT.
-  pub fn as_m2_mut(&mut self) -> Option<&mut super::example_2::MonsterT> {
-    if let Self::M2(v) = self { Some(v.as_mut()) } else { None }
-  }
-}
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_ANY_AMBIGUOUS_ALIASES: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
@@ -886,100 +644,6 @@ impl<'a> flatbuffers::Verifiable for AnyAmbiguousAliases {
 impl flatbuffers::SimpleToVerifyInSlice for AnyAmbiguousAliases {}
 pub struct AnyAmbiguousAliasesUnionTableOffset {}
 
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub enum AnyAmbiguousAliasesT {
-  NONE,
-  M1(Box<MonsterT>),
-  M2(Box<MonsterT>),
-  M3(Box<MonsterT>),
-}
-impl Default for AnyAmbiguousAliasesT {
-  fn default() -> Self {
-    Self::NONE
-  }
-}
-impl AnyAmbiguousAliasesT {
-  pub fn any_ambiguous_aliases_type(&self) -> AnyAmbiguousAliases {
-    match self {
-      Self::NONE => AnyAmbiguousAliases::NONE,
-      Self::M1(_) => AnyAmbiguousAliases::M1,
-      Self::M2(_) => AnyAmbiguousAliases::M2,
-      Self::M3(_) => AnyAmbiguousAliases::M3,
-    }
-  }
-  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
-    match self {
-      Self::NONE => None,
-      Self::M1(v) => Some(v.pack(fbb).as_union_value()),
-      Self::M2(v) => Some(v.pack(fbb).as_union_value()),
-      Self::M3(v) => Some(v.pack(fbb).as_union_value()),
-    }
-  }
-  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
-  pub fn take_m1(&mut self) -> Option<Box<MonsterT>> {
-    if let Self::M1(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::M1(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the MonsterT.
-  pub fn as_m1(&self) -> Option<&MonsterT> {
-    if let Self::M1(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the MonsterT.
-  pub fn as_m1_mut(&mut self) -> Option<&mut MonsterT> {
-    if let Self::M1(v) = self { Some(v.as_mut()) } else { None }
-  }
-  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
-  pub fn take_m2(&mut self) -> Option<Box<MonsterT>> {
-    if let Self::M2(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::M2(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the MonsterT.
-  pub fn as_m2(&self) -> Option<&MonsterT> {
-    if let Self::M2(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the MonsterT.
-  pub fn as_m2_mut(&mut self) -> Option<&mut MonsterT> {
-    if let Self::M2(v) = self { Some(v.as_mut()) } else { None }
-  }
-  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
-  pub fn take_m3(&mut self) -> Option<Box<MonsterT>> {
-    if let Self::M3(_) = self {
-      let v = std::mem::replace(self, Self::NONE);
-      if let Self::M3(w) = v {
-        Some(w)
-      } else {
-        unreachable!()
-      }
-    } else {
-      None
-    }
-  }
-  /// If the union variant matches, return a reference to the MonsterT.
-  pub fn as_m3(&self) -> Option<&MonsterT> {
-    if let Self::M3(v) = self { Some(v.as_ref()) } else { None }
-  }
-  /// If the union variant matches, return a mutable reference to the MonsterT.
-  pub fn as_m3_mut(&mut self) -> Option<&mut MonsterT> {
-    if let Self::M3(v) = self { Some(v.as_mut()) } else { None }
-  }
-}
 // struct Test, aligned to 2
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq)]
@@ -1057,10 +721,6 @@ impl<'a> Test {
     s
   }
 
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.Test"
-    }
-
   pub fn a(&self) -> i16 {
     let mut mem = core::mem::MaybeUninit::<i16>::uninit();
     unsafe {
@@ -1107,26 +767,6 @@ impl<'a> Test {
     }
   }
 
-  pub fn unpack(&self) -> TestT {
-    TestT {
-      a: self.a(),
-      b: self.b(),
-    }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct TestT {
-  pub a: i16,
-  pub b: i8,
-}
-impl TestT {
-  pub fn pack(&self) -> Test {
-    Test::new(
-      self.a,
-      self.b,
-    )
-  }
 }
 
 // struct Vec3, aligned to 8
@@ -1217,10 +857,6 @@ impl<'a> Vec3 {
     s.set_test3(&test3);
     s
   }
-
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.Vec3"
-    }
 
   pub fn x(&self) -> f32 {
     let mut mem = core::mem::MaybeUninit::<f32>::uninit();
@@ -1345,38 +981,6 @@ impl<'a> Vec3 {
     self.0[26..26+4].copy_from_slice(&x.0)
   }
 
-  pub fn unpack(&self) -> Vec3T {
-    Vec3T {
-      x: self.x(),
-      y: self.y(),
-      z: self.z(),
-      test1: self.test1(),
-      test2: self.test2(),
-      test3: self.test3().unpack(),
-    }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct Vec3T {
-  pub x: f32,
-  pub y: f32,
-  pub z: f32,
-  pub test1: f64,
-  pub test2: Color,
-  pub test3: TestT,
-}
-impl Vec3T {
-  pub fn pack(&self) -> Vec3 {
-    Vec3::new(
-      self.x,
-      self.y,
-      self.z,
-      self.test1,
-      self.test2,
-      &self.test3.pack(),
-    )
-  }
 }
 
 // struct Ability, aligned to 4
@@ -1456,10 +1060,6 @@ impl<'a> Ability {
     s
   }
 
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.Ability"
-    }
-
   pub fn id(&self) -> u32 {
     let mut mem = core::mem::MaybeUninit::<u32>::uninit();
     unsafe {
@@ -1516,26 +1116,6 @@ impl<'a> Ability {
     }
   }
 
-  pub fn unpack(&self) -> AbilityT {
-    AbilityT {
-      id: self.id(),
-      distance: self.distance(),
-    }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct AbilityT {
-  pub id: u32,
-  pub distance: u32,
-}
-impl AbilityT {
-  pub fn pack(&self) -> Ability {
-    Ability::new(
-      self.id,
-      self.distance,
-    )
-  }
 }
 
 // struct StructOfStructs, aligned to 4
@@ -1618,10 +1198,6 @@ impl<'a> StructOfStructs {
     s
   }
 
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.StructOfStructs"
-    }
-
   pub fn a(&self) -> &Ability {
     unsafe { &*(self.0[0..].as_ptr() as *const Ability) }
   }
@@ -1646,29 +1222,6 @@ impl<'a> StructOfStructs {
     self.0[12..12+8].copy_from_slice(&x.0)
   }
 
-  pub fn unpack(&self) -> StructOfStructsT {
-    StructOfStructsT {
-      a: self.a().unpack(),
-      b: self.b().unpack(),
-      c: self.c().unpack(),
-    }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct StructOfStructsT {
-  pub a: AbilityT,
-  pub b: TestT,
-  pub c: AbilityT,
-}
-impl StructOfStructsT {
-  pub fn pack(&self) -> StructOfStructs {
-    StructOfStructs::new(
-      &self.a.pack(),
-      &self.b.pack(),
-      &self.c.pack(),
-    )
-  }
 }
 
 pub enum TestSimpleTableWithEnumOffset {}
@@ -1687,10 +1240,6 @@ impl<'a> flatbuffers::Follow<'a> for TestSimpleTableWithEnum<'a> {
 }
 
 impl<'a> TestSimpleTableWithEnum<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.TestSimpleTableWithEnum"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         TestSimpleTableWithEnum { _tab: table }
@@ -1704,12 +1253,6 @@ impl<'a> TestSimpleTableWithEnum<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> TestSimpleTableWithEnumT {
-      let color = self.color();
-      TestSimpleTableWithEnumT {
-        color,
-      }
-    }
     pub const VT_COLOR: flatbuffers::VOffsetT = 4;
 
   #[inline]
@@ -1772,29 +1315,6 @@ impl std::fmt::Debug for TestSimpleTableWithEnum<'_> {
       ds.finish()
   }
 }
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct TestSimpleTableWithEnumT {
-  pub color: Color,
-}
-impl Default for TestSimpleTableWithEnumT {
-  fn default() -> Self {
-    Self {
-      color: Color::Green,
-    }
-  }
-}
-impl TestSimpleTableWithEnumT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<TestSimpleTableWithEnum<'b>> {
-    let color = self.color;
-    TestSimpleTableWithEnum::create(_fbb, &TestSimpleTableWithEnumArgs{
-      color,
-    })
-  }
-}
 pub enum StatOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -1811,10 +1331,6 @@ impl<'a> flatbuffers::Follow<'a> for Stat<'a> {
 }
 
 impl<'a> Stat<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.Stat"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         Stat { _tab: table }
@@ -1830,18 +1346,6 @@ impl<'a> Stat<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> StatT {
-      let id = self.id().map(|x| {
-        x.to_string()
-      });
-      let val = self.val();
-      let count = self.count();
-      StatT {
-        id,
-        val,
-        count,
-      }
-    }
     pub const VT_ID: flatbuffers::VOffsetT = 4;
     pub const VT_VAL: flatbuffers::VOffsetT = 6;
     pub const VT_COUNT: flatbuffers::VOffsetT = 8;
@@ -1940,39 +1444,6 @@ impl std::fmt::Debug for Stat<'_> {
       ds.finish()
   }
 }
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct StatT {
-  pub id: Option<String>,
-  pub val: i64,
-  pub count: u16,
-}
-impl Default for StatT {
-  fn default() -> Self {
-    Self {
-      id: None,
-      val: 0,
-      count: 0,
-    }
-  }
-}
-impl StatT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<Stat<'b>> {
-    let id = self.id.as_ref().map(|x|{
-      _fbb.create_string(x)
-    });
-    let val = self.val;
-    let count = self.count;
-    Stat::create(_fbb, &StatArgs{
-      id,
-      val,
-      count,
-    })
-  }
-}
 pub enum ReferrableOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -1989,10 +1460,6 @@ impl<'a> flatbuffers::Follow<'a> for Referrable<'a> {
 }
 
 impl<'a> Referrable<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.Referrable"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         Referrable { _tab: table }
@@ -2006,12 +1473,6 @@ impl<'a> Referrable<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> ReferrableT {
-      let id = self.id();
-      ReferrableT {
-        id,
-      }
-    }
     pub const VT_ID: flatbuffers::VOffsetT = 4;
 
   #[inline]
@@ -2084,29 +1545,6 @@ impl std::fmt::Debug for Referrable<'_> {
       ds.finish()
   }
 }
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct ReferrableT {
-  pub id: u64,
-}
-impl Default for ReferrableT {
-  fn default() -> Self {
-    Self {
-      id: 0,
-    }
-  }
-}
-impl ReferrableT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<Referrable<'b>> {
-    let id = self.id;
-    Referrable::create(_fbb, &ReferrableArgs{
-      id,
-    })
-  }
-}
 pub enum MonsterOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -2124,10 +1562,6 @@ impl<'a> flatbuffers::Follow<'a> for Monster<'a> {
 }
 
 impl<'a> Monster<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.Monster"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         Monster { _tab: table }
@@ -2137,22 +1571,18 @@ impl<'a> Monster<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args MonsterArgs<'args>) -> flatbuffers::WIPOffset<Monster<'bldr>> {
       let mut builder = MonsterBuilder::new(_fbb);
-      builder.add_non_owning_reference(args.non_owning_reference);
-      builder.add_co_owning_reference(args.co_owning_reference);
-      builder.add_single_weak_reference(args.single_weak_reference);
-      builder.add_testhashu64_fnv1a(args.testhashu64_fnv1a);
-      builder.add_testhashs64_fnv1a(args.testhashs64_fnv1a);
-      builder.add_testhashu64_fnv1(args.testhashu64_fnv1);
-      builder.add_testhashs64_fnv1(args.testhashs64_fnv1);
       if let Some(x) = args.scalar_key_sorted_tables { builder.add_scalar_key_sorted_tables(x); }
       if let Some(x) = args.testrequirednestedflatbuffer { builder.add_testrequirednestedflatbuffer(x); }
       if let Some(x) = args.vector_of_enums { builder.add_vector_of_enums(x); }
       if let Some(x) = args.any_ambiguous { builder.add_any_ambiguous(x); }
       if let Some(x) = args.any_unique { builder.add_any_unique(x); }
       if let Some(x) = args.vector_of_non_owning_references { builder.add_vector_of_non_owning_references(x); }
+      builder.add_non_owning_reference(args.non_owning_reference);
       if let Some(x) = args.vector_of_co_owning_references { builder.add_vector_of_co_owning_references(x); }
+      builder.add_co_owning_reference(args.co_owning_reference);
       if let Some(x) = args.vector_of_strong_referrables { builder.add_vector_of_strong_referrables(x); }
       if let Some(x) = args.vector_of_weak_references { builder.add_vector_of_weak_references(x); }
+      builder.add_single_weak_reference(args.single_weak_reference);
       if let Some(x) = args.vector_of_referrables { builder.add_vector_of_referrables(x); }
       if let Some(x) = args.parent_namespace_test { builder.add_parent_namespace_test(x); }
       if let Some(x) = args.vector_of_doubles { builder.add_vector_of_doubles(x); }
@@ -2161,14 +1591,11 @@ impl<'a> Monster<'a> {
       if let Some(x) = args.flex { builder.add_flex(x); }
       if let Some(x) = args.testarrayofsortedstruct { builder.add_testarrayofsortedstruct(x); }
       if let Some(x) = args.testarrayofstring2 { builder.add_testarrayofstring2(x); }
-      builder.add_testf3(args.testf3);
-      builder.add_testf2(args.testf2);
-      builder.add_testf(args.testf);
       if let Some(x) = args.testarrayofbools { builder.add_testarrayofbools(x); }
-      builder.add_testhashu32_fnv1a(args.testhashu32_fnv1a);
-      builder.add_testhashs32_fnv1a(args.testhashs32_fnv1a);
-      builder.add_testhashu32_fnv1(args.testhashu32_fnv1);
-      builder.add_testhashs32_fnv1(args.testhashs32_fnv1);
+      builder.add_testhashu64_fnv1a(args.testhashu64_fnv1a);
+      builder.add_testhashs64_fnv1a(args.testhashs64_fnv1a);
+      builder.add_testhashu64_fnv1(args.testhashu64_fnv1);
+      builder.add_testhashs64_fnv1(args.testhashs64_fnv1);
       if let Some(x) = args.testempty { builder.add_testempty(x); }
       if let Some(x) = args.testnestedflatbuffer { builder.add_testnestedflatbuffer(x); }
       if let Some(x) = args.enemy { builder.add_enemy(x); }
@@ -2179,6 +1606,13 @@ impl<'a> Monster<'a> {
       if let Some(x) = args.inventory { builder.add_inventory(x); }
       if let Some(x) = args.name { builder.add_name(x); }
       if let Some(x) = args.pos { builder.add_pos(x); }
+      builder.add_testf3(args.testf3);
+      builder.add_testf2(args.testf2);
+      builder.add_testf(args.testf);
+      builder.add_testhashu32_fnv1a(args.testhashu32_fnv1a);
+      builder.add_testhashs32_fnv1a(args.testhashs32_fnv1a);
+      builder.add_testhashu32_fnv1(args.testhashu32_fnv1);
+      builder.add_testhashs32_fnv1(args.testhashs32_fnv1);
       builder.add_hp(args.hp);
       builder.add_mana(args.mana);
       builder.add_signed_enum(args.signed_enum);
@@ -2190,209 +1624,6 @@ impl<'a> Monster<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> MonsterT {
-      let pos = self.pos().map(|x| {
-        x.unpack()
-      });
-      let mana = self.mana();
-      let hp = self.hp();
-      let name = {
-        let x = self.name();
-        x.to_string()
-      };
-      let inventory = self.inventory().map(|x| {
-        x.to_vec()
-      });
-      let color = self.color();
-      let test = match self.test_type() {
-        Any::NONE => AnyT::NONE,
-        Any::Monster => AnyT::Monster(Box::new(
-          self.test_as_monster()
-              .expect("Invalid union table, expected `Any::Monster`.")
-              .unpack()
-        )),
-        Any::TestSimpleTableWithEnum => AnyT::TestSimpleTableWithEnum(Box::new(
-          self.test_as_test_simple_table_with_enum()
-              .expect("Invalid union table, expected `Any::TestSimpleTableWithEnum`.")
-              .unpack()
-        )),
-        Any::MyGame_Example2_Monster => AnyT::MyGameExample2Monster(Box::new(
-          self.test_as_my_game_example_2_monster()
-              .expect("Invalid union table, expected `Any::MyGame_Example2_Monster`.")
-              .unpack()
-        )),
-        _ => AnyT::NONE,
-      };
-      let test4 = self.test4().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      let testarrayofstring = self.testarrayofstring().map(|x| {
-        x.iter().map(|s| s.to_string()).collect()
-      });
-      let testarrayoftables = self.testarrayoftables().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      let enemy = self.enemy().map(|x| {
-        Box::new(x.unpack())
-      });
-      let testnestedflatbuffer = self.testnestedflatbuffer().map(|x| {
-        x.to_vec()
-      });
-      let testempty = self.testempty().map(|x| {
-        Box::new(x.unpack())
-      });
-      let testbool = self.testbool();
-      let testhashs32_fnv1 = self.testhashs32_fnv1();
-      let testhashu32_fnv1 = self.testhashu32_fnv1();
-      let testhashs64_fnv1 = self.testhashs64_fnv1();
-      let testhashu64_fnv1 = self.testhashu64_fnv1();
-      let testhashs32_fnv1a = self.testhashs32_fnv1a();
-      let testhashu32_fnv1a = self.testhashu32_fnv1a();
-      let testhashs64_fnv1a = self.testhashs64_fnv1a();
-      let testhashu64_fnv1a = self.testhashu64_fnv1a();
-      let testarrayofbools = self.testarrayofbools().map(|x| {
-        x.to_vec()
-      });
-      let testf = self.testf();
-      let testf2 = self.testf2();
-      let testf3 = self.testf3();
-      let testarrayofstring2 = self.testarrayofstring2().map(|x| {
-        x.iter().map(|s| s.to_string()).collect()
-      });
-      let testarrayofsortedstruct = self.testarrayofsortedstruct().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      let flex = self.flex().map(|x| {
-        x.to_vec()
-      });
-      let test5 = self.test5().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      let vector_of_longs = self.vector_of_longs().map(|x| {
-        x.into_iter().collect()
-      });
-      let vector_of_doubles = self.vector_of_doubles().map(|x| {
-        x.into_iter().collect()
-      });
-      let parent_namespace_test = self.parent_namespace_test().map(|x| {
-        Box::new(x.unpack())
-      });
-      let vector_of_referrables = self.vector_of_referrables().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      let single_weak_reference = self.single_weak_reference();
-      let vector_of_weak_references = self.vector_of_weak_references().map(|x| {
-        x.into_iter().collect()
-      });
-      let vector_of_strong_referrables = self.vector_of_strong_referrables().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      let co_owning_reference = self.co_owning_reference();
-      let vector_of_co_owning_references = self.vector_of_co_owning_references().map(|x| {
-        x.into_iter().collect()
-      });
-      let non_owning_reference = self.non_owning_reference();
-      let vector_of_non_owning_references = self.vector_of_non_owning_references().map(|x| {
-        x.into_iter().collect()
-      });
-      let any_unique = match self.any_unique_type() {
-        AnyUniqueAliases::NONE => AnyUniqueAliasesT::NONE,
-        AnyUniqueAliases::M => AnyUniqueAliasesT::M(Box::new(
-          self.any_unique_as_m()
-              .expect("Invalid union table, expected `AnyUniqueAliases::M`.")
-              .unpack()
-        )),
-        AnyUniqueAliases::TS => AnyUniqueAliasesT::TS(Box::new(
-          self.any_unique_as_ts()
-              .expect("Invalid union table, expected `AnyUniqueAliases::TS`.")
-              .unpack()
-        )),
-        AnyUniqueAliases::M2 => AnyUniqueAliasesT::M2(Box::new(
-          self.any_unique_as_m2()
-              .expect("Invalid union table, expected `AnyUniqueAliases::M2`.")
-              .unpack()
-        )),
-        _ => AnyUniqueAliasesT::NONE,
-      };
-      let any_ambiguous = match self.any_ambiguous_type() {
-        AnyAmbiguousAliases::NONE => AnyAmbiguousAliasesT::NONE,
-        AnyAmbiguousAliases::M1 => AnyAmbiguousAliasesT::M1(Box::new(
-          self.any_ambiguous_as_m1()
-              .expect("Invalid union table, expected `AnyAmbiguousAliases::M1`.")
-              .unpack()
-        )),
-        AnyAmbiguousAliases::M2 => AnyAmbiguousAliasesT::M2(Box::new(
-          self.any_ambiguous_as_m2()
-              .expect("Invalid union table, expected `AnyAmbiguousAliases::M2`.")
-              .unpack()
-        )),
-        AnyAmbiguousAliases::M3 => AnyAmbiguousAliasesT::M3(Box::new(
-          self.any_ambiguous_as_m3()
-              .expect("Invalid union table, expected `AnyAmbiguousAliases::M3`.")
-              .unpack()
-        )),
-        _ => AnyAmbiguousAliasesT::NONE,
-      };
-      let vector_of_enums = self.vector_of_enums().map(|x| {
-        x.into_iter().collect()
-      });
-      let signed_enum = self.signed_enum();
-      let testrequirednestedflatbuffer = self.testrequirednestedflatbuffer().map(|x| {
-        x.to_vec()
-      });
-      let scalar_key_sorted_tables = self.scalar_key_sorted_tables().map(|x| {
-        x.iter().map(|t| t.unpack()).collect()
-      });
-      MonsterT {
-        pos,
-        mana,
-        hp,
-        name,
-        inventory,
-        color,
-        test,
-        test4,
-        testarrayofstring,
-        testarrayoftables,
-        enemy,
-        testnestedflatbuffer,
-        testempty,
-        testbool,
-        testhashs32_fnv1,
-        testhashu32_fnv1,
-        testhashs64_fnv1,
-        testhashu64_fnv1,
-        testhashs32_fnv1a,
-        testhashu32_fnv1a,
-        testhashs64_fnv1a,
-        testhashu64_fnv1a,
-        testarrayofbools,
-        testf,
-        testf2,
-        testf3,
-        testarrayofstring2,
-        testarrayofsortedstruct,
-        flex,
-        test5,
-        vector_of_longs,
-        vector_of_doubles,
-        parent_namespace_test,
-        vector_of_referrables,
-        single_weak_reference,
-        vector_of_weak_references,
-        vector_of_strong_referrables,
-        co_owning_reference,
-        vector_of_co_owning_references,
-        non_owning_reference,
-        vector_of_non_owning_references,
-        any_unique,
-        any_ambiguous,
-        vector_of_enums,
-        signed_enum,
-        testrequirednestedflatbuffer,
-        scalar_key_sorted_tables,
-      }
-    }
     pub const VT_POS: flatbuffers::VOffsetT = 4;
     pub const VT_MANA: flatbuffers::VOffsetT = 6;
     pub const VT_HP: flatbuffers::VOffsetT = 8;
@@ -3303,269 +2534,6 @@ impl std::fmt::Debug for Monster<'_> {
       ds.finish()
   }
 }
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct MonsterT {
-  pub pos: Option<Vec3T>,
-  pub mana: i16,
-  pub hp: i16,
-  pub name: String,
-  pub inventory: Option<Vec<u8>>,
-  pub color: Color,
-  pub test: AnyT,
-  pub test4: Option<Vec<TestT>>,
-  pub testarrayofstring: Option<Vec<String>>,
-  pub testarrayoftables: Option<Vec<MonsterT>>,
-  pub enemy: Option<Box<MonsterT>>,
-  pub testnestedflatbuffer: Option<Vec<u8>>,
-  pub testempty: Option<Box<StatT>>,
-  pub testbool: bool,
-  pub testhashs32_fnv1: i32,
-  pub testhashu32_fnv1: u32,
-  pub testhashs64_fnv1: i64,
-  pub testhashu64_fnv1: u64,
-  pub testhashs32_fnv1a: i32,
-  pub testhashu32_fnv1a: u32,
-  pub testhashs64_fnv1a: i64,
-  pub testhashu64_fnv1a: u64,
-  pub testarrayofbools: Option<Vec<bool>>,
-  pub testf: f32,
-  pub testf2: f32,
-  pub testf3: f32,
-  pub testarrayofstring2: Option<Vec<String>>,
-  pub testarrayofsortedstruct: Option<Vec<AbilityT>>,
-  pub flex: Option<Vec<u8>>,
-  pub test5: Option<Vec<TestT>>,
-  pub vector_of_longs: Option<Vec<i64>>,
-  pub vector_of_doubles: Option<Vec<f64>>,
-  pub parent_namespace_test: Option<Box<super::InParentNamespaceT>>,
-  pub vector_of_referrables: Option<Vec<ReferrableT>>,
-  pub single_weak_reference: u64,
-  pub vector_of_weak_references: Option<Vec<u64>>,
-  pub vector_of_strong_referrables: Option<Vec<ReferrableT>>,
-  pub co_owning_reference: u64,
-  pub vector_of_co_owning_references: Option<Vec<u64>>,
-  pub non_owning_reference: u64,
-  pub vector_of_non_owning_references: Option<Vec<u64>>,
-  pub any_unique: AnyUniqueAliasesT,
-  pub any_ambiguous: AnyAmbiguousAliasesT,
-  pub vector_of_enums: Option<Vec<Color>>,
-  pub signed_enum: Race,
-  pub testrequirednestedflatbuffer: Option<Vec<u8>>,
-  pub scalar_key_sorted_tables: Option<Vec<StatT>>,
-}
-impl Default for MonsterT {
-  fn default() -> Self {
-    Self {
-      pos: None,
-      mana: 150,
-      hp: 100,
-      name: "".to_string(),
-      inventory: None,
-      color: Color::Blue,
-      test: AnyT::NONE,
-      test4: None,
-      testarrayofstring: None,
-      testarrayoftables: None,
-      enemy: None,
-      testnestedflatbuffer: None,
-      testempty: None,
-      testbool: false,
-      testhashs32_fnv1: 0,
-      testhashu32_fnv1: 0,
-      testhashs64_fnv1: 0,
-      testhashu64_fnv1: 0,
-      testhashs32_fnv1a: 0,
-      testhashu32_fnv1a: 0,
-      testhashs64_fnv1a: 0,
-      testhashu64_fnv1a: 0,
-      testarrayofbools: None,
-      testf: 3.14159,
-      testf2: 3.0,
-      testf3: 0.0,
-      testarrayofstring2: None,
-      testarrayofsortedstruct: None,
-      flex: None,
-      test5: None,
-      vector_of_longs: None,
-      vector_of_doubles: None,
-      parent_namespace_test: None,
-      vector_of_referrables: None,
-      single_weak_reference: 0,
-      vector_of_weak_references: None,
-      vector_of_strong_referrables: None,
-      co_owning_reference: 0,
-      vector_of_co_owning_references: None,
-      non_owning_reference: 0,
-      vector_of_non_owning_references: None,
-      any_unique: AnyUniqueAliasesT::NONE,
-      any_ambiguous: AnyAmbiguousAliasesT::NONE,
-      vector_of_enums: None,
-      signed_enum: Race::None,
-      testrequirednestedflatbuffer: None,
-      scalar_key_sorted_tables: None,
-    }
-  }
-}
-impl MonsterT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<Monster<'b>> {
-    let pos_tmp = self.pos.as_ref().map(|x| x.pack());
-    let pos = pos_tmp.as_ref();
-    let mana = self.mana;
-    let hp = self.hp;
-    let name = Some({
-      let x = &self.name;
-      _fbb.create_string(x)
-    });
-    let inventory = self.inventory.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let color = self.color;
-    let test_type = self.test.any_type();
-    let test = self.test.pack(_fbb);
-    let test4 = self.test4.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack()).collect();_fbb.create_vector(&w)
-    });
-    let testarrayofstring = self.testarrayofstring.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|s| s.as_ref()).collect();_fbb.create_vector_of_strings(&w)
-    });
-    let testarrayoftables = self.testarrayoftables.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
-    });
-    let enemy = self.enemy.as_ref().map(|x|{
-      x.pack(_fbb)
-    });
-    let testnestedflatbuffer = self.testnestedflatbuffer.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let testempty = self.testempty.as_ref().map(|x|{
-      x.pack(_fbb)
-    });
-    let testbool = self.testbool;
-    let testhashs32_fnv1 = self.testhashs32_fnv1;
-    let testhashu32_fnv1 = self.testhashu32_fnv1;
-    let testhashs64_fnv1 = self.testhashs64_fnv1;
-    let testhashu64_fnv1 = self.testhashu64_fnv1;
-    let testhashs32_fnv1a = self.testhashs32_fnv1a;
-    let testhashu32_fnv1a = self.testhashu32_fnv1a;
-    let testhashs64_fnv1a = self.testhashs64_fnv1a;
-    let testhashu64_fnv1a = self.testhashu64_fnv1a;
-    let testarrayofbools = self.testarrayofbools.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let testf = self.testf;
-    let testf2 = self.testf2;
-    let testf3 = self.testf3;
-    let testarrayofstring2 = self.testarrayofstring2.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|s| s.as_ref()).collect();_fbb.create_vector_of_strings(&w)
-    });
-    let testarrayofsortedstruct = self.testarrayofsortedstruct.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack()).collect();_fbb.create_vector(&w)
-    });
-    let flex = self.flex.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let test5 = self.test5.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack()).collect();_fbb.create_vector(&w)
-    });
-    let vector_of_longs = self.vector_of_longs.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let vector_of_doubles = self.vector_of_doubles.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let parent_namespace_test = self.parent_namespace_test.as_ref().map(|x|{
-      x.pack(_fbb)
-    });
-    let vector_of_referrables = self.vector_of_referrables.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
-    });
-    let single_weak_reference = self.single_weak_reference;
-    let vector_of_weak_references = self.vector_of_weak_references.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let vector_of_strong_referrables = self.vector_of_strong_referrables.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
-    });
-    let co_owning_reference = self.co_owning_reference;
-    let vector_of_co_owning_references = self.vector_of_co_owning_references.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let non_owning_reference = self.non_owning_reference;
-    let vector_of_non_owning_references = self.vector_of_non_owning_references.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let any_unique_type = self.any_unique.any_unique_aliases_type();
-    let any_unique = self.any_unique.pack(_fbb);
-    let any_ambiguous_type = self.any_ambiguous.any_ambiguous_aliases_type();
-    let any_ambiguous = self.any_ambiguous.pack(_fbb);
-    let vector_of_enums = self.vector_of_enums.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let signed_enum = self.signed_enum;
-    let testrequirednestedflatbuffer = self.testrequirednestedflatbuffer.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let scalar_key_sorted_tables = self.scalar_key_sorted_tables.as_ref().map(|x|{
-      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
-    });
-    Monster::create(_fbb, &MonsterArgs{
-      pos,
-      mana,
-      hp,
-      name,
-      inventory,
-      color,
-      test_type,
-      test,
-      test4,
-      testarrayofstring,
-      testarrayoftables,
-      enemy,
-      testnestedflatbuffer,
-      testempty,
-      testbool,
-      testhashs32_fnv1,
-      testhashu32_fnv1,
-      testhashs64_fnv1,
-      testhashu64_fnv1,
-      testhashs32_fnv1a,
-      testhashu32_fnv1a,
-      testhashs64_fnv1a,
-      testhashu64_fnv1a,
-      testarrayofbools,
-      testf,
-      testf2,
-      testf3,
-      testarrayofstring2,
-      testarrayofsortedstruct,
-      flex,
-      test5,
-      vector_of_longs,
-      vector_of_doubles,
-      parent_namespace_test,
-      vector_of_referrables,
-      single_weak_reference,
-      vector_of_weak_references,
-      vector_of_strong_referrables,
-      co_owning_reference,
-      vector_of_co_owning_references,
-      non_owning_reference,
-      vector_of_non_owning_references,
-      any_unique_type,
-      any_unique,
-      any_ambiguous_type,
-      any_ambiguous,
-      vector_of_enums,
-      signed_enum,
-      testrequirednestedflatbuffer,
-      scalar_key_sorted_tables,
-    })
-  }
-}
 pub enum TypeAliasesOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -3582,10 +2550,6 @@ impl<'a> flatbuffers::Follow<'a> for TypeAliases<'a> {
 }
 
 impl<'a> TypeAliases<'a> {
-    pub const fn get_fully_qualified_name() -> &'static str {
-        "MyGame.Example.TypeAliases"
-    }
-
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
         TypeAliases { _tab: table }
@@ -3595,11 +2559,11 @@ impl<'a> TypeAliases<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args TypeAliasesArgs<'args>) -> flatbuffers::WIPOffset<TypeAliases<'bldr>> {
       let mut builder = TypeAliasesBuilder::new(_fbb);
+      if let Some(x) = args.vf64 { builder.add_vf64(x); }
+      if let Some(x) = args.v8 { builder.add_v8(x); }
       builder.add_f64_(args.f64_);
       builder.add_u64_(args.u64_);
       builder.add_i64_(args.i64_);
-      if let Some(x) = args.vf64 { builder.add_vf64(x); }
-      if let Some(x) = args.v8 { builder.add_v8(x); }
       builder.add_f32_(args.f32_);
       builder.add_u32_(args.u32_);
       builder.add_i32_(args.i32_);
@@ -3610,38 +2574,6 @@ impl<'a> TypeAliases<'a> {
       builder.finish()
     }
 
-    pub fn unpack(&self) -> TypeAliasesT {
-      let i8_ = self.i8_();
-      let u8_ = self.u8_();
-      let i16_ = self.i16_();
-      let u16_ = self.u16_();
-      let i32_ = self.i32_();
-      let u32_ = self.u32_();
-      let i64_ = self.i64_();
-      let u64_ = self.u64_();
-      let f32_ = self.f32_();
-      let f64_ = self.f64_();
-      let v8 = self.v8().map(|x| {
-        x.to_vec()
-      });
-      let vf64 = self.vf64().map(|x| {
-        x.into_iter().collect()
-      });
-      TypeAliasesT {
-        i8_,
-        u8_,
-        i16_,
-        u16_,
-        i32_,
-        u32_,
-        i64_,
-        u64_,
-        f32_,
-        f64_,
-        v8,
-        vf64,
-      }
-    }
     pub const VT_I8_: flatbuffers::VOffsetT = 4;
     pub const VT_U8_: flatbuffers::VOffsetT = 6;
     pub const VT_I16_: flatbuffers::VOffsetT = 8;
@@ -3845,77 +2777,6 @@ impl std::fmt::Debug for TypeAliases<'_> {
       ds.field("v8", &self.v8());
       ds.field("vf64", &self.vf64());
       ds.finish()
-  }
-}
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
-pub struct TypeAliasesT {
-  pub i8_: i8,
-  pub u8_: u8,
-  pub i16_: i16,
-  pub u16_: u16,
-  pub i32_: i32,
-  pub u32_: u32,
-  pub i64_: i64,
-  pub u64_: u64,
-  pub f32_: f32,
-  pub f64_: f64,
-  pub v8: Option<Vec<i8>>,
-  pub vf64: Option<Vec<f64>>,
-}
-impl Default for TypeAliasesT {
-  fn default() -> Self {
-    Self {
-      i8_: 0,
-      u8_: 0,
-      i16_: 0,
-      u16_: 0,
-      i32_: 0,
-      u32_: 0,
-      i64_: 0,
-      u64_: 0,
-      f32_: 0.0,
-      f64_: 0.0,
-      v8: None,
-      vf64: None,
-    }
-  }
-}
-impl TypeAliasesT {
-  pub fn pack<'b>(
-    &self,
-    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
-  ) -> flatbuffers::WIPOffset<TypeAliases<'b>> {
-    let i8_ = self.i8_;
-    let u8_ = self.u8_;
-    let i16_ = self.i16_;
-    let u16_ = self.u16_;
-    let i32_ = self.i32_;
-    let u32_ = self.u32_;
-    let i64_ = self.i64_;
-    let u64_ = self.u64_;
-    let f32_ = self.f32_;
-    let f64_ = self.f64_;
-    let v8 = self.v8.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    let vf64 = self.vf64.as_ref().map(|x|{
-      _fbb.create_vector(x)
-    });
-    TypeAliases::create(_fbb, &TypeAliasesArgs{
-      i8_,
-      u8_,
-      i16_,
-      u16_,
-      i32_,
-      u32_,
-      i64_,
-      u64_,
-      f32_,
-      f64_,
-      v8,
-      vf64,
-    })
   }
 }
 #[inline]
