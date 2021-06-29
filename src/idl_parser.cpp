@@ -3414,7 +3414,6 @@ CheckedError Parser::DoParse(const char *source, const char **include_paths,
         return Error("file_identifier must be less than " +
                      NumToString(FlatBufferBuilder::kFileIdentifierLength) +
                      " characters");
-      file_identifier_.resize(8);
       EXPECT(';');
     } else if (IsIdent("file_extension")) {
       NEXT();
@@ -3916,7 +3915,9 @@ bool Parser::Deserialize(const uint8_t *buf, const size_t size) {
   }
   auto verify_fn = size_prefixed ? &reflection::VerifySizePrefixedSchemaBuffer
                                  : &reflection::VerifySchemaBuffer;
-  if (!verify_fn(verifier)) { return false; }
+  if (!verify_fn(verifier))
+    return false;
+
   auto schema = size_prefixed ? reflection::GetSizePrefixedSchema(buf)
                               : reflection::GetSchema(buf);
   return Deserialize(schema);
@@ -3965,7 +3966,8 @@ bool Parser::Deserialize(const reflection::Schema *schema) {
     auto struct_def = structs_.Lookup(qualified_name);
     struct_def->defined_namespace =
         GetNamespace(qualified_name, namespaces_, namespaces_index);
-    if (!struct_def->Deserialize(*this, *it)) { return false; }
+    if (!struct_def->Deserialize(*this, *it))
+      return false;
     if (schema->root_table() == *it) { root_struct_def_ = struct_def; }
   }
   for (auto it = schema->enums()->begin(); it != schema->enums()->end(); ++it) {
@@ -3973,7 +3975,8 @@ bool Parser::Deserialize(const reflection::Schema *schema) {
     auto enum_def = enums_.Lookup(qualified_name);
     enum_def->defined_namespace =
         GetNamespace(qualified_name, namespaces_, namespaces_index);
-    if (!enum_def->Deserialize(*this, *it)) { return false; }
+    if (!enum_def->Deserialize(*this, *it))
+      return false;
   }
 
   if (schema->services()) {
