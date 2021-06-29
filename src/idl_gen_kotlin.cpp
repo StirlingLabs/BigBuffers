@@ -563,14 +563,14 @@ class KotlinGenerator : public BaseGenerator {
             "val byteKey = key."
             "toByteArray(java.nio.charset.StandardCharsets.UTF_8)";
       }
-      writer += "var span = bb.getInt(vectorLocation - 4)";
+      writer += "var span = bb.getInt(vectorLocation - 8)"; // TODO: 8 -> (Long.SIZE/8)
       writer += "var start = 0";
       writer += "while (span != 0) {";
       writer.IncrementIdentLevel();
       writer += "var middle = span / 2";
       writer +=
           "val tableOffset = __indirect(vector"
-          "Location + 4 * (start + middle), bb)";
+          "Location + 8 * (start + middle), bb)"; // TODO: 8 -> (Long.SIZE/8)
       if (IsString(key_field->value.type)) {
         writer += "val comp = compareStrings(\\";
         writer += GenOffsetGetter(key_field) + "\\";

@@ -185,7 +185,7 @@ public struct Monster: FlatBufferObject, Verifiable {
   }
   public static func sortVectorOfMonster(offsets:[Offset], _ fbb: inout FlatBufferBuilder) -> Offset {
     var off = offsets
-    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 10, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 10, fbb: fbb.buffer), fbb: fbb.buffer) < 0 } 
+    off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: 10, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: 10, fbb: fbb.buffer), fbb: fbb.buffer) < 0 }
     return fbb.createVector(ofOffsets: off)
   }
   fileprivate static func lookupByKey(vector: Int32, key: String, fbb: ByteBuffer) -> Monster? {
@@ -194,7 +194,7 @@ public struct Monster: FlatBufferObject, Verifiable {
     var start: Int32 = 0
     while span != 0 {
       var middle = span / 2
-      let tableOffset = Table.indirect(vector + 4 * (start + middle), fbb)
+      let tableOffset = Table.indirect(vector + 8 * (start + middle), fbb)
       let comp = Table.compare(Table.offset(Int32(fbb.capacity) - tableOffset, vOffset: 10, fbb: fbb), key, fbb: fbb)
       if comp > 0 {
         span = middle

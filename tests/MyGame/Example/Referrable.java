@@ -44,7 +44,7 @@ public final class Referrable extends Table {
     int start = 0;
     while (span != 0) {
       int middle = span / 2;
-      int tableOffset = __indirect(vectorLocation + 4 * (start + middle), bb);
+      int tableOffset = __indirect(vectorLocation + 8 * (start + middle), bb);
       long val = bb.getLong(__offset(4, bb.capacity() - tableOffset, bb));
       int comp = val > key ? 1 : val < key ? -1 : 0;
       if (comp > 0) {
