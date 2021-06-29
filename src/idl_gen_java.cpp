@@ -552,7 +552,7 @@ class JavaGenerator : public BaseGenerator {
   std::string GenLookupKeyGetter(flatbuffers::FieldDef *key_field) const {
     std::string key_getter = "      ";
     key_getter += "int tableOffset = ";
-    key_getter += "__indirect(vectorLocation + 4 * (start + middle)";
+    key_getter += "__indirect(vectorLocation + (Long.SIZE/8) * (start + middle)";
     key_getter += ", bb);\n      ";
     if (IsString(key_field->value.type)) {
       key_getter += "int comp = ";
@@ -1179,7 +1179,7 @@ class JavaGenerator : public BaseGenerator {
         code += "key.getBytes(java.nio.charset.StandardCharsets.UTF_8);\n";
       }
       code += "    int span = ";
-      code += "bb.getInt(vectorLocation - 4);\n";
+      code += "bb.getInt(vectorLocation - (Long.SIZE/8));\n";
       code += "    int start = 0;\n";
       code += "    while (span != 0) {\n";
       code += "      int middle = span / 2;\n";
@@ -1592,7 +1592,7 @@ class JavaGenerator : public BaseGenerator {
                 to_array = GenTypeGet(field.value.type) + ".pack(builder, _e)";
                 break;
               case BASE_TYPE_UTYPE:
-                property_name = camel_name.substr(0, camel_name.size() - 4);
+                property_name = camel_name.substr(0, camel_name.size() - sizeof(uoffset_t));
                 array_type = GenTypeBasic(DestinationType(
                     field.value.type.enum_def->underlying_type, false));
                 element_type = field.value.type.enum_def->name + "Union";

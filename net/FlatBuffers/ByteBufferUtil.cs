@@ -25,7 +25,7 @@ namespace FlatBuffers
 	{
 		// Extract the size prefix from a `ByteBuffer`.
 		public static int GetSizePrefix(ByteBuffer bb) {
-			return bb.GetInt(bb.Position);
+			return bb.GetLong(bb.Position);
 		}
 
 		// Create a duplicate of a size-prefixed `ByteBuffer` that has its position

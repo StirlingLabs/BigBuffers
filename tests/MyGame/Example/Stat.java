@@ -55,7 +55,7 @@ public final class Stat extends Table {
     int start = 0;
     while (span != 0) {
       int middle = span / 2;
-      int tableOffset = __indirect(vectorLocation + 4 * (start + middle), bb);
+      int tableOffset = __indirect(vectorLocation + 8 * (start + middle), bb);
       int val = bb.getShort(__offset(8, bb.capacity() - tableOffset, bb)) & 0xFFFF;
       int comp = val > key ? 1 : val < key ? -1 : 0;
       if (comp > 0) {

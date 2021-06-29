@@ -318,10 +318,10 @@ namespace flatbuffers {
 // Our default offset / size type, 32bit on purpose on 64bit systems.
 // Also, using a consistent offset type maintains compatibility of serialized
 // offset values between 32bit and 64bit systems.
-typedef uint32_t uoffset_t;
+typedef uint64_t uoffset_t;
 
 // Signed offsets for references that can go in both directions.
-typedef int32_t soffset_t;
+typedef int64_t soffset_t;
 
 // Offset/index used in v-tables, can be changed to uint8_t in
 // format forks to save a bit of space if desired.

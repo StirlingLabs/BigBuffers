@@ -454,10 +454,10 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable boolean value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>       
+        /// it will skip writing to the buffer.</param>
         public void AddBool(int o, bool? x) { if (x.HasValue) { AddBool(x.Value); Slot(o); } }
 
-        
+
         /// <summary>
         /// Adds a SByte to the Table at index `o` in its vtable using the value `x` and default `d`
         /// </summary>
@@ -472,7 +472,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable sbyte value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddSbyte(int o, sbyte? x) { if (x.HasValue) { AddSbyte(x.Value); Slot(o); } }
 
         /// <summary>
@@ -489,7 +489,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable byte value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddByte(int o, byte? x) { if (x.HasValue) { AddByte(x.Value); Slot(o); } }
 
         /// <summary>
@@ -506,7 +506,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable int16 value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddShort(int o, short? x) { if (x.HasValue) { AddShort(x.Value); Slot(o); } }
 
         /// <summary>
@@ -523,7 +523,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable uint16 value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddUshort(int o, ushort? x) { if (x.HasValue) { AddUshort(x.Value); Slot(o); } }
 
         /// <summary>
@@ -540,7 +540,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable int32 value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddInt(int o, int? x) { if (x.HasValue) { AddInt(x.Value); Slot(o); } }
 
         /// <summary>
@@ -557,7 +557,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable uint32 value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddUint(int o, uint? x) { if (x.HasValue) { AddUint(x.Value); Slot(o); } }
 
         /// <summary>
@@ -574,7 +574,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable int64 value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddLong(int o, long? x) { if (x.HasValue) { AddLong(x.Value); Slot(o); } }
 
         /// <summary>
@@ -591,7 +591,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable int64 value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddUlong(int o, ulong? x) { if (x.HasValue) { AddUlong(x.Value); Slot(o); } }
 
         /// <summary>
@@ -608,7 +608,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable single value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddFloat(int o, float? x) { if (x.HasValue) { AddFloat(x.Value); Slot(o); } }
 
         /// <summary>
@@ -625,7 +625,7 @@ namespace FlatBuffers
         /// </summary>
         /// <param name="o">The index into the vtable</param>
         /// <param name="x">The nullable double value to put into the buffer. If it doesn't have a value
-        /// it will skip writing to the buffer.</param>  
+        /// it will skip writing to the buffer.</param>
         public void AddDouble(int o, double? x) { if (x.HasValue) { AddDouble(x.Value); Slot(o); } }
 
         /// <summary>
@@ -803,7 +803,7 @@ namespace FlatBuffers
         public void Required(int table, int field)
         {
           int table_start = _bb.Length - table;
-          int vtable_start = table_start - _bb.GetInt(table_start);
+          int vtable_start = table_start - _bb.GetLong(table_start);
           bool ok = _bb.GetShort(vtable_start + field) != 0;
           // If this fails, the caller will show what field needs to be set.
           if (!ok)

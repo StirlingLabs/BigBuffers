@@ -59,7 +59,7 @@ class Referrable : Table() {
             var start = 0
             while (span != 0) {
                 var middle = span / 2
-                val tableOffset = __indirect(vectorLocation + 4 * (start + middle), bb)
+                val tableOffset = __indirect(vectorLocation + 8 * (start + middle), bb)
                 val value = bb.getLong(__offset(4, bb.capacity() - tableOffset, bb)).toULong()
                 val comp = value.compareTo(key)
                 when {
