@@ -560,7 +560,7 @@ class CSharpGenerator : public BaseGenerator {
             IsArray(field_type) ? field_type.VectorType() : field_type;
         const auto index_var = "_idx" + NumToString(index);
         if (IsArray(field_type)) {
-          code += indent + "  for (int " + index_var + " = ";
+          code += indent + "  for (long " + index_var + " = ";
           code += NumToString(field_type.fixed_length);
           code += "; " + index_var + " > 0; " + index_var + "--) {\n";
           in_array = true;
@@ -707,14 +707,14 @@ class CSharpGenerator : public BaseGenerator {
     }
     // Generate the __init method that sets the field in a pre-existing
     // accessor object. This is to allow object reuse.
-    code += "  public void __init(int _i, ByteBuffer _bb) ";
+    code += "  public void __init(long _i, ByteBuffer _bb) ";
     code += "{ ";
     code += "__p = new ";
     code += struct_def.fixed ? "Struct" : "Table";
     code += "(_i, _bb); ";
     code += "}\n";
     code +=
-        "  public " + struct_def.name + " __assign(int _i, ByteBuffer _bb) ";
+        "  public " + struct_def.name + " __assign(long _i, ByteBuffer _bb) ";
     code += "{ __init(_i, _bb); return this; }\n\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
@@ -984,7 +984,7 @@ class CSharpGenerator : public BaseGenerator {
           code += GenTypeBasic(field.value.type.VectorType());
           code += "[] a = new ";
           code += GenTypeBasic(field.value.type.VectorType());
-          code += "[l]; for (int i = 0; i < l; i++) { a[i] = " + getter;
+          code += "[l]; for (long i = 0; i < l; i++) { a[i] = " + getter;
           code += "(p + i * ";
           code += NumToString(InlineSize(field.value.type.VectorType()));
           code += "); } return a;";
@@ -1030,7 +1030,7 @@ class CSharpGenerator : public BaseGenerator {
         auto mutator_prefix = MakeCamel("mutate", true);
         // A vector mutator also needs the index of the vector element it should
         // mutate.
-        auto mutator_params = (is_series ? "(int j, " : "(") +
+        auto mutator_params = (is_series ? "(long j, " : "(") +
                               GenTypeGet(underlying_type) + " " +
                               EscapeKeyword(field.name) + ") { ";
         auto setter_index =
@@ -1220,7 +1220,7 @@ class CSharpGenerator : public BaseGenerator {
             code += NumToString(elem_size);
             code += ", data.Length, ";
             code += NumToString(alignment);
-            code += "); for (int i = data.";
+            code += "); for (long i = data.";
             code += "Length - 1; i >= 0; i--) builder.";
             code += "Add";
             code += GenMethod(vector_type);
@@ -1248,7 +1248,7 @@ class CSharpGenerator : public BaseGenerator {
           // after.
           code += "  public static void Start";
           code += Name(field);
-          code += "Vector(FlatBufferBuilder builder, int numElems) ";
+          code += "Vector(FlatBufferBuilder builder, long numElems) ";
           code += "{ builder.StartVector(";
           code += NumToString(elem_size);
           code += ", numElems, " + NumToString(alignment);
@@ -1355,15 +1355,15 @@ class CSharpGenerator : public BaseGenerator {
     // accessor object. This is to allow object reuse.
     std::string method_indent = "    ";
     code += method_indent + "public Vector ";
-    code += "__assign(int _vector, int _element_size, ByteBuffer _bb) { ";
+    code += "__assign(long _vector, long _element_size, ByteBuffer _bb) { ";
     code += "__reset(_vector, _element_size, _bb); return this; }\n\n";
 
     auto type_name = struct_def.name;
     auto method_start = method_indent + "public " + type_name + " Get";
     // Generate the accessors that don't do object reuse.
-    code += method_start + "(int j) { return Get";
+    code += method_start + "(long j) { return Get";
     code += "(new " + type_name + "(), j); }\n";
-    code += method_start + "(" + type_name + " obj, int j) { ";
+    code += method_start + "(" + type_name + " obj, long j) { ";
     code += " return obj.__assign(";
     code += struct_def.fixed ? "__p.__element(j)"
                              : "__p.__indirect(__p.__element(j), bb)";

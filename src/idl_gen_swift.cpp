@@ -31,7 +31,7 @@ inline std::string GenIndirect(const std::string &reading) {
 }
 
 inline std::string GenArrayMainBody(const std::string &optional) {
-  return "{{ACCESS_TYPE}} func {{VALUENAME}}(at index: Int32) -> "
+  return "{{ACCESS_TYPE}} func {{VALUENAME}}(at index: Int64) -> "
          "{{VALUETYPE}}" +
          optional + " { ";
 }
@@ -405,7 +405,7 @@ class SwiftGenerator : public BaseGenerator {
         code_.SetValue("OFFSET_VALUE", NumToString(field.value.offset));
         code_ += "case {{OFFSET_NAME}} = {{OFFSET_VALUE}}";
       }
-      code_ += "var v: Int32 { Int32(self.rawValue) }";
+      code_ += "var v: Int64 { Int64(self.rawValue) }";
       code_ += "var p: VOffset { self.rawValue }";
       Outdent();
       code_ += "}";
@@ -445,12 +445,12 @@ class SwiftGenerator : public BaseGenerator {
           "{{ACCESS_TYPE}} static func getRootAs{{SHORT_STRUCTNAME}}(bb: "
           "ByteBuffer) -> "
           "{{STRUCTNAME}} { return {{STRUCTNAME}}(Table(bb: bb, position: "
-          "Int32(bb.read(def: UOffset.self, position: bb.reader)) + "
-          "Int32(bb.reader))) }\n";
+          "Int64(bb.read(def: UOffset.self, position: bb.reader)) + "
+          "Int64(bb.reader))) }\n";
       code_ += "private init(_ t: Table) { {{ACCESS}} = t }";
     }
     code_ +=
-        "{{ACCESS_TYPE}} init(_ bb: ByteBuffer, o: Int32) { {{ACCESS}} = "
+        "{{ACCESS_TYPE}} init(_ bb: ByteBuffer, o: Int64) { {{ACCESS}} = "
         "{{OBJECTTYPE}}(bb: "
         "bb, position: o) }";
     code_ += "";
@@ -533,8 +533,8 @@ class SwiftGenerator : public BaseGenerator {
       code_ += spacing + "var off = offsets";
       code_ +=
           spacing +
-          "off.sort { Table.compare(Table.offset(Int32($1.o), vOffset: "
-          "{{VOFFSET}}, fbb: fbb.buffer), Table.offset(Int32($0.o), vOffset: "
+          "off.sort { Table.compare(Table.offset(Int64($1.o), vOffset: "
+          "{{VOFFSET}}, fbb: fbb.buffer), Table.offset(Int64($0.o), vOffset: "
           "{{VOFFSET}}, fbb: fbb.buffer), fbb: fbb.buffer) < 0 } ";
       code_ += spacing + "return fbb.createVector(ofOffsets: off)";
       Outdent();
@@ -758,7 +758,7 @@ class SwiftGenerator : public BaseGenerator {
     std::string const_string = "return o == 0 ? {{CONSTANT}} : ";
     auto vectortype = field.value.type.VectorType();
     code_.SetValue("SIZE", NumToString(InlineSize(vectortype)));
-    code_ += "{{ACCESS_TYPE}} var {{VALUENAME}}Count: Int32 { " + GenOffset() +
+    code_ += "{{ACCESS_TYPE}} var {{VALUENAME}}Count: Int64 { " + GenOffset() +
              "return o == 0 ? 0 : {{ACCESS}}.vector(count: o) }";
     code_.SetValue("CONSTANT",
                    IsScalar(vectortype.base_type) == true ? "0" : "nil");
@@ -771,7 +771,7 @@ class SwiftGenerator : public BaseGenerator {
       code_ +=
           "{{ACCESS_TYPE}} func {{VALUENAME}}<T: FlatbuffersInitializable>(at "
           "index: "
-          "Int32, type: T.Type) -> T? { " +
+          "Int64, type: T.Type) -> T? { " +
           GenOffset() + "\\";
     }
 
@@ -1489,19 +1489,19 @@ class SwiftGenerator : public BaseGenerator {
   void GenLookup(const FieldDef &key_field) {
     code_.SetValue("OFFSET", NumToString(key_field.value.offset));
     std::string offset_reader =
-        "Table.offset(Int32(fbb.capacity) - tableOffset, vOffset: {{OFFSET}}, "
+        "Table.offset(Int64(fbb.capacity) - tableOffset, vOffset: {{OFFSET}}, "
         "fbb: fbb)";
 
     code_.SetValue("TYPE", GenType(key_field.value.type));
     code_ +=
-        "fileprivate static func lookupByKey(vector: Int32, key: {{TYPE}}, "
+        "fileprivate static func lookupByKey(vector: Int64, key: {{TYPE}}, "
         "fbb: "
         "ByteBuffer) -> {{VALUENAME}}? {";
     Indent();
     if (IsString(key_field.value.type))
       code_ += "let key = key.utf8.map { $0 }";
-    code_ += "var span = fbb.read(def: Int32.self, position: Int(vector - 8))"; // TODO: sizeof(?)
-    code_ += "var start: Int32 = 0";
+    code_ += "var span = fbb.read(def: Int64.self, position: Int(vector - 8))"; // TODO: sizeof(?)
+    code_ += "var start: Int64 = 0";
     code_ += "while span != 0 {";
     Indent();
     code_ += "var middle = span / 2";
@@ -1586,7 +1586,7 @@ class SwiftGenerator : public BaseGenerator {
   std::string GenMutateArray() {
     return "{{ACCESS_TYPE}} func mutate({{VALUENAME}}: {{VALUETYPE}}, at "
            "index: "
-           "Int32) -> Bool { " +
+           "Int64) -> Bool { " +
            GenOffset() +
            "return {{ACCESS}}.directMutate({{VALUENAME}}, index: "
            "{{ACCESS}}.vector(at: o) + index * {{SIZE}}) }";
