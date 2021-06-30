@@ -374,9 +374,9 @@ inline flatbuffers::Offset<EnumVal> CreateEnumVal(
     flatbuffers::Offset<reflection::Type> union_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> documentation = 0) {
   EnumValBuilder builder_(_fbb);
-  builder_.add_value(value);
   builder_.add_documentation(documentation);
   builder_.add_union_type(union_type);
+  builder_.add_value(value);
   builder_.add_name(name);
   return builder_.Finish();
 }
@@ -692,10 +692,10 @@ inline flatbuffers::Offset<Field> CreateField(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> documentation = 0,
     bool optional = false) {
   FieldBuilder builder_(_fbb);
-  builder_.add_default_real(default_real);
-  builder_.add_default_integer(default_integer);
   builder_.add_documentation(documentation);
   builder_.add_attributes(attributes);
+  builder_.add_default_real(default_real);
+  builder_.add_default_integer(default_integer);
   builder_.add_type(type);
   builder_.add_name(name);
   builder_.add_offset(offset);
@@ -860,10 +860,10 @@ inline flatbuffers::Offset<Object> CreateObject(
   builder_.add_declaration_file(declaration_file);
   builder_.add_documentation(documentation);
   builder_.add_attributes(attributes);
-  builder_.add_bytesize(bytesize);
-  builder_.add_minalign(minalign);
   builder_.add_fields(fields);
   builder_.add_name(name);
+  builder_.add_bytesize(bytesize);
+  builder_.add_minalign(minalign);
   builder_.add_is_struct(is_struct);
   return builder_.Finish();
 }
@@ -1322,8 +1322,8 @@ inline flatbuffers::Offset<Schema> CreateSchema(
     reflection::AdvancedFeatures advanced_features = static_cast<reflection::AdvancedFeatures>(0),
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<reflection::SchemaFile>>> fbs_files = 0) {
   SchemaBuilder builder_(_fbb);
-  builder_.add_advanced_features(advanced_features);
   builder_.add_fbs_files(fbs_files);
+  builder_.add_advanced_features(advanced_features);
   builder_.add_services(services);
   builder_.add_root_table(root_table);
   builder_.add_file_ext(file_ext);
