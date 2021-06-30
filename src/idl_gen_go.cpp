@@ -268,13 +268,13 @@ class GoGenerator : public BaseGenerator {
       } else {
         code +=
             "\tn := "
-            "flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])\n";
+            "flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint64:])\n";
       }
       code += "\tx := &" + struct_def.name + "{}\n";
       if (i == 0) {
         code += "\tx.Init(buf, n+offset)\n";
       } else {
-        code += "\tx.Init(buf, n+offset+flatbuffers.SizeUint32)\n";
+        code += "\tx.Init(buf, n+offset+flatbuffers.SizeUint64)\n";
       }
       code += "\treturn x\n";
       code += "}\n\n";
