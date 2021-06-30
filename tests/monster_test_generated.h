@@ -7,8 +7,8 @@
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"
 
-#include "include_test2_generated.h"
-#include "include_test1_generated.h"
+#include "include_test/sub/include_test2_generated.h"
+#include "include_test/include_test1_generated.h"
 
 namespace MyGame {
 
