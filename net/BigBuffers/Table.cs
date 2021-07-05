@@ -17,18 +17,26 @@
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
+using StirlingLabs.Utilities;
 
-namespace FlatBuffers
+#if NETSTANDARD
+using nuint = System.UIntPtr;
+using nint = System.IntPtr;
+#endif
+
+namespace BigBuffers
 {
     /// <summary>
     /// All tables in the generated code derive from this struct, and add their own accessors.
     /// </summary>
+    [PublicAPI]
     public struct Table
     {
         public int bb_pos { get; private set; }
         public ByteBuffer bb { get; private set; }
 
-        public ByteBuffer ByteBuffer { get { return bb; } }
+        public ByteBuffer ByteBuffer => bb;
 
         // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
         public Table(int _i, ByteBuffer _bb) : this()
@@ -39,31 +47,27 @@ namespace FlatBuffers
 
         // Look up a field in the vtable, return an offset into the object, or 0 if the field is not
         // present.
-        public int __offset(int vtableOffset)
+        public long __offset(long vtableOffset)
         {
-            int vtable = bb_pos - bb.GetLong(bb_pos);
-            return vtableOffset < bb.GetShort(vtable) ? (int)bb.GetShort(vtable + vtableOffset) : 0;
+            var vtable = bb_pos - bb.GetLong(bb_pos);
+            return vtableOffset < bb.GetShort(vtable) ? (long)bb.GetShort(vtable + vtableOffset) : 0;
         }
 
-        public static int __offset(int vtableOffset, int offset, ByteBuffer bb)
+        public static long __offset(long vtableOffset, long offset, ByteBuffer bb)
         {
-            int vtable = bb.Length - offset;
-            return (int)bb.GetShort(vtable + vtableOffset - bb.GetLong(vtable)) + vtable;
+            var vtable = bb.LongLength - offset;
+            return bb.GetShort(vtable + vtableOffset - bb.GetLong(vtable)) + vtable;
         }
 
         // Retrieve the relative offset stored at "offset"
-        public int __indirect(int offset)
-        {
-            return offset + bb.GetLong(offset);
-        }
+        public long __indirect(long offset)
+          => offset + bb.GetLong(offset);
 
-        public static int __indirect(int offset, ByteBuffer bb)
-        {
-            return offset + bb.GetLong(offset);
-        }
+        public static long __indirect(long offset, ByteBuffer bb)
+          => offset + bb.GetLong(offset);
 
         // Create a .NET String from UTF-8 data stored inside the flatbuffer.
-        public string __string(int offset)
+        public string __string(long offset)
         {
             offset += bb.GetLong(offset);
             var len = bb.GetLong(offset);
@@ -72,7 +76,7 @@ namespace FlatBuffers
         }
 
         // Get the length of a vector whose offset is stored at "offset" in this object.
-        public int __vector_len(int offset)
+        public long __vector_len(long offset)
         {
             offset += bb_pos;
             offset += bb.GetLong(offset);
@@ -80,7 +84,7 @@ namespace FlatBuffers
         }
 
         // Get the start of data of a vector whose offset is stored at "offset" in this object.
-        public int __vector(int offset)
+        public long __vector(long offset)
         {
             offset += bb_pos;
             return offset + bb.GetLong(offset) + sizeof(long);  // data starts after the length
@@ -90,7 +94,7 @@ namespace FlatBuffers
         // Get the data of a vector whoses offset is stored at "offset" in this object as an
         // Spant&lt;byte&gt;. If the vector is not present in the ByteBuffer,
         // then an empty span will be returned.
-        public Span<T> __vector_as_span<T>(int offset, int elementSize) where T : struct
+        public BigSpan<T> __vector_as_span<T>(long offset, long elementSize) where T : struct
         {
             if (!BitConverter.IsLittleEndian)
             {
@@ -101,12 +105,12 @@ namespace FlatBuffers
             var o = this.__offset(offset);
             if (0 == o)
             {
-                return new Span<T>();
+                return new BigSpan<T>();
             }
 
             var pos = this.__vector(o);
             var len = this.__vector_len(o);
-            return MemoryMarshal.Cast<byte, T>(bb.ToSpan(pos, len * elementSize));
+            return bb.ToSpan(pos, len * elementSize).CastAs<T>();
         }
 #else
         // Get the data of a vector whoses offset is stored at "offset" in this object as an
@@ -152,26 +156,26 @@ namespace FlatBuffers
         // Initialize any Table-derived type to point to the union at the given offset.
         public T __union<T>(int offset) where T : struct, IFlatbufferObject
         {
-            T t = new T();
+            var t = new T();
             t.__init(__indirect(offset), bb);
             return t;
         }
 
         public static bool __has_identifier(ByteBuffer bb, string ident)
         {
-            if (ident.Length != FlatBufferConstants.FileIdentifierLength)
-                throw new ArgumentException("FlatBuffers: file identifier must be length " + FlatBufferConstants.FileIdentifierLength, "ident");
+            if (ident.Length != Constants.FileIdentifierLength)
+                throw new ArgumentException("BigBuffers: file identifier must be length " + Constants.FileIdentifierLength, "ident");
 
-            for (var i = 0; i < FlatBufferConstants.FileIdentifierLength; i++)
+            for (var i = 0; i < Constants.FileIdentifierLength; i++)
             {
-                if (ident[i] != (char)bb.Get(bb.Position + sizeof(int) + i)) return false;
+                if (ident[i] != (char)bb.Get((bb.Position + sizeof(int) + i))) return false;
             }
 
             return true;
         }
 
         // Compare strings in the ByteBuffer.
-        public static int CompareStrings(int offset_1, int offset_2, ByteBuffer bb)
+        public static int CompareStrings(long offset_1, long offset_2, ByteBuffer bb)
         {
             offset_1 += bb.GetLong(offset_1);
             offset_2 += bb.GetLong(offset_2);
@@ -180,29 +184,29 @@ namespace FlatBuffers
             var startPos_1 = offset_1 + sizeof(long);
             var startPos_2 = offset_2 + sizeof(long);
             var len = Math.Min(len_1, len_2);
-            for(int i = 0; i < len; i++) {
-                byte b1 = bb.Get(i + startPos_1);
-                byte b2 = bb.Get(i + startPos_2);
+            for(var i = 0; i < len; i++) {
+                var b1 = bb.Get(i + startPos_1);
+                var b2 = bb.Get(i + startPos_2);
                 if (b1 != b2)
                     return b1 - b2;
             }
-            return len_1 - len_2;
+            return Math.Sign(len_1 - len_2);
         }
 
         // Compare string from the ByteBuffer with the string object
-        public static int CompareStrings(int offset_1, byte[] key, ByteBuffer bb)
+        public static int CompareStrings(long offset_1, byte[] key, ByteBuffer bb)
         {
             offset_1 += bb.GetLong(offset_1);
             var len_1 = bb.GetLong(offset_1);
             var len_2 = key.Length;
             var startPos_1 = offset_1 + sizeof(long);
             var len = Math.Min(len_1, len_2);
-            for (int i = 0; i < len; i++) {
-                byte b = bb.Get(i + startPos_1);
+            for (var i = 0; i < len; i++) {
+                var b = bb.Get(i + startPos_1);
                 if (b != key[i])
                     return b - key[i];
             }
-            return len_1 - len_2;
+            return Math.Sign(len_1 - len_2);
         }
     }
 }

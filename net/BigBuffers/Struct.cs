@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-namespace FlatBuffers
+using JetBrains.Annotations;
+
+namespace BigBuffers
 {
     /// <summary>
-    /// This is the base for both structs and tables.
+    /// All structs in the generated code derive from this class, and add their own accessors.
     /// </summary>
-    public interface IFlatbufferObject
+    [PublicAPI]
+    public struct Struct
     {
-        void __init(int _i, ByteBuffer _bb);
+        public int bb_pos { get; private set; }
+        public ByteBuffer bb { get; private set; }
 
-        ByteBuffer ByteBuffer { get; }
+        // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
+        public Struct(int _i, ByteBuffer _bb) : this()
+        {
+            bb = _bb;
+            bb_pos = _i;
+        }
     }
 }
