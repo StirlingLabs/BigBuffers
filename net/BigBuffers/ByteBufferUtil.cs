@@ -16,7 +16,7 @@
 
 using System;
 
-namespace FlatBuffers
+namespace BigBuffers
 {
 	/// <summary>
 	/// Class that collects utility functions around `ByteBuffer`.
@@ -24,7 +24,7 @@ namespace FlatBuffers
 	public class ByteBufferUtil
 	{
 		// Extract the size prefix from a `ByteBuffer`.
-		public static int GetSizePrefix(ByteBuffer bb) {
+		public static long GetSizePrefix(ByteBuffer bb) {
 			return bb.GetLong(bb.Position);
 		}
 
@@ -32,7 +32,7 @@ namespace FlatBuffers
 		// advanced just past the size prefix.
 		public static ByteBuffer RemoveSizePrefix(ByteBuffer bb) {
 			ByteBuffer s = bb.Duplicate();
-			s.Position += FlatBufferConstants.SizePrefixLength;
+			s.Position += Constants.SizePrefixLength;
 			return s;
 		}
 	}

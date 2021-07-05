@@ -19,12 +19,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace FlatBuffers
+namespace BigBuffers
 {
-    public static class FlatBufferConstants
+    public static class Constants
     {
-        public const int FileIdentifierLength = 4;
-        public const int SizePrefixLength = 4;
+        public const int FileIdentifierLength = 8;
+        public const int SizePrefixLength = 8;
         /** A version identifier to force a compile error if someone
         accidentally tries to build generated code with a runtime of
         two mismatched version. Versions need to always match, as
@@ -32,6 +32,6 @@ namespace FlatBuffers
         Changes to the C# implementation need to be sure to change
         the version here and in the code generator on every possible
         incompatible change */
-        public static void FLATBUFFERS_2_0_0() {}
+        public static void VERSION_2_0_0() {}
     }
 }
