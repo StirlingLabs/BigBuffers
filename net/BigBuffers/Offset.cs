@@ -14,21 +14,35 @@
  * limitations under the License.
  */
 
-namespace FlatBuffers
+namespace BigBuffers
 {
     /// <summary>
-    /// All structs in the generated code derive from this class, and add their own accessors.
+    /// Offset class for typesafe assignments.
     /// </summary>
-    public struct Struct
+    public struct Offset<T> where T : struct
     {
-        public int bb_pos { get; private set; }
-        public ByteBuffer bb { get; private set; }
-
-        // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
-        public Struct(int _i, ByteBuffer _bb) : this()
+        public long Value;
+        public Offset(int value)
         {
-            bb = _bb;
-            bb_pos = _i;
+            Value = value;
+        }
+    }
+
+    public struct StringOffset
+    {
+        public long Value;
+        public StringOffset(long value)
+        {
+            Value = value;
+        }
+    }
+
+    public struct VectorOffset
+    {
+        public long Value;
+        public VectorOffset(long value)
+        {
+            Value = value;
         }
     }
 }
