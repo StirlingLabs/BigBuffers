@@ -3,16 +3,10 @@
   <PropertyGroup>
     <TargetFrameworks>net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>9</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <DefineConstants>TRACE;ENABLE_SPAN_T;UNSAFE_BYTEBUFFER</DefineConstants>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <DefineConstants>ENABLE_SPAN_T;UNSAFE_BYTEBUFFER</DefineConstants>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(BYTEBUFFER_NO_BOUNDS_CHECK)' == 'true'">
     <DefineConstants>$(DefineConstants);BYTEBUFFER_NO_BOUNDS_CHECK</DefineConstants>
   </PropertyGroup>
@@ -22,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="StirlingLabs.Utilities.BigSpans" Version="2021.7.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" PrivateAssets="all" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="21.7.2" />
   </ItemGroup>
 
 </Project>

@@ -19,28 +19,10 @@ namespace BigBuffers
     /// <summary>
     /// Offset class for typesafe assignments.
     /// </summary>
-    public struct Offset<T> where T : struct
+    public struct Offset<T>
     {
-        public long Value;
-        public Offset(int value)
-        {
-            Value = value;
-        }
-    }
-
-    public struct StringOffset
-    {
-        public long Value;
-        public StringOffset(long value)
-        {
-            Value = value;
-        }
-    }
-
-    public struct VectorOffset
-    {
-        public long Value;
-        public VectorOffset(long value)
+        public ulong Value;
+        public Offset(ulong value)
         {
             Value = value;
         }

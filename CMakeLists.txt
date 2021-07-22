@@ -101,20 +101,10 @@ set(FlatBuffers_Compiler_SRCS
   ${FlatBuffers_Library_SRCS}
   src/idl_gen_cpp.cpp
   src/idl_gen_csharp.cpp
-  src/idl_gen_dart.cpp
-  src/idl_gen_kotlin.cpp
   src/idl_gen_go.cpp
-  src/idl_gen_java.cpp
-  src/idl_gen_ts.cpp
-  src/idl_gen_php.cpp
-  src/idl_gen_python.cpp
-  src/idl_gen_lobster.cpp
-  src/idl_gen_lua.cpp
-  src/idl_gen_rust.cpp
   src/idl_gen_fbs.cpp
   src/idl_gen_grpc.cpp
   src/idl_gen_json_schema.cpp
-  src/idl_gen_swift.cpp
   src/flatc.cpp
   src/flatc_main.cpp
   include/flatbuffers/code_generators.h

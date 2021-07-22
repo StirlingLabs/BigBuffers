@@ -21,7 +21,7 @@ namespace BigBuffers
     /// </summary>
     public interface IFlatbufferObject
     {
-        void __init(long _i, ByteBuffer _bb);
+        void __init(ulong i, ByteBuffer bb);
 
         ByteBuffer ByteBuffer { get; }
     }
