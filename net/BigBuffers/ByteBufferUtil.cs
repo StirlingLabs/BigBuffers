@@ -24,14 +24,13 @@ namespace BigBuffers
 	public class ByteBufferUtil
 	{
 		// Extract the size prefix from a `ByteBuffer`.
-		public static long GetSizePrefix(ByteBuffer bb) {
-			return bb.GetLong(bb.Position);
-		}
+		public static ulong GetSizePrefix(ByteBuffer bb)
+      => bb.Get<ulong>(bb.Position);
 
-		// Create a duplicate of a size-prefixed `ByteBuffer` that has its position
+    // Create a duplicate of a size-prefixed `ByteBuffer` that has its position
 		// advanced just past the size prefix.
 		public static ByteBuffer RemoveSizePrefix(ByteBuffer bb) {
-			ByteBuffer s = bb.Duplicate();
+			var s = bb.Duplicate();
 			s.Position += Constants.SizePrefixLength;
 			return s;
 		}

@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>9</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BigBuffers\BigBuffers.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <IsFirstBuild>false</IsFirstBuild>
+    <IsMultiTarget>false</IsMultiTarget>
+    <IsMultiTarget Condition="'$(TargetFrameworks)'!='' And $(TargetFrameworks.Contains(';'))">true</IsMultiTarget>
+  </PropertyGroup>
+
+  <Target Name="DetectFirstBuild" BeforeTargets="DispatchToInnerBuilds">
+    <Message Importance="low" Text="Checking if this is the first build..." />
+    <PropertyGroup>
+      <IsFirstBuild>true</IsFirstBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition="$(IsMultiTarget)">
+      <IsFirstBuild>false</IsFirstBuild>
+      <IsFirstBuild Condition="$(TargetFramework.Equals(''))">true</IsFirstBuild>
+    </PropertyGroup>
+    <Message Importance="normal" Condition="$(IsFirstBuild)" Text="This is the first build." />
+  </Target>
+  
+  <Target Name="GenerateModelsFromSchema" DependsOnTargets="DetectFirstBuild" Condition="$(IsFirstBuild)" BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
+    <Message Importance="normal" Text="Generating models from schema..." />
+    
+    <!-- make the generated dir if it doesn't exist -->
+    <MakeDir Directories="Generated" />
+
+    <!-- delete any existing generated models -->
+    <ItemGroup>
+      <FilesToDelete Include="Generated/**/*.cs" />
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)" />
+    
+    <!-- locate flatc and schema files -->
+    <ItemGroup>
+      <LocOfFlatC Include="../../cmake-build-$(Configuration.ToLower())/flatc" />
+      <LocOfFlatC Include="../../cmake-build-$(Configuration.ToLower())/flatc.exe" />
+      <FlatC Include="@(LocOfFlatC)" Condition="Exists('%(Identity)')" />
+      <FbsFiles Include="**/*.fbs" />
+    </ItemGroup>
+
+    <!-- code generation -->
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
+          Command="&quot;@(FlatC)&quot; --gen-all --gen-mutable -n @(FbsFiles, ' ')"
+          StandardOutputImportance="high" StandardErrorImportance="high"
+          Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    
+    <!-- make sure they get properly compiled and tracked, but not redundantly -->
+    <ItemGroup>
+      <Compile Remove="Generated/**/*.cs" />
+      <Compile Include="Generated/**/*.cs" />
+      <FileWrites Include="Generated/**/*.cs" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="Finished generating models from schema." />
+  </Target>
+</Project>

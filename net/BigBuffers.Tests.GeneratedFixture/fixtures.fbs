@@ -1,0 +1,65 @@
+
+attribute fs_nonVirtual;
+attribute fs_serializer;
+
+namespace Generated;
+
+struct Hash (fs_nonVirtual) {
+    bytes:[ubyte:32];
+}
+
+/// Space
+table Test (fs_serializer:"Lazy") {
+    hash:Hash;
+}
+
+struct StructA {
+	x:ulong;
+}
+
+table TableA {
+	x:ulong;
+}
+
+table TableB {
+	x:StructA;
+}
+
+struct StructB {
+  x:[ubyte:32];
+}
+
+table TableC {
+  x:StructB;
+}
+
+table TableD {
+  x:ulong (key);
+}
+
+table TableE {
+  x:string (key);
+}
+
+table TableF {
+  x:[string];
+}
+
+struct StructG {
+	x:bool;
+}
+table TableG {
+  x:[StructG];
+}
+
+table TableH {
+  x:[bool];
+}
+
+struct StructI {
+	x:[bool:2];
+}
+
+table TableI {
+  x:[StructI];
+}

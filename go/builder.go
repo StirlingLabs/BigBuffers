@@ -21,8 +21,8 @@ type Builder struct {
 	sharedStrings map[string]UOffsetT
 }
 
-const fileIdentifierLength = 4
-const sizePrefixLength = 4
+const fileIdentifierLength = 8
+const sizePrefixLength = 8
 
 // NewBuilder initializes a Builder of size `initial_size`.
 // The internal buffer is grown as needed.

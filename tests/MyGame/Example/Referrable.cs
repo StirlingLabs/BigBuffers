@@ -19,8 +19,8 @@ public struct Referrable : IFlatbufferObject
   public void __init(int _i, ByteBuffer _bb) { __p = new Table(_i, _bb); }
   public Referrable __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public ulong Id { get { int o = __p.__offset(4); return o != 0 ? __p.bb.GetUlong(o + __p.bb_pos) : (ulong)0; } }
-  public bool MutateId(ulong id) { int o = __p.__offset(4); if (o != 0) { __p.bb.PutUlong(o + __p.bb_pos, id); return true; } else { return false; } }
+  public ulong Id { get { int o = __p.__offset(8); return o != 0 ? __p.bb.GetUlong(o + __p.bb_pos) : (ulong)0; } }
+  public bool MutateId(ulong id) { int o = __p.__offset(8); if (o != 0) { __p.bb.PutUlong(o + __p.bb_pos, id); return true; } else { return false; } }
 
   public static Offset<MyGame.Example.Referrable> CreateReferrable(FlatBufferBuilder builder,
       ulong id = 0) {
