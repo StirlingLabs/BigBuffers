@@ -14,24 +14,43 @@
  * limitations under the License.
  */
 
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
 namespace BigBuffers
 {
-    /// <summary>
-    /// All structs in the generated code derive from this class, and add their own accessors.
-    /// </summary>
-    [PublicAPI]
-    public struct Struct
-    {
-        public int bb_pos { get; private set; }
-        public ByteBuffer bb { get; private set; }
+  /// <summary>
+  /// All structs in the generated code derive from this class, and add their own accessors.
+  /// </summary>
+  [PublicAPI]
+  public struct Struct : ISchemaModel
+  {
+    private ByteBufferResidentModel _byteBufferResidentModel;
 
-        // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
-        public Struct(int _i, ByteBuffer _bb) : this()
-        {
-            bb = _bb;
-            bb_pos = _i;
-        }
+    ref ByteBufferResidentModel ISchemaModel.ByteBufferOffset => ref _byteBufferResidentModel.UnsafeSelfReference();
+
+    public ulong Offset
+    {
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      get => _byteBufferResidentModel.Offset;
+      private set => _byteBufferResidentModel.Offset = value;
     }
+
+    public ByteBuffer ByteBuffer
+    {
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      get => _byteBufferResidentModel.ByteBuffer;
+      private set => _byteBufferResidentModel.ByteBuffer = value;
+    }
+
+    // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
+    public Struct(ulong i, ByteBuffer byteBuffer) : this()
+    {
+      Debug.Assert(i <= long.MaxValue);
+      ByteBuffer = byteBuffer;
+      Offset = i;
+    }
+    
+  }
 }
