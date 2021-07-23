@@ -374,7 +374,6 @@ namespace BigBuffers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong Put<T>(ulong offset, T x)
-      where T : unmanaged
     {
       var numBytes = SizeOf<T>();
       var longNumBytes = (int)numBytes;
@@ -415,7 +414,6 @@ namespace BigBuffers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong Put<T>(ulong offset, in T x)
-      where T : unmanaged
     {
       var numBytes = SizeOf<T>();
       var longNumBytes = (int)numBytes;

@@ -1,16 +1,17 @@
 
 attribute fs_nonVirtual;
 attribute fs_serializer;
+attribute csharp_partial;
 
 namespace Generated;
 
 struct Hash (fs_nonVirtual) {
-    bytes:[ubyte:32];
+  bytes:[ubyte:32];
 }
 
 /// Space
-table Test (fs_serializer:"Lazy") {
-    hash:Hash;
+table Test (fs_serializer:"Lazy", csharp_partial) {
+  hash:Hash;
 }
 
 struct StructA {
@@ -62,4 +63,16 @@ struct StructI {
 
 table TableI {
   x:[StructI];
+}
+
+table TableJ {
+  x:[TableJ];
+}
+
+table TableK {
+  x:[TableJ];
+}
+
+table TableL {
+  x:TableK;
 }

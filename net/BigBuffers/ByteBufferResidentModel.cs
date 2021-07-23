@@ -1,7 +1,9 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace BigBuffers
 {
+  [StructLayout(LayoutKind.Sequential)]
   internal struct ByteBufferResidentModel
   {
     public ulong Offset;
