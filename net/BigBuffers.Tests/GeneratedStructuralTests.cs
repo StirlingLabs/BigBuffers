@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics;
 using System.Dynamic;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using Generated;
@@ -187,6 +189,47 @@ namespace BigBuffers.Tests
 
       Assert.AreEqual("Hello", t.X(0));
       Assert.AreEqual("World", t.X(1));
+    }
+
+    [Test]
+    public void TableGTest()
+    {
+      var bb = new BigBufferBuilder();
+      TableG.StartTableG(bb);
+      TableG.AddX(bb, bb.CreateVector(out var x));
+      TableG.EndTableG(bb);
+
+      var bkp = bb.Offset;
+      Assert.Throws<InvalidOperationException>(() => {
+        x.Set(new[]
+        {
+          StructG.CreateStructG(bb, true),
+          StructG.CreateStructG(bb, false),
+          StructG.CreateStructG(bb, true),
+          StructG.CreateStructG(bb, false)
+        });
+      });
+      bb.Offset = bkp;
+
+      x.Inline(() => new[]
+      {
+        StructG.CreateStructG(bb, true),
+        StructG.CreateStructG(bb, false),
+        StructG.CreateStructG(bb, true),
+        StructG.CreateStructG(bb, false)
+      });
+
+      var t = TableG.GetRootAsTableG(bb.ByteBuffer);
+
+      Assert.NotNull(t.X(0));
+      Assert.NotNull(t.X(1));
+      Assert.NotNull(t.X(2));
+      Assert.NotNull(t.X(3));
+
+      Assert.IsTrue(t.X(0)?.X);
+      Assert.IsFalse(t.X(1)?.X);
+      Assert.IsTrue(t.X(2)?.X);
+      Assert.IsFalse(t.X(3)?.X);
     }
   }
 }

@@ -796,7 +796,7 @@ class CSharpGenerator : public BaseGenerator {
           code += "ulong j)";
           const auto body = offset_prefix + conditional_cast + getter + "(";
           if (vectortype.base_type == BASE_TYPE_UNION) {
-            code += " where TTable : struct, IFlatbufferObject" + body;
+            code += " where TTable : struct, IBigBufferTable" + body;
           } else {
             code += body;
           }
@@ -835,7 +835,7 @@ class CSharpGenerator : public BaseGenerator {
           break;
         }
         case BASE_TYPE_UNION:
-          code += "() where TTable : struct, IFlatbufferObject";
+          code += "() where TTable : struct, IBigBufferTable";
           code += offset_prefix + "(TTable?)" + getter;
           code += "<TTable>(o + _model.Offset) : null";
           if (HasUnionStringValue(*field.value.type.enum_def)) {
@@ -1159,7 +1159,7 @@ class CSharpGenerator : public BaseGenerator {
             const auto body =
                 ref_offset_prefix + conditional_cast + reffer + "(";
             if (vectortype.base_type == BASE_TYPE_UNION) {
-              code += " where TTable : struct, IFlatbufferObject" + body;
+              code += " where TTable : struct, IBigBufferTable" + body;
             } else {
               code += body;
             }
@@ -1263,12 +1263,33 @@ class CSharpGenerator : public BaseGenerator {
       // generate a partial class for this C# struct/table
       code += "partial ";
     }
+
+    // model composition
     code += "struct " + struct_def.name;
-    code += " : IFlatbufferObject";
+    code += " : ";
+    code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
     code += "\n{\n";
     code += "  internal ";
     code += struct_def.fixed ? "Struct" : "Table";
     code += " _model;\n";
+
+    // interface implementation
+    code += "  ";
+    code += struct_def.fixed ? "Struct" : "Table";
+    code += " ";
+    code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
+    code += ".Model => _model;\n";
+
+    if (struct_def.fixed) {
+      // static ByteSize
+      code += "  public static ulong ByteSize => ";
+      code += NumToString(struct_def.bytesize);
+      code +=";\n";
+      // interface implementation
+      code += "  ulong ";
+      code += "IBigBufferStruct";
+      code += ".ByteSize => ByteSize;\n";
+    }
 
     code += "  public ByteBuffer ByteBuffer { get { return _model.ByteBuffer; } }\n";
 
