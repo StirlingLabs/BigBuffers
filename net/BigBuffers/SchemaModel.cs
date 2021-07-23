@@ -65,8 +65,9 @@ namespace BigBuffers
     public static ulong __vector<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
     {
       ref var bb = ref model.ByteBufferOffset.ByteBuffer;
-      offset += model.ByteBufferOffset.Offset;
-      return offset + bb.Get<ulong>(offset) + sizeof(long); // data starts after the length
+      offset += bb.Get<ulong>(offset);
+      var startPos = offset + sizeof(ulong);
+      return startPos;
     }
 
     // Get the data of a vector whoses offset is stored at "offset" in this object as an

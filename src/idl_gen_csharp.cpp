@@ -1139,10 +1139,9 @@ class CSharpGenerator : public BaseGenerator {
     } else {
       code += "public ";
     }
-    if (struct_def.attributes.Lookup("csharp_partial")) {
-      // generate a partial class for this C# struct/table
-      code += "partial ";
-    }
+
+    // generate a partial class for this C# struct/table
+    code += "partial ";
 
     // model composition
     code += "struct " + struct_def.name;
@@ -1384,20 +1383,20 @@ class CSharpGenerator : public BaseGenerator {
             code += "{ return builder.CreateVector(out placeholder); }\n";
 
             code += "  public static void ";
-            code += "Set";
+            code += "Fill";
             code += MakeCamel(field.name);
             code += "Vector(Placeholder placeholder, ";
             code += GenTypeBasic(vector_type) + "[] data) ";
-            code += "{ placeholder.Set((StirlingLabs.Utilities.ReadOnlyBigSpan<";
+            code += "{ placeholder.Fill((StirlingLabs.Utilities.ReadOnlyBigSpan<";
             code += GenTypeBasic(vector_type) + ">)data, " + NumToString(alignment);
             code += "); }\n";
 
             code += "  public static void ";
-            code += "Set";
+            code += "Fill";
             code += MakeCamel(field.name);
             code += "Vector(Placeholder placeholder, StirlingLabs.Utilities.ReadOnlyBigSpan<";
             code += GenTypeBasic(vector_type) + "> data) ";
-            code += "{ placeholder.Set(data, ";
+            code += "{ placeholder.Fill(data, ";
             code += NumToString(alignment);
             code += "); }\n";
           }
