@@ -75,10 +75,38 @@ namespace BigBuffers
       _bb.ByteBuffer.Put(_offset, offset.Value - _offset);
     }
 
+    public delegate Offset<TStruct>[] InlineStructs<TStruct>()
+      where TStruct : struct, IBigBufferStruct;
+
+    public void Inline<TStruct>(InlineStructs<TStruct> f)
+      where TStruct : struct, IBigBufferStruct
+    {
+      var elemSize = Unsafe.NullRef<TStruct>().ByteSize;
+      var alignment = (uint)Math.Min(8u, elemSize);
+      _bb.StartVector(elemSize, 0);
+      var lengthOffset = _bb.Offset - 8;
+      var l = f();
+      _bb.ByteBuffer.Put(lengthOffset, (ulong)l.LongLength);
+      var offset = _bb.EndVector(alignment);
+      _bb.ByteBuffer.Put(_offset, offset.Value - _offset);
+    }
+
+    [DebuggerStepThrough]
+    public void Set<T>(Offset<T>[] s, uint alignment = 0)
+      => Set((ReadOnlyBigSpan<Offset<T>>)s, alignment);
+
+
+    public void Set<T>(ReadOnlyBigSpan<Offset<T>> s, uint alignment = 0)
+    {
+      if (IfType<T>.IsAssignableTo<IBigBufferStruct>())
+        throw new InvalidOperationException("Please use the Placeholder.Inline method for vectors of struct types instead.");
+      Set<Offset<T>>(s, alignment);
+    }
+
+
     [DebuggerStepThrough]
     public void Set<T>(T[] s, uint alignment = 0)
       => Set((ReadOnlyBigSpan<T>)s, alignment);
-
     public void Set<T>(ReadOnlyBigSpan<T> s, uint alignment = 0)
     {
       var elemSize = (ulong)Unsafe.SizeOf<T>();
