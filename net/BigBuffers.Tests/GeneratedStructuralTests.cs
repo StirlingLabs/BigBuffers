@@ -163,7 +163,7 @@ namespace BigBuffers.Tests
       TableE.StartTableE(bb);
       TableE.AddX(bb, bb.CreateString(out var sp1));
       TableE.EndTableE(bb);
-      sp1.Set("Hello World");
+      sp1.Fill("Hello World");
 
       var t = TableE.GetRootAsTableE(bb.ByteBuffer);
 
@@ -183,7 +183,7 @@ namespace BigBuffers.Tests
       TableF.StartTableF(bb);
       TableF.AddX(bb, TableF.CreateXVector(bb, out var x));
       TableF.EndTableF(bb);
-      x.Set(new[] { "Hello", "World" });
+      x.Fill(new[] { "Hello", "World" });
 
       var t = TableF.GetRootAsTableF(bb.ByteBuffer);
 
@@ -201,7 +201,7 @@ namespace BigBuffers.Tests
 
       var bkp = bb.Offset;
       Assert.Throws<InvalidOperationException>(() => {
-        x.Set(new[]
+        x.Fill(new[]
         {
           StructG.CreateStructG(bb, true),
           StructG.CreateStructG(bb, false),
@@ -211,7 +211,7 @@ namespace BigBuffers.Tests
       });
       bb.Offset = bkp;
 
-      x.Inline(() => new[]
+      x.FillInline(() => new[]
       {
         StructG.CreateStructG(bb, true),
         StructG.CreateStructG(bb, false),
@@ -230,6 +230,147 @@ namespace BigBuffers.Tests
       Assert.IsFalse(t.X(1)?.X);
       Assert.IsTrue(t.X(2)?.X);
       Assert.IsFalse(t.X(3)?.X);
+    }
+
+    [Test]
+    public void TableHTest()
+    {
+      var bb = new BigBufferBuilder();
+      TableH.StartTableH(bb);
+      TableH.AddX(bb, TableH.CreateXVector(bb, out var x));
+      TableH.EndTableH(bb);
+      x.Fill(new[] { true, false, true, false });
+
+      var t = TableH.GetRootAsTableH(bb.ByteBuffer);
+
+      Assert.NotNull(t.X(0));
+      Assert.NotNull(t.X(1));
+      Assert.NotNull(t.X(2));
+      Assert.NotNull(t.X(3));
+
+      Assert.IsTrue(t.X(0));
+      Assert.IsFalse(t.X(1));
+      Assert.IsTrue(t.X(2));
+      Assert.IsFalse(t.X(3));
+
+    }
+
+    [Test]
+    public void TableITest()
+    {
+      var bb = new BigBufferBuilder();
+      TableI.StartTableI(bb);
+      TableI.AddX(bb, bb.CreateVector(out var x));
+      TableI.EndTableI(bb);
+
+      var bkp = bb.Offset;
+      Assert.Throws<InvalidOperationException>(() => {
+        x.Fill(new[]
+        {
+          StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { true, false }),
+          StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { true, true }),
+          StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { false, false }),
+          StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { false, true }),
+        });
+      });
+      bb.Offset = bkp;
+
+      x.FillInline(() => new[]
+      {
+        StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { true, false }),
+        StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { true, true }),
+        StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { false, false }),
+        StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { false, true }),
+      });
+
+      var t = TableI.GetRootAsTableI(bb.ByteBuffer);
+
+      Assert.NotNull(t.X(0));
+      Assert.NotNull(t.X(1));
+      Assert.NotNull(t.X(2));
+      Assert.NotNull(t.X(3));
+
+      Assert.IsTrue(t.X(0)!.Value.X(0));
+      Assert.IsFalse(t.X(0)!.Value.X(1));
+
+      Assert.IsTrue(t.X(1)!.Value.X(0));
+      Assert.IsTrue(t.X(1)!.Value.X(1));
+
+      Assert.IsFalse(t.X(2)!.Value.X(0));
+      Assert.IsFalse(t.X(2)!.Value.X(1));
+
+      Assert.IsFalse(t.X(3)!.Value.X(0));
+      Assert.IsTrue(t.X(3)!.Value.X(1));
+    }
+
+    [Test]
+    public void TableJTest()
+    {
+      var bb = new BigBufferBuilder();
+
+      TableJ.StartTableJ(bb);
+      TableJ.AddX(bb, bb.CreateVector(out var x));
+      var to = TableJ.EndTableJ(bb);
+      x.Fill(new[] { to });
+
+      var t = TableJ.GetRootAsTableJ(bb.ByteBuffer);
+      
+      var t2 = t.X(0);
+      Assert.NotNull(t2);
+      var t3 = t2!.Value.X(0);
+      Assert.NotNull(t3);
+    }
+    
+    [Test]
+    public void TableKTest()
+    {
+      var bb = new BigBufferBuilder();
+
+      TableK.StartTableK(bb);
+      TableK.AddX(bb, bb.CreateVector(out var kx));
+      TableK.EndTableK(bb);
+      TableJ.StartTableJ(bb);
+      TableJ.AddX(bb, bb.CreateVector(out var jx));
+      var to = TableJ.EndTableJ(bb);
+      jx.Fill(new[] { to });
+      kx.Fill(new[] { to });
+
+      var t = TableK.GetRootAsTableK(bb.ByteBuffer);
+      
+      var t2 = t.X(0);
+      Assert.NotNull(t2);
+      var t3 = t2!.Value.X(0);
+      Assert.NotNull(t3);
+      var t4 = t3!.Value.X(0);
+      Assert.NotNull(t4);
+    }
+    
+    [Test]
+    public void TableLTest()
+    {
+      var bb = new BigBufferBuilder();
+
+      TableL.StartTableL(bb);
+      TableL.AddX(bb, bb.CreateOffset<TableK>(out var lx));
+      TableL.EndTableL(bb);
+      TableK.StartTableK(bb);
+      TableK.AddX(bb, bb.CreateVector(out var kx));
+      var ko = TableK.EndTableK(bb);
+      TableJ.StartTableJ(bb);
+      TableJ.AddX(bb, bb.CreateVector(out var jx));
+      var jo = TableJ.EndTableJ(bb);
+      jx.Fill(new[] { jo });
+      kx.Fill(new[] { jo });
+      lx.Fill(ko);
+
+      var t = TableL.GetRootAsTableL(bb.ByteBuffer);
+      
+      var t2 = t.X;
+      Assert.NotNull(t2);
+      var t3 = t2!.Value.X(0);
+      Assert.NotNull(t3);
+      var t4 = t3!.Value.X(0);
+      Assert.NotNull(t4);
     }
   }
 }
