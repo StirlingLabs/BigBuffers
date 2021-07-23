@@ -171,10 +171,10 @@ namespace BigBuffers
         Pad(alignSize);
     }
 
-    public ulong Put<T>(T x) where T : unmanaged
+    public ulong Put<T>(T x)
       => Offset += _bb.Put<T>(Offset, x);
 
-    public ulong Put<T>(in T x) where T : unmanaged
+    public ulong Put<T>(in T x)
       => Offset += _bb.Put<T>(Offset, in x);
 
     /// <summary>
@@ -353,10 +353,10 @@ namespace BigBuffers
 
       _hasVtable = true;
       _vtableSize = numFields;
-      _tableStart = Offset;
 
       // Write placeholder for vtable offset
-      Add(0uL);
+      Add(ulong.MaxValue);
+      _tableStart = Offset - 8;
     }
 
 
@@ -445,20 +445,17 @@ namespace BigBuffers
       return new(EndVector(1).Value);
     }
 
-    public StringOffset CreateString(out StringPlaceholder placeholder)
+    public StringOffset CreateString(out Placeholder placeholder)
     {
       placeholder = new(this, Offset);
       return new(ulong.MaxValue);
     }
-
-    public VectorOffset CreateVector<T>(out VectorPlaceholder<T> placeholder)
-      where T : unmanaged
-    {
-      placeholder = new(this, Offset);
-      return new(ulong.MaxValue);
-    }
-
     public VectorOffset CreateVector(out Placeholder placeholder)
+    {
+      placeholder = new(this, Offset);
+      return new(ulong.MaxValue);
+    }
+    public Offset<T> CreateOffset<T>(out Placeholder<T> placeholder)
     {
       placeholder = new(this, Offset);
       return new(ulong.MaxValue);
@@ -591,16 +588,17 @@ namespace BigBuffers
         { }
       }
 
+      /* TODO
       if (existingVtable != 0)
       {
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
         // Found a match:
         // Remove the current vtable.
-        //Offset = vtableStart;
+        Offset = vtableStart;
         // Point table to existing vtable.
-        //_bb.Put(Offset, checked(existingVtable - vtableStart));
+        _bb.Put(_tableStart, existingVtable - _tableStart);
       }
-      else
+      else*/
       {
         // No match:
         // Add the location of the current vtable to the list of
@@ -613,7 +611,7 @@ namespace BigBuffers
 
           _vtables = newVTables;
         }
-        _vtables[_numVtables++] = Offset;
+        _vtables[_numVtables++] = vtableStart;
         // Point table to current vtable.
         _bb.Put<ulong>(_tableStart, _tableStart - vtableStart);
       }
