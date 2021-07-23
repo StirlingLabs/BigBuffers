@@ -161,7 +161,7 @@ namespace BigBuffers
     // Initialize any Table-derived type to point to the union at the given offset.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T __union<TModel, T>(ref this TModel model, ulong offset)
-      where TModel : struct, ISchemaModel where T : struct, IFlatbufferObject
+      where TModel : struct, ISchemaModel where T : struct, IBigBufferModel
     {
       ref var bb = ref model.ByteBufferOffset.ByteBuffer;
       var t = new T();
@@ -169,10 +169,10 @@ namespace BigBuffers
       return t;
     }
 
-    public static T __union<T>(ref this Struct model, ulong offset) where T : struct, IFlatbufferObject
+    public static T __union<T>(ref this Struct model, ulong offset) where T : struct, IBigBufferModel
       => model.__union<Struct, T>(offset);
 
-    public static T __union<T>(ref this Table model, ulong offset) where T : struct, IFlatbufferObject
+    public static T __union<T>(ref this Table model, ulong offset) where T : struct, IBigBufferModel
       => model.__union<Table, T>(offset);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

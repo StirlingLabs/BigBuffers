@@ -16,13 +16,15 @@
 
 namespace BigBuffers
 {
-    /// <summary>
-    /// This is the base for both structs and tables.
-    /// </summary>
-    public interface IFlatbufferObject
-    {
-        void __init(ulong i, ByteBuffer bb);
+  /// <summary>
+  /// This is the base for both structs and tables.
+  /// </summary>
+  public interface IBigBufferModel
+  {
+    void __init(ulong i, ByteBuffer bb);
 
-        ByteBuffer ByteBuffer { get; }
-    }
+    ByteBuffer ByteBuffer { get; }
+  }
+
+  //public interface IBigBufferUnion : IBigBufferModel { }
 }
