@@ -588,7 +588,6 @@ namespace BigBuffers
         { }
       }
 
-      /* TODO
       if (existingVtable != 0)
       {
         //throw new NotImplementedException();
@@ -596,9 +595,9 @@ namespace BigBuffers
         // Remove the current vtable.
         Offset = vtableStart;
         // Point table to existing vtable.
-        _bb.Put(_tableStart, existingVtable - _tableStart);
+        _bb.Put(_tableStart, _tableStart - existingVtable);
       }
-      else*/
+      else
       {
         // No match:
         // Add the location of the current vtable to the list of
