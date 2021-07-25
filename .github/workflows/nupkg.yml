@@ -1,0 +1,32 @@
+name: Create NuPkg for 2.0
+
+on:
+  push:
+    branches:
+      - master
+      - big-buffers
+  pull_request:
+    branches:
+      - master
+      - big-buffers
+
+jobs:
+  create-nupkg:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: check
+      run: |
+        ls -l
+        ls -l FlatBuffers
+        ls -l FlatBuffers/net/FlatBuffers
+    - name: build
+      run: dotnet build FlatBuffers.csproj -c Release --version-prefix 2.0.0
+      working-directory: ${{github.workspace}}/FlatBuffers/net/FlatBuffers
+    - name: pack
+      run: dotnet pack FlatBuffers.csproj -c Release --version-prefix 2.0.0
+      working-directory: ${{github.workspace}}/FlatBuffers/net/FlatBuffers
+    - name: push
+      run: dotnet nuget push bin/Release/*.nupkg -k $${github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1 FlatBuffers.csproj -c Release --version-prefix 2.0.0
+      working-directory: ${{github.workspace}}/FlatBuffers/net/FlatBuffers
