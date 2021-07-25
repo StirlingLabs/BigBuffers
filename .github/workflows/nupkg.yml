@@ -16,17 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: check
-      run: |
-        ls -l
-        ls -l net
-        ls -l net/FlatBuffers
     - name: build
-      run: dotnet build FlatBuffers.csproj -c Release -p Version=2.0.0
+      run: dotnet build FlatBuffers.csproj -c Release -p:Version=2.0.0
       working-directory: ${{github.workspace}}/net/FlatBuffers
     - name: pack
-      run: dotnet pack FlatBuffers.csproj -c Release -p Version=2.0.0
+      run: dotnet pack FlatBuffers.csproj -c Release -p:Version=2.0.0
       working-directory: ${{github.workspace}}/net/FlatBuffers
     - name: push
-      run: dotnet nuget push bin/Release/*.nupkg -k $${github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1 FlatBuffers.csproj -c Release -p Version=2.0.0
+      run: dotnet nuget push bin/Release/*.nupkg -k $${secrets.NUPKG}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1
       working-directory: ${{github.workspace}}/net/FlatBuffers
