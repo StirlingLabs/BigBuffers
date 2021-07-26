@@ -8,18 +8,47 @@ using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers
 {
+  
   public struct Placeholder
   {
+#if DEBUG
+    private readonly struct _t {}
+    private static readonly ConcurrentDictionary<(BigBufferBuilder, ulong), _t> Tracker
+      = new();
+#endif
+
     internal BigBufferBuilder Builder;
     internal readonly ulong Offset;
+
     public Placeholder(BigBufferBuilder builder, ulong offset)
     {
       Builder = builder;
       Offset = offset;
+#if DEBUG
+      if (!Tracker.TryAdd((Builder, Offset), default))
+        throw new InvalidOperationException("Don't create multiple placeholders for the same data.");
+#endif
     }
 
+#if DEBUG
+    public static Placeholder? GetPlaceholder(BigBufferBuilder bb, ulong offset)
+      => Tracker.TryGetValue((bb, offset), out _)
+        ? new(bb, offset)
+        : default;
+
+
+    public static bool IsPlaceholder(BigBufferBuilder bb, ulong offset)
+      => Tracker.ContainsKey((bb, offset));
+#endif
+
     private void Done()
-      => Builder = null;
+    {
+      if (Builder is null) return;
+#if DEBUG
+      Tracker.TryRemove((Builder, Offset), out _);
+#endif
+      Builder = null;
+    }
 
     public void Fill(Array s, uint alignment = 0)
     {
@@ -32,7 +61,7 @@ namespace BigBuffers
       if (!e.MoveNext())
       {
         if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
-        Builder.Put(0uL);
+        Builder.Put(BigBufferBuilder.PlaceholderOffset);
         Builder.StartVector(elemSize, 0);
         Builder.EndVector(alignment);
         return;
@@ -210,7 +239,7 @@ namespace BigBuffers
 
     public Placeholder(BigBufferBuilder bb, ulong offset)
       => Internal = new(bb, offset);
-    
+
     public void Fill(Offset<T> offset)
       => Internal.FillOffset<T>(offset);
   }

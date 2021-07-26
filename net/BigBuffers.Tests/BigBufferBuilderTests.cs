@@ -14,7 +14,7 @@ namespace BigBuffers.Tests
       {
         // table:
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0, 0x80
       }, builder.ByteBuffer.ToFullArray());
       builder.EndTable();
       CollectionAssert.AreEqual(new byte[]
@@ -40,14 +40,14 @@ namespace BigBuffers.Tests
       CollectionAssert.AreEqual(new byte[]
       {
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0, 0x80
       }, builder.ByteBuffer.ToFullArray());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         // table:
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, // one byte boolean field: true
       }, builder.SizedByteArray());
       builder.EndTable();
@@ -78,14 +78,14 @@ namespace BigBuffers.Tests
       CollectionAssert.AreEqual(new byte[]
       {
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0, 0x80
       }, builder.ByteBuffer.ToFullArray());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         // table:
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, // one byte boolean field: true
       }, builder.SizedByteArraySegment());
       builder.Add(1,true, false);
@@ -93,7 +93,7 @@ namespace BigBuffers.Tests
       {
         // table:
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, // 2 one byte boolean fields: true, true
       }, builder.SizedByteArraySegment());
       builder.EndTable();
@@ -126,14 +126,14 @@ namespace BigBuffers.Tests
       CollectionAssert.AreEqual(new byte[]
       {
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0, 0x80
       }, builder.ByteBuffer.ToFullArray());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         // table:
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, // one byte boolean field: true
       }, builder.SizedByteArraySegment());
       builder.Add(1,true, false);
@@ -141,43 +141,43 @@ namespace BigBuffers.Tests
       {
         // table:
         // placeholder for signed offset to vtable
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, // 2 one byte boolean fields: true, true
       }, builder.SizedByteArraySegment());
       builder.Add(2,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1,
       }, builder.SizedByteArraySegment());
       builder.Add(3,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1,
       }, builder.SizedByteArraySegment());
       builder.Add(4,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1,
       }, builder.SizedByteArraySegment());
       builder.Add(5,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1, 1,
       }, builder.SizedByteArraySegment());
       builder.Add(6,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1, 1, 1,
       }, builder.SizedByteArraySegment());
       builder.Add(7,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
-        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1, 1, 1, 1,
       }, builder.SizedByteArraySegment());
       builder.EndTable();
