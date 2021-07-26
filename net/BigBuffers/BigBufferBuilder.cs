@@ -39,6 +39,8 @@ namespace BigBuffers
   [DebuggerTypeProxy(typeof(BigBufferBuilderDebugger))]
   public class BigBufferBuilder
   {
+    internal const ulong PlaceholderOffset = 0x8000000000000000uL;
+
     public ulong Space => _bb.LongLength - Offset;
 
     private ByteBuffer _bb;
@@ -355,10 +357,9 @@ namespace BigBuffers
       _vtableSize = numFields;
 
       // Write placeholder for vtable offset
-      Add(ulong.MaxValue);
+      Add(PlaceholderOffset);
       _tableStart = Offset - 8;
     }
-
 
     // Set the current vtable at `voffset` to the current location in the
     // buffer.
@@ -448,12 +449,12 @@ namespace BigBuffers
     public StringOffset CreateString(out Placeholder placeholder)
     {
       placeholder = new(this, Offset);
-      return new(ulong.MaxValue);
+      return new(PlaceholderOffset);
     }
     public VectorOffset CreateVector(out Placeholder placeholder)
     {
       placeholder = new(this, Offset);
-      return new(ulong.MaxValue);
+      return new(PlaceholderOffset);
     }
     public Offset<T> CreateOffset<T>(out Placeholder<T> placeholder)
     {
