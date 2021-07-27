@@ -12,12 +12,11 @@ namespace BigBuffers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __offset<TModel>(ref this TModel model, ulong vtableOffset) where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
-      ref var table = ref model.ByteBufferOffset.Offset;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var table = ref model.ByteBufferOffset.Offset;
       var vtable = table - bb.Get<ulong>(table);
       var offset = bb.Get<ushort>(vtable + vtableOffset);
-      if (offset == 0) return 0;
-      return table + offset;
+      return offset;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -31,7 +30,7 @@ namespace BigBuffers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __indirect<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       return offset + bb.Get<ulong>(offset);
     }
 
@@ -43,30 +42,35 @@ namespace BigBuffers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string __string<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
-      offset += bb.Get<ulong>(offset);
-      var len = bb.Get<ulong>(offset);
-      var startPos = offset + sizeof(ulong);
-      return bb.GetStringUtf8(startPos, (int)len-1);
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var table = ref model.ByteBufferOffset.Offset;
+      var field = offset + table;
+      var indirection = field + bb.Get<ulong>(field);
+      var strLen = bb.Get<ulong>(indirection);
+      var strStart = indirection + sizeof(ulong);
+      return bb.GetStringUtf8(strStart, (int)strLen-1);
     }
 
     // Get the length of a vector whose offset is stored at "offset" in this object.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __vector_len<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
-      offset += model.ByteBufferOffset.Offset;
-      offset += bb.Get<ulong>(offset);
-      return bb.Get<ulong>(offset);
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var table = ref model.ByteBufferOffset.Offset;
+      var field = offset + table;
+      var indirection = field + bb.Get<ulong>(field);
+      return bb.Get<ulong>(indirection);
     }
 
     // Get the start of data of a vector whose offset is stored at "offset" in this object.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __vector<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
-      offset += bb.Get<ulong>(offset);
-      var startPos = offset + sizeof(ulong);
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var table = ref model.ByteBufferOffset.Offset;
+      var field = offset + table;
+      var indirection = field + bb.Get<ulong>(field);
+      var startPos = indirection + sizeof(ulong);
       return startPos;
     }
 
@@ -77,7 +81,7 @@ namespace BigBuffers
     public static BigSpan<T> __vector_as_span<TModel, T>(ref this TModel model, ulong offset, ulong elementSize)
       where T : unmanaged where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       if (!BitConverter.IsLittleEndian)
         throw new NotSupportedException("Getting typed span on a Big Endian " +
           "system is not support");
@@ -105,7 +109,7 @@ namespace BigBuffers
     public static BigSpan<byte> __vector_as_byte_span<TModel>(ref this TModel model, ulong offset, ulong elementSize)
       where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       if (!BitConverter.IsLittleEndian)
         throw new NotSupportedException("Getting typed span on a Big Endian " +
           "system is not support");
@@ -124,7 +128,7 @@ namespace BigBuffers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArraySegment<byte>? __vector_as_arraysegment<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       var o = model.__offset(offset);
       if (0 == o) return null;
 
@@ -141,7 +145,7 @@ namespace BigBuffers
       where TModel : struct, ISchemaModel
       where T : unmanaged
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       if (!BitConverter.IsLittleEndian)
         throw new NotSupportedException("Getting typed arrays on a Big Endian " +
           "system is not support");
@@ -164,9 +168,10 @@ namespace BigBuffers
     public static T __union<TModel, T>(ref this TModel model, ulong offset)
       where TModel : struct, ISchemaModel where T : struct, IBigBufferModel
     {
-      ref var bb = ref model.ByteBufferOffset.ByteBuffer;
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       var t = new T();
-      t.__init(model.__indirect(offset), bb);
+      var indirect = model.__indirect(offset);
+      t.__init(indirect, bb);
       return t;
     }
 

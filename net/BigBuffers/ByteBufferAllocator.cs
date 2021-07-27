@@ -1,9 +1,12 @@
+using System;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 
 namespace BigBuffers
 {
-  public abstract class ByteBufferAllocator
+  [PublicAPI]
+  public abstract class ByteBufferAllocator : IEquatable<ByteBufferAllocator>
   {
     public abstract BigSpan<byte> Span
     {
@@ -17,26 +20,37 @@ namespace BigBuffers
       get;
     }
 
-    public byte[] Buffer
+    public abstract byte[] Buffer
     {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       get;
-      protected set;
     }
 
-    public uint Length
-    {
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      get => checked((uint)LongLength);
-    }
 
-    public ulong LongLength
-    {
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      get;
-      protected set;
-    }
+    public uint Length => (uint)Buffer.Length;
+
+    public ulong LongLength => (ulong)Buffer.LongLength;
 
     public abstract void GrowFront(ulong newSize);
+
+    public bool Equals(ByteBufferAllocator other)
+      => !ReferenceEquals(null, other)
+        && (ReferenceEquals(this, other)
+          || Equals(Buffer, other.Buffer));
+
+    public override bool Equals(object obj)
+      => !ReferenceEquals(null, obj)
+        && (ReferenceEquals(this, obj)
+          || this.TypeEquals(obj)
+          && Equals((ByteBufferAllocator)obj));
+
+    public override int GetHashCode()
+      => Buffer is null ? 0 : Buffer.GetHashCode();
+
+    public static bool operator ==(ByteBufferAllocator left, ByteBufferAllocator right)
+      => left?.Equals(right) ?? right is null;
+
+    public static bool operator !=(ByteBufferAllocator left, ByteBufferAllocator right)
+      => !left?.Equals(right) ?? right is not null;
   }
 }

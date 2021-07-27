@@ -12,10 +12,10 @@ namespace BigBuffers
 {
   public sealed class ByteArrayAllocator : ByteBufferAllocator
   {
+    private byte[] _buffer;
     public ByteArrayAllocator(byte[] buffer)
     {
-      Buffer = buffer;
-      InitBuffer();
+      _buffer = buffer;
     }
 
     public override void GrowFront(ulong newSize)
@@ -27,14 +27,12 @@ namespace BigBuffers
       Buffer.CopyTo(new BigSpan<byte>(newBuffer)
         .Slice(0, (nuint)Buffer.LongLength));
       //System.Buffer.BlockCopy(_buffer, 0, newBuffer, newSize - Length, Length);
-      Buffer = newBuffer;
-      InitBuffer();
+      _buffer = newBuffer;
     }
 
     public override BigSpan<byte> Span => (BigSpan<byte>)Buffer;
     public override ReadOnlyBigSpan<byte> ReadOnlySpan => (ReadOnlyBigSpan<byte>)Buffer;
 
-    private void InitBuffer()
-      => LongLength = (ulong)Buffer.LongLength;
+    public override byte[] Buffer => _buffer;
   }
 }

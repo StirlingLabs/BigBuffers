@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System;
 using System.Diagnostics;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -32,27 +33,36 @@ namespace BigBuffers
   /// All tables in the generated code derive from this struct, and add their own accessors.
   /// </summary>
   [PublicAPI]
-  public struct Table : ISchemaModel
+  public readonly struct Table : ISchemaModel, IEquatable<Table>
   {
-    private ByteBufferResidentModel _byteBufferResidentModel;
+    private readonly ByteBufferResidentModel _byteBufferResidentModel;
 
     ref ByteBufferResidentModel ISchemaModel.ByteBufferOffset => ref _byteBufferResidentModel.UnsafeSelfReference();
 
-    public ulong Offset
-    {
-      get => _byteBufferResidentModel.Offset;
-      private set => _byteBufferResidentModel.Offset = value;
-    }
+    public ulong Offset => _byteBufferResidentModel.Offset;
 
-    public ByteBuffer ByteBuffer { get => _byteBufferResidentModel.ByteBuffer; private set => _byteBufferResidentModel.ByteBuffer = value; }
+    public ByteBuffer ByteBuffer => _byteBufferResidentModel.ByteBuffer;
 
     // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
     public Table(ulong i, ByteBuffer byteBuffer) : this()
     {
       Debug.Assert(i <= long.MaxValue);
-      ByteBuffer = byteBuffer;
-      Offset = i;
+      _byteBufferResidentModel = new(byteBuffer, i);
     }
 
+    public bool Equals(Table other)
+      => _byteBufferResidentModel.Equals(other._byteBufferResidentModel);
+
+    public override bool Equals(object obj)
+      => obj is Table other && Equals(other);
+
+    public override int GetHashCode()
+      => _byteBufferResidentModel.GetHashCode();
+
+    public static bool operator ==(Table left, Table right)
+      => left.Equals(right);
+
+    public static bool operator !=(Table left, Table right)
+      => !left.Equals(right);
   }
 }

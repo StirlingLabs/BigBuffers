@@ -1,2 +1,6 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
 * text=auto
+*.cpp diff=cpp
+*.h diff=cpp
+*.c diff=c
+*.cs diff=csharp
