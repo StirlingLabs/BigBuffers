@@ -28,7 +28,9 @@ namespace BigBuffers.Tests
       };
       var h = Hash.CreateHash(bb, new(bytes));
 
+      h.Value.Should().Be(0);
     }
+
     [Test]
     public static void TestTableTest()
     {
@@ -167,7 +169,12 @@ namespace BigBuffers.Tests
       TableE.StartTableE(bb);
       TableE.AddX(bb, bb.CreateString(out var sp1));
       TableE.EndTableE(bb);
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       sp1.Fill("Hello World");
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableE.GetRootAsTableE(bb.ByteBuffer);
 
@@ -311,7 +318,12 @@ namespace BigBuffers.Tests
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var x));
       var to = TableJ.EndTableJ(bb);
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       x.Fill(new[] { to });
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableJ.GetRootAsTableJ(bb.ByteBuffer);
 
@@ -331,11 +343,15 @@ namespace BigBuffers.Tests
       var ko = TableK.EndTableK(bb);
       0.Should().IsSameOrEqualTo(ko.Value);
 
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
       jx.Fill(new[] { jo });
       kx.Fill(new[] { jo });
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableK.GetRootAsTableK(bb.ByteBuffer);
       ko.Value.Should().IsSameOrEqualTo(t._model.Offset);
@@ -367,15 +383,23 @@ namespace BigBuffers.Tests
       TableL.StartTableL(bb);
       TableL.AddX(bb, bb.CreateOffset<TableK>(out var lx));
       TableL.EndTableL(bb);
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       TableK.StartTableK(bb);
       TableK.AddX(bb, bb.CreateVector(out var kx));
       var ko = TableK.EndTableK(bb);
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
       jx.Fill(new[] { jo });
       kx.Fill(new[] { jo });
       lx.Fill(ko);
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableL.GetRootAsTableL(bb.ByteBuffer);
 
@@ -398,11 +422,15 @@ namespace BigBuffers.Tests
       var no = TableN.EndTableN(bb);
       0.Should().IsSameOrEqualTo(no.Value);
 
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
       jx.Fill(new[] { jo });
       nx.Fill(jo);
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableN.GetRootAsTableN(bb.ByteBuffer);
       no.Value.Should().IsSameOrEqualTo(t._model.Offset);
@@ -439,9 +467,6 @@ namespace BigBuffers.Tests
     [Test]
     public static void TableQTest()
     {
-#if DEBUG
-      BigBufferBuilder.UseExistingVTables = false;
-#endif
 
       var bb = new BigBufferBuilder();
       TableQ.StartTableQ(bb);
@@ -452,14 +477,20 @@ namespace BigBuffers.Tests
       var qo = TableQ.EndTableQ(bb);
       0.Should().IsSameOrEqualTo(qo.Value);
 
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       TableN.StartTableN(bb);
       TableN.AddX(bb, bb.CreateOffset<TableJ>(out var nx).Value);
       TableN.AddXType(bb, UnionM.TableJ);
       var no = TableN.EndTableN(bb);
 
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
 
       jx.Fill(new[] { jo });
       nx.Fill(jo);
@@ -467,9 +498,13 @@ namespace BigBuffers.Tests
       TableP.AddX(bb, EnumO.z);
       var po = TableP.EndTableP(bb);
 
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
       qx.Fill(no);
       qy.Fill(po);
       qz.Fill(jo);
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableQ.GetRootAsTableQ(bb.ByteBuffer);
 
@@ -508,6 +543,54 @@ namespace BigBuffers.Tests
       jo.Value.Should().IsSameOrEqualTo(jv2._model.Offset);
 
       jv1.Should().IsSameOrEqualTo(jv2);
+
+    }
+
+
+    [Test]
+    public static void TableRTest()
+    {
+      var bb = new BigBufferBuilder();
+      TableR.StartTableR(bb);
+      TableR.AddX(bb, bb.CreateVector(out var rx));
+      TableR.AddXType(bb, bb.CreateVector(out var rxt));
+      var ro = TableR.EndTableR(bb);
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
+      TableJ.StartTableJ(bb);
+      TableJ.AddX(bb, bb.CreateVector(out var jx));
+      var jo = TableJ.EndTableJ(bb);
+      jx.Fill(new[] { jo });
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
+      TableK.StartTableK(bb);
+      TableK.AddX(bb, bb.CreateVector(out var kx));
+      var ko = TableK.EndTableK(bb);
+      kx.Fill(new[] { jo });
+
+      Assert.Throws<Exception>(() => Placeholder.ValidateAllFilled(bb));
+
+      rxt.Fill(new[] { UnionM.TableK, UnionM.TableJ });
+      rx.Fill(new Offset[] { ko, jo });
+
+      Placeholder.ValidateAllFilled(bb);
+
+      var t = TableR.GetRootAsTableR(bb.ByteBuffer);
+      ro.Value.Should().IsSameOrEqualTo(t._model.Offset);
+
+      t.XType(0).Should().BeOfType<UnionM>().And.Be(UnionM.TableK);
+
+      t.XType(1).Should().BeOfType<UnionM>().And.Be(UnionM.TableJ);
+
+      var k = t.X<TableK>(0);
+      k.Should().NotBeNull();
+      ko.Value.Should().IsSameOrEqualTo(k!.Value._model.Offset);
+
+      var j = t.X<TableJ>(1);
+      j.Should().NotBeNull();
+      jo.Value.Should().IsSameOrEqualTo(j!.Value._model.Offset);
 
     }
   }
