@@ -14,17 +14,31 @@
  * limitations under the License.
  */
 
+using System;
+
 namespace BigBuffers
 {
-    /// <summary>
-    /// Offset class for typesafe assignments.
-    /// </summary>
-    public struct Offset<T>
-    {
-        public ulong Value;
-        public Offset(ulong value)
-        {
-            Value = value;
-        }
-    }
+  /// <summary>
+  /// Offset class for typesafe assignments.
+  /// </summary>
+  public struct Offset<T>
+  {
+    public ulong Value;
+    public Offset(ulong value)
+      => Value = value;
+
+    public static implicit operator Offset(Offset<T> o)
+      => new(o.Value);
+  }
+
+
+  /// <summary>
+  /// Offset class for typesafe assignments.
+  /// </summary>
+  public struct Offset
+  {
+    public ulong Value;
+    public Offset(ulong value)
+      => Value = value;
+  }
 }

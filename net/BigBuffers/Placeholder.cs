@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using StirlingLabs.Utilities;
@@ -8,12 +9,12 @@ using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers
 {
-  
   public struct Placeholder
   {
 #if DEBUG
-    private readonly struct _t {}
-    private static readonly ConcurrentDictionary<(BigBufferBuilder, ulong), _t> Tracker
+    private readonly struct _t { }
+
+    private static readonly ConcurrentDictionary<(BigBufferBuilder Buffer, ulong Offset), _t> Tracker
       = new();
 #endif
 
@@ -133,6 +134,11 @@ namespace BigBuffers
       => Fill((ReadOnlyBigSpan<Offset<T>>)s, alignment);
 
 
+    [DebuggerStepThrough]
+    public void Fill(Offset[] s, uint alignment = 0)
+      => Fill((ReadOnlyBigSpan<Offset>)s, alignment);
+
+
     public void Fill<T>(ReadOnlyBigSpan<Offset<T>> s, uint alignment = 0)
     {
       if (IfType<T>.IsAssignableTo<IBigBufferStruct>())
@@ -145,9 +151,22 @@ namespace BigBuffers
           Builder.Put(s[i].Value - Builder.Offset);
         var offset = Builder.EndVector(alignment);
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
+        Done();
       }
       else
         Fill<Offset<T>>(s, alignment);
+    }
+
+
+    public void Fill(ReadOnlyBigSpan<Offset> s, uint alignment = 0)
+    {
+      if (alignment == 0) alignment = sizeof(ulong);
+      Builder.StartVector(sizeof(ulong), s.LongLength);
+      for (nuint i = 0; i < s.Length; ++i)
+        Builder.Put(s[i].Value - Builder.Offset);
+      var offset = Builder.EndVector(alignment);
+      Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
+      Done();
     }
 
 
@@ -230,6 +249,26 @@ namespace BigBuffers
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
+    }
+
+    [Conditional("DEBUG")]
+    public static void ValidateAllFilled(BigBufferBuilder bb)
+    {
+      var placeholders = Tracker.Keys
+        .Where(k => k.Buffer == bb)
+        .Select(k => k.Offset)
+        .ToArray();
+
+      if (placeholders.LongLength == 0)
+        return;
+
+      throw new("Not all placeholders were filled.\nSee Data[\"Placeholders\"] for a list of unfilled placeholders.")
+      {
+        Data =
+        {
+          { "Placeholders", placeholders }
+        }
+      };
     }
   }
 
