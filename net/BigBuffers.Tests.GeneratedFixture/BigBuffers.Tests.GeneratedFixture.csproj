@@ -49,7 +49,7 @@
     </ItemGroup>
 
     <!-- code generation -->
-    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="&quot;@(FlatC)&quot; --gen-all --gen-mutable -n @(FbsFiles, ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="&quot;@(FlatC)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles, ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
     
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>

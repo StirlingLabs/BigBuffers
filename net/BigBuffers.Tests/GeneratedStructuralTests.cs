@@ -4,6 +4,8 @@ using System.Dynamic;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using FluentAssertions;
+using FluentAssertions.Common;
 using Generated;
 using NUnit.Framework;
 using StirlingLabs.Utilities;
@@ -11,10 +13,10 @@ using StirlingLabs.Utilities.Assertions;
 
 namespace BigBuffers.Tests
 {
-  public class GeneratedStructuralTests
+  public static class GeneratedStructuralTests
   {
     [Test]
-    public void HashStructTest()
+    public static void HashStructTest()
     {
       var bb = new BigBufferBuilder();
       var bytes = new byte[]
@@ -28,7 +30,7 @@ namespace BigBuffers.Tests
 
     }
     [Test]
-    public void TestTableTest()
+    public static void TestTableTest()
     {
       var bb = new BigBufferBuilder();
       Generated.Test.StartTest(bb);
@@ -42,23 +44,25 @@ namespace BigBuffers.Tests
       var oh = Hash.CreateHash(bb, new(initHashBytes));
       Generated.Test.AddHash(bb, oh);
       var ot = Generated.Test.EndTest(bb);
-      Assert.AreEqual(8 + 32 + 3 * 2, bb.Offset);
+      ot.Value.Should().Be(0uL);
+
+      (8 + 32 + 3 * 2).Should().IsSameOrEqualTo(bb.Offset);
 
       var t = Generated.Test.GetRootAsTest(bb.ByteBuffer);
 
-      Assert.AreEqual(0, t._model.Offset);
+      0.Should().IsSameOrEqualTo(t._model.Offset);
 
-      Assert.NotNull(t.Hash);
+      t.Hash.Should().NotBeNull();
 
-      var h = t.Hash.Value;
+      var h = t.Hash!.Value;
 
       for (var i = 0u; i < 32; ++i)
-        Assert.AreEqual(initHashBytes[i], h.Bytes(i));
+        initHashBytes[i].Should().IsSameOrEqualTo(h.Bytes(i));
 
       var s = h.Bytes();
 
       for (var i = 0u; i < 32; ++i)
-        Assert.AreEqual(initHashBytes[i], s[i]);
+        initHashBytes[i].Should().IsSameOrEqualTo(s[i]);
 
       s.AsSmallSlices(RandomNumberGenerator.Fill);
 
@@ -68,11 +72,11 @@ namespace BigBuffers.Tests
         CollectionAssert.AreNotEqual(initHashBytes, ps));
 
       for (var i = 0u; i < 32; ++i)
-        Assert.AreEqual(s[i], h.Bytes(i));
+        s[i].Should().IsSameOrEqualTo(h.Bytes(i));
     }
 
     [Test]
-    public void TableATest()
+    public static void TableATest()
     {
       var bb = new BigBufferBuilder();
       TableA.StartTableA(bb);
@@ -81,11 +85,11 @@ namespace BigBuffers.Tests
 
       var t = TableA.GetRootAsTableA(bb.ByteBuffer);
 
-      Assert.AreEqual(0x0102030405060708uL, t.X);
+      0x0102030405060708uL.Should().IsSameOrEqualTo(t.X);
     }
 
     [Test]
-    public void TableBTest()
+    public static void TableBTest()
     {
       var bb = new BigBufferBuilder();
       TableB.StartTableB(bb);
@@ -94,21 +98,21 @@ namespace BigBuffers.Tests
 
       var t = TableB.GetRootAsTableB(bb.ByteBuffer);
 
-      Assert.NotNull(t.X);
+      t.X.Should().NotBeNull();
 
-      Assert.AreEqual(0x0102030405060708uL, t.X.Value.GetX());
+      0x0102030405060708uL.Should().IsSameOrEqualTo(t.X!.Value.GetX());
 
       t.X.Value.X = 0x0807060504030201uL;
 
-      Assert.AreEqual(0x0807060504030201uL, t.X.Value.X);
+      0x0807060504030201uL.Should().IsSameOrEqualTo(t.X.Value.X);
 
       t.X.Value.SetX(0x0102030405060708uL);
 
-      Assert.AreEqual(0x0102030405060708uL, t.X.Value.X);
+      0x0102030405060708uL.Should().IsSameOrEqualTo(t.X.Value.X);
     }
 
     [Test]
-    public void TableCTest()
+    public static void TableCTest()
     {
       var a = new byte[]
       {
@@ -133,18 +137,18 @@ namespace BigBuffers.Tests
 
       var t = TableC.GetRootAsTableC(bb.ByteBuffer);
 
-      Assert.NotNull(t.X);
+      t.X.Should().NotBeNull();
 
-      BigSpanAssert.AreEqual(new(a), t.X.Value.X());
+      BigSpanAssert.AreEqual(BigSpan.Create(a), t.X!.Value.X());
 
       b.CopyTo(t.X.Value.X());
 
-      BigSpanAssert.AreEqual(new(b), t.X.Value.X());
+      BigSpanAssert.AreEqual(BigSpan.Create(b), t.X!.Value.X());
 
     }
 
     [Test]
-    public void TableDTest()
+    public static void TableDTest()
     {
       var bb = new BigBufferBuilder();
       TableD.StartTableD(bb);
@@ -153,11 +157,11 @@ namespace BigBuffers.Tests
 
       var t = TableD.GetRootAsTableD(bb.ByteBuffer);
 
-      Assert.AreEqual(0x0102030405060708uL, t.X);
+      0x0102030405060708uL.Should().IsSameOrEqualTo(t.X);
     }
 
     [Test]
-    public void TableETest()
+    public static void TableETest()
     {
       var bb = new BigBufferBuilder();
       TableE.StartTableE(bb);
@@ -167,17 +171,17 @@ namespace BigBuffers.Tests
 
       var t = TableE.GetRootAsTableE(bb.ByteBuffer);
 
-      Assert.AreEqual("Hello World", t.X);
+      "Hello World".Should().IsSameOrEqualTo(t.X);
 
       var utf8 = new BigSpan<byte>(Encoding.UTF8.GetBytes("Hello World"));
       var xSpan = t.GetXSpan();
       for (var i = 0u; i < 11; ++i)
-        Assert.AreEqual(utf8[i], xSpan[i]);
-      Assert.AreEqual((byte)0, xSpan[11u]);
+        utf8[i].Should().IsSameOrEqualTo(xSpan[i]);
+      ((byte)0).Should().IsSameOrEqualTo(xSpan[11u]);
     }
 
     [Test]
-    public void TableFTest()
+    public static void TableFTest()
     {
       var bb = new BigBufferBuilder();
       TableF.StartTableF(bb);
@@ -187,12 +191,12 @@ namespace BigBuffers.Tests
 
       var t = TableF.GetRootAsTableF(bb.ByteBuffer);
 
-      Assert.AreEqual("Hello", t.X(0));
-      Assert.AreEqual("World", t.X(1));
+      "Hello".Should().IsSameOrEqualTo(t.X(0));
+      "World".Should().IsSameOrEqualTo(t.X(1));
     }
 
     [Test]
-    public void TableGTest()
+    public static void TableGTest()
     {
       var bb = new BigBufferBuilder();
       TableG.StartTableG(bb);
@@ -221,19 +225,20 @@ namespace BigBuffers.Tests
 
       var t = TableG.GetRootAsTableG(bb.ByteBuffer);
 
-      Assert.NotNull(t.X(0));
-      Assert.NotNull(t.X(1));
-      Assert.NotNull(t.X(2));
-      Assert.NotNull(t.X(3));
+      t.X(0).Should().NotBeNull();
+      t.X(0).Should().NotBeNull();
+      t.X(1).Should().NotBeNull();
+      t.X(2).Should().NotBeNull();
+      t.X(3).Should().NotBeNull();
 
-      Assert.IsTrue(t.X(0)?.X);
-      Assert.IsFalse(t.X(1)?.X);
-      Assert.IsTrue(t.X(2)?.X);
-      Assert.IsFalse(t.X(3)?.X);
+      (t.X(0)?.X).Should().BeTrue();
+      (t.X(1)?.X).Should().BeFalse();
+      (t.X(2)?.X).Should().BeTrue();
+      (t.X(3)?.X).Should().BeFalse();
     }
 
     [Test]
-    public void TableHTest()
+    public static void TableHTest()
     {
       var bb = new BigBufferBuilder();
       TableH.StartTableH(bb);
@@ -243,20 +248,15 @@ namespace BigBuffers.Tests
 
       var t = TableH.GetRootAsTableH(bb.ByteBuffer);
 
-      Assert.NotNull(t.X(0));
-      Assert.NotNull(t.X(1));
-      Assert.NotNull(t.X(2));
-      Assert.NotNull(t.X(3));
-
-      Assert.IsTrue(t.X(0));
-      Assert.IsFalse(t.X(1));
-      Assert.IsTrue(t.X(2));
-      Assert.IsFalse(t.X(3));
+      t.X(0).Should().BeTrue();
+      t.X(1).Should().BeFalse();
+      t.X(2).Should().BeTrue();
+      t.X(3).Should().BeFalse();
 
     }
 
     [Test]
-    public void TableITest()
+    public static void TableITest()
     {
       var bb = new BigBufferBuilder();
       TableI.StartTableI(bb);
@@ -285,26 +285,26 @@ namespace BigBuffers.Tests
 
       var t = TableI.GetRootAsTableI(bb.ByteBuffer);
 
-      Assert.NotNull(t.X(0));
-      Assert.NotNull(t.X(1));
-      Assert.NotNull(t.X(2));
-      Assert.NotNull(t.X(3));
+      t.X(0).Should().NotBeNull();
+      t.X(1).Should().NotBeNull();
+      t.X(2).Should().NotBeNull();
+      t.X(3).Should().NotBeNull();
 
-      Assert.IsTrue(t.X(0)!.Value.X(0));
-      Assert.IsFalse(t.X(0)!.Value.X(1));
+      t.X(0)!.Value.X(0).Should().BeTrue();
+      t.X(0)!.Value.X(1).Should().BeFalse();
 
-      Assert.IsTrue(t.X(1)!.Value.X(0));
-      Assert.IsTrue(t.X(1)!.Value.X(1));
+      t.X(1)!.Value.X(0).Should().BeTrue();
+      t.X(1)!.Value.X(1).Should().BeTrue();
 
-      Assert.IsFalse(t.X(2)!.Value.X(0));
-      Assert.IsFalse(t.X(2)!.Value.X(1));
+      t.X(2)!.Value.X(0).Should().BeFalse();
+      t.X(2)!.Value.X(1).Should().BeFalse();
 
-      Assert.IsFalse(t.X(3)!.Value.X(0));
-      Assert.IsTrue(t.X(3)!.Value.X(1));
+      t.X(3)!.Value.X(0).Should().BeFalse();
+      t.X(3)!.Value.X(1).Should().BeTrue();
     }
 
     [Test]
-    public void TableJTest()
+    public static void TableJTest()
     {
       var bb = new BigBufferBuilder();
 
@@ -314,39 +314,53 @@ namespace BigBuffers.Tests
       x.Fill(new[] { to });
 
       var t = TableJ.GetRootAsTableJ(bb.ByteBuffer);
-      
+
       var t2 = t.X(0);
-      Assert.NotNull(t2);
+      t2.Should().NotBeNull();
       var t3 = t2!.Value.X(0);
-      Assert.NotNull(t3);
+      t3.Should().NotBeNull();
     }
-    
+
     [Test]
-    public void TableKTest()
+    public static void TableKTest()
     {
       var bb = new BigBufferBuilder();
 
       TableK.StartTableK(bb);
       TableK.AddX(bb, bb.CreateVector(out var kx));
-      TableK.EndTableK(bb);
+      var ko = TableK.EndTableK(bb);
+      0.Should().IsSameOrEqualTo(ko.Value);
+
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
-      var to = TableJ.EndTableJ(bb);
-      jx.Fill(new[] { to });
-      kx.Fill(new[] { to });
+      var jo = TableJ.EndTableJ(bb);
+      jx.Fill(new[] { jo });
+      kx.Fill(new[] { jo });
 
       var t = TableK.GetRootAsTableK(bb.ByteBuffer);
-      
-      var t2 = t.X(0);
-      Assert.NotNull(t2);
-      var t3 = t2!.Value.X(0);
-      Assert.NotNull(t3);
-      var t4 = t3!.Value.X(0);
-      Assert.NotNull(t4);
+      ko.Value.Should().IsSameOrEqualTo(t._model.Offset);
+
+      var j1 = t.X(0);
+      j1.Should().NotBeNull();
+      var jv1 = j1!.Value;
+      jo.Value.Should().IsSameOrEqualTo(jv1._model.Offset);
+      1.Should().IsSameOrEqualTo(jv1.XLength);
+
+      var j2 = jv1.X(0);
+      j2.Should().NotBeNull();
+      var jv2 = j2!.Value;
+      jo.Value.Should().IsSameOrEqualTo(jv2._model.Offset);
+      1.Should().IsSameOrEqualTo(jv2.XLength);
+
+      var j3 = jv2.X(0);
+      j3.Should().NotBeNull();
+      var jv3 = j3!.Value;
+      jo.Value.Should().IsSameOrEqualTo(jv3._model.Offset);
+      1.Should().IsSameOrEqualTo(jv3.XLength);
     }
-    
+
     [Test]
-    public void TableLTest()
+    public static void TableLTest()
     {
       var bb = new BigBufferBuilder();
 
@@ -364,13 +378,137 @@ namespace BigBuffers.Tests
       lx.Fill(ko);
 
       var t = TableL.GetRootAsTableL(bb.ByteBuffer);
-      
+
       var t2 = t.X;
-      Assert.NotNull(t2);
+      t2.Should().NotBeNull();
       var t3 = t2!.Value.X(0);
-      Assert.NotNull(t3);
+      t3.Should().NotBeNull();
       var t4 = t3!.Value.X(0);
-      Assert.NotNull(t4);
+      t4.Should().NotBeNull();
+    }
+
+
+    [Test]
+    public static void TableNTest()
+    {
+      var bb = new BigBufferBuilder();
+      TableN.StartTableN(bb);
+      TableN.AddX(bb, bb.CreateOffset<TableJ>(out var nx).Value);
+      TableN.AddXType(bb, UnionM.TableJ);
+      var no = TableN.EndTableN(bb);
+      0.Should().IsSameOrEqualTo(no.Value);
+
+      TableJ.StartTableJ(bb);
+      TableJ.AddX(bb, bb.CreateVector(out var jx));
+      var jo = TableJ.EndTableJ(bb);
+      jx.Fill(new[] { jo });
+      nx.Fill(jo);
+
+      var t = TableN.GetRootAsTableN(bb.ByteBuffer);
+      no.Value.Should().IsSameOrEqualTo(t._model.Offset);
+
+      UnionM.TableJ.Should().IsSameOrEqualTo(t.XType);
+
+      var t2 = t.X<TableJ>();
+      t2.Should().NotBeNull();
+      var t3 = t2!.Value.X(0);
+      t3.Should().NotBeNull();
+      var t4 = t3!.Value.X(0);
+      t4.Should().NotBeNull();
+    }
+
+
+    [Test]
+    public static void TablePTest()
+    {
+      var bb = new BigBufferBuilder();
+      TableP.StartTableP(bb);
+      TableP.AddX(bb, EnumO.z);
+      TableP.EndTableP(bb);
+
+      var t = TableP.GetRootAsTableP(bb.ByteBuffer);
+      EnumO.z.Should().IsSameOrEqualTo(t.X);
+
+      t.X = EnumO.y;
+      EnumO.y.Should().IsSameOrEqualTo(t.X);
+
+      t.X = EnumO.x;
+      EnumO.x.Should().IsSameOrEqualTo(t.X);
+    }
+
+    [Test]
+    public static void TableQTest()
+    {
+#if DEBUG
+      BigBufferBuilder.UseExistingVTables = false;
+#endif
+
+      var bb = new BigBufferBuilder();
+      TableQ.StartTableQ(bb);
+      TableQ.AddX(bb, bb.CreateOffset<TableN>(out var qx));
+      TableQ.AddY(bb, bb.CreateOffset<TableP>(out var qy));
+      TableQ.AddZ(bb, bb.CreateOffset<TableJ>(out var qz).Value);
+      TableQ.AddZType(bb, UnionM.TableJ);
+      var qo = TableQ.EndTableQ(bb);
+      0.Should().IsSameOrEqualTo(qo.Value);
+
+      TableN.StartTableN(bb);
+      TableN.AddX(bb, bb.CreateOffset<TableJ>(out var nx).Value);
+      TableN.AddXType(bb, UnionM.TableJ);
+      var no = TableN.EndTableN(bb);
+
+      TableJ.StartTableJ(bb);
+      TableJ.AddX(bb, bb.CreateVector(out var jx));
+      var jo = TableJ.EndTableJ(bb);
+
+      jx.Fill(new[] { jo });
+      nx.Fill(jo);
+      TableP.StartTableP(bb);
+      TableP.AddX(bb, EnumO.z);
+      var po = TableP.EndTableP(bb);
+
+      qx.Fill(no);
+      qy.Fill(po);
+      qz.Fill(jo);
+
+      var t = TableQ.GetRootAsTableQ(bb.ByteBuffer);
+
+      qo.Value.Should().IsSameOrEqualTo(t._model.Offset);
+
+      var n = t.X;
+      n.Should().NotBeNull();
+
+      var nv = n!.Value;
+      no.Value.Should().IsSameOrEqualTo(nv._model.Offset);
+
+      UnionM.TableJ.Should().IsSameOrEqualTo(nv.XType);
+
+      var j1 = nv.X<TableJ>();
+      j1.Should().NotBeNull();
+
+      var jv1 = j1!.Value;
+      jo.Value.Should().IsSameOrEqualTo(jv1._model.Offset);
+
+      var p = t.Y;
+      p.Should().NotBeNull();
+
+      var pv = p!.Value;
+      po.Value.Should().IsSameOrEqualTo(pv._model.Offset);
+      EnumO.z.Should().IsSameOrEqualTo(pv.X);
+
+      UnionM.TableJ.Should().IsSameOrEqualTo(t.ZType);
+
+      var j2 = t.Z<TableJ>();
+      j2.Should().NotBeNull();
+
+      var jv2 = j2!.Value;
+      jo.Value.Should().IsSameOrEqualTo(jv2._model.Offset);
+
+      jo.Value.Should().IsSameOrEqualTo(jv1._model.Offset);
+      jo.Value.Should().IsSameOrEqualTo(jv2._model.Offset);
+
+      jv1.Should().IsSameOrEqualTo(jv2);
+
     }
   }
 }

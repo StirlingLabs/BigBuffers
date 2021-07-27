@@ -39,7 +39,13 @@ namespace BigBuffers
   [DebuggerTypeProxy(typeof(BigBufferBuilderDebugger))]
   public class BigBufferBuilder
   {
-    internal const ulong PlaceholderOffset = 0x8000000000000000uL;
+#if DEBUG
+    public static bool UseExistingVTables = true;
+#else
+    public const bool UseExistingVTables = true;
+#endif
+
+    internal const ulong PlaceholderOffset = unchecked((ulong)long.MinValue);
 
     public ulong Space => _bb.LongLength - Offset;
 
@@ -423,7 +429,7 @@ namespace BigBuffers
     /// the value will be skipped.</param>
     /// <param name="d">The default value to compare the value against</param>
     public void AddOffset(ulong o, ulong x, ulong d)
-      => Add(o, x, d);
+      => Add(o, Offset - x, d);
     /// @endcond
     /// <summary>
     /// Encode the string `s` in the buffer using UTF-8.
@@ -451,15 +457,17 @@ namespace BigBuffers
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
+    
     public VectorOffset CreateVector(out Placeholder placeholder)
     {
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
+    
     public Offset<T> CreateOffset<T>(out Placeholder<T> placeholder)
     {
       placeholder = new(this, Offset);
-      return new(ulong.MaxValue);
+      return new(PlaceholderOffset);
     }
 
     /// <summary>
@@ -589,7 +597,7 @@ namespace BigBuffers
         { }
       }
 
-      if (existingVtable != 0)
+      if (existingVtable != 0 && UseExistingVTables)
       {
         //throw new NotImplementedException();
         // Found a match:
@@ -620,6 +628,9 @@ namespace BigBuffers
       _vtableSize = 0;
       return _tableStart;
     }
+
+    internal ulong GetLatestVTable()
+      => _vtables[_numVtables - 1];
 
     // This checks a required field has been set in a given table that has
     // just been constructed.

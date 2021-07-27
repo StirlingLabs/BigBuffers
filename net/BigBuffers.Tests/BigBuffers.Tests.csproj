@@ -4,6 +4,8 @@
     <TargetFramework>net5.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,7 +13,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
-    <PackageReference Include="coverlet.collector" Version="3.0.3">
+    <PackageReference Include="coverlet.collector" Version="3.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -21,7 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BigBuffers.Tests.GeneratedFixture\BigBuffers.Tests.GeneratedFixture.csproj" />
     <ProjectReference Include="..\BigBuffers\BigBuffers.csproj" />
-    <PackageReference Include="StirlingLabs.BigSpans" Version="21.7.2" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="21.7.3" />
     <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="21.7.0" />
   </ItemGroup>
 
