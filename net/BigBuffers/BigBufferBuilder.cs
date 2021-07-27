@@ -39,11 +39,7 @@ namespace BigBuffers
   [DebuggerTypeProxy(typeof(BigBufferBuilderDebugger))]
   public class BigBufferBuilder
   {
-#if DEBUG
     public static bool UseExistingVTables = true;
-#else
-    public const bool UseExistingVTables = true;
-#endif
 
     internal const ulong PlaceholderOffset = unchecked((ulong)long.MinValue);
 
@@ -180,10 +176,10 @@ namespace BigBuffers
     }
 
     public ulong Put<T>(T x)
-      => Offset += _bb.Put<T>(Offset, x);
+      => Offset += _bb.Put(Offset, x);
 
     public ulong Put<T>(in T x)
-      => Offset += _bb.Put<T>(Offset, in x);
+      => Offset += _bb.Put(Offset, in x);
 
     /// <summary>
     /// Puts an array of type T into this builder at the
@@ -193,7 +189,7 @@ namespace BigBuffers
     /// <param name="x">The array to copy data from</param>
     public ulong Put<T>(T[] x)
       where T : unmanaged
-      => Offset += _bb.Put<T>(Offset, x);
+      => Offset += _bb.Put(Offset, x);
 
     /// <summary>
     /// Puts a span of type T into this builder at the
@@ -212,13 +208,13 @@ namespace BigBuffers
     /// <typeparam name="T">The type of the input data </typeparam>
     /// <param name="x">The span to copy data from</param>
     public ulong Put<T>(ReadOnlyBigSpan<T> x)
-      => Offset += _bb.Put<T>(Offset, x);
+      => Offset += _bb.Put(Offset, x);
 
     /// @endcond
     public ulong Add<T>(T x) where T : unmanaged
     {
       Prep(ByteBuffer.SizeOf<T>(), 0);
-      return Put<T>(x);
+      return Put(x);
     }
 
     public ulong Add<T>(T[] x)
@@ -457,13 +453,13 @@ namespace BigBuffers
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
-    
+
     public VectorOffset CreateVector(out Placeholder placeholder)
     {
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
-    
+
     public Offset<T> CreateOffset<T>(out Placeholder<T> placeholder)
     {
       placeholder = new(this, Offset);
@@ -549,10 +545,10 @@ namespace BigBuffers
         trimmedSize--;
 
       var vtableSize = (ushort)((trimmedSize + 2) * sizeof(ushort));
-      Add<ushort>(vtableSize);
+      Add(vtableSize);
 
       var tableSize = (ushort)(vtableStart - _tableStart);
-      Add<ushort>(tableSize);
+      Add(tableSize);
 
       if (trimmedSize > 0)
       {
@@ -568,61 +564,66 @@ namespace BigBuffers
                 : 0
             )
           );
-          Add<ushort>(shortOffset);
+          Add(shortOffset);
 
           // clear out written entry
           _vtable[i] = 0;
         }
       }
 
-      // Search for an existing vtable that matches the current one.
-      ulong existingVtable = 0;
-      for (var i = 0uL; i < _numVtables; i++)
+      if (UseExistingVTables)
       {
-        var vt1 = _bb.LongLength - _vtables[i];
-        var vt2 = Space;
-        var len = (ulong)_bb.Get<ushort>(vt1);
-        if (len == _bb.Get<ushort>(vt2))
+        // Search for an existing vtable that matches the current one.
+        ulong existingVtable = 0;
+
+        for (var i = 0uL; i < _numVtables; i++)
         {
-          for (ulong j = sizeof(short); j < len; j += sizeof(short))
+          var vt1 = _bb.LongLength - _vtables[i];
+          var vt2 = Space;
+          var len = (ulong)_bb.Get<ushort>(vt1);
+          if (len == _bb.Get<ushort>(vt2))
           {
-            if (_bb.Get<ushort>(vt1 + j) != _bb.Get<ushort>(vt2 + j))
-              goto endLoop;
+            for (ulong j = sizeof(short); j < len; j += sizeof(short))
+            {
+              if (_bb.Get<ushort>(vt1 + j) != _bb.Get<ushort>(vt2 + j))
+                goto endLoop;
+            }
+            existingVtable = _vtables[i];
+            break;
           }
-          existingVtable = _vtables[i];
-          break;
+
+          endLoop:
+          { }
         }
 
-        endLoop:
-        { }
-      }
-
-      if (existingVtable != 0 && UseExistingVTables)
-      {
-        //throw new NotImplementedException();
-        // Found a match:
-        // Remove the current vtable.
-        Offset = vtableStart;
-        // Point table to existing vtable.
-        _bb.Put(_tableStart, _tableStart - existingVtable);
-      }
-      else
-      {
-        // No match:
-        // Add the location of the current vtable to the list of
-        // vtables.
-        if (_numVtables == (ulong)_vtables.LongLength)
+        if (existingVtable != 0)
         {
-          // Arrays.CopyOf(vtables num_vtables * 2);
-          var newVTables = new ulong[_numVtables * 2];
-          Array.Copy(_vtables, newVTables, _vtables.Length);
-
-          _vtables = newVTables;
+          //throw new NotImplementedException();
+          // Found a match:
+          // Remove the current vtable.
+          Offset = vtableStart;
+          // Point table to existing vtable.
+          _bb.Put(_tableStart, _tableStart - existingVtable);
+          _hasVtable = false;
+          _vtableSize = 0;
+          return _tableStart;
         }
-        _vtables[_numVtables++] = vtableStart;
-        // Point table to current vtable.
-        _bb.Put<ulong>(_tableStart, _tableStart - vtableStart);
       }
+      
+      // No match:
+      // Add the location of the current vtable to the list of
+      // vtables.
+      if (_numVtables == (ulong)_vtables.LongLength)
+      {
+        // Arrays.CopyOf(vtables num_vtables * 2);
+        var newVTables = new ulong[_numVtables * 2];
+        Array.Copy(_vtables, newVTables, _vtables.Length);
+
+        _vtables = newVTables;
+      }
+      _vtables[_numVtables++] = vtableStart;
+      // Point table to current vtable.
+      _bb.Put(_tableStart, _tableStart - vtableStart);
 
       _hasVtable = false;
       _vtableSize = 0;
@@ -659,7 +660,7 @@ namespace BigBuffers
       AddOffset(rootTable);
       if (sizePrefix)
       {
-        Add<ulong>(_bb.LongLength - Space);
+        Add(_bb.LongLength - Space);
       }
       _bb.Position = Offset;
     }
@@ -763,7 +764,7 @@ namespace BigBuffers
       for (; i > l; i--)
         Add<byte>(0);
       for (; i >= 0; i--)
-        Add<byte>((byte)fileIdentifier[i]);
+        Add((byte)fileIdentifier[i]);
       Finish(rootTable, sizePrefix);
     }
 

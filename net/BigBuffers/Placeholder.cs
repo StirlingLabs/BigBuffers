@@ -280,6 +280,6 @@ namespace BigBuffers
       => Internal = new(bb, offset);
 
     public void Fill(Offset<T> offset)
-      => Internal.FillOffset<T>(offset);
+      => Internal.FillOffset(offset);
   }
 }
