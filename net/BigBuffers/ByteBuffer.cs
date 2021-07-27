@@ -48,15 +48,15 @@ namespace BigBuffers
   /// Class to mimic Java's ByteBuffer which is used heavily in Flatbuffers.
   /// </summary>
   [DebuggerTypeProxy(typeof(ByteBufferDebugger))]
-  public struct ByteBuffer
+  public struct ByteBuffer : IEquatable<ByteBuffer>
   {
-    internal ByteBufferAllocator _buffer;
+    internal readonly ByteBufferAllocator Buffer;
 
     private ulong _pos; // Must track start of the buffer.
 
     public ByteBuffer(ByteBufferAllocator allocator, ulong position)
     {
-      _buffer = allocator;
+      Buffer = allocator;
       _pos = position;
     }
 
@@ -66,7 +66,7 @@ namespace BigBuffers
 
     public ByteBuffer(byte[] buffer, ulong pos)
     {
-      _buffer = new ByteArrayAllocator(buffer);
+      Buffer = new ByteArrayAllocator(buffer);
       _pos = pos;
     }
 
@@ -77,9 +77,9 @@ namespace BigBuffers
       set => _pos = value;
     }
 
-    public uint Length => _buffer.Length;
+    public uint Length => Buffer.Length;
 
-    public ulong LongLength => _buffer.LongLength;
+    public ulong LongLength => Buffer.LongLength;
 
     public void Reset()
       => _pos = 0;
@@ -87,12 +87,12 @@ namespace BigBuffers
     // Create a new ByteBuffer on the same underlying data.
     // The new ByteBuffer's position will be same as this buffer's.
     public ByteBuffer Duplicate()
-      => new(_buffer, Position);
+      => new(Buffer, Position);
 
     // Increases the size of the ByteBuffer, and copies the old data towards
     // the end of the new buffer.
     public void GrowFront(ulong newSize)
-      => _buffer.GrowFront(newSize);
+      => Buffer.GrowFront(newSize);
 
     public byte[] ToArray(ulong pos, ulong len)
       => ToArray<byte>(pos, len);
@@ -147,14 +147,14 @@ namespace BigBuffers
 
     // Get a portion of the buffer casted into an array of type T, given
     // the buffer position and length.
-    public T[] ToArray<T>(ulong pos, ulong len)
+    public readonly T[] ToArray<T>(ulong pos, ulong len)
       where T : unmanaged
     {
       AssertOffsetAndLength(pos, len);
 
       var array = new T[len];
 
-      var span = _buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)ArraySize(array)).CastAs<T>();
+      var span = Buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)ArraySize(array)).CastAs<T>();
 
       span.CopyTo(new(array));
 
@@ -167,23 +167,23 @@ namespace BigBuffers
     public byte[] ToFullArray()
       => ToArray<byte>(0, LongLength);
 
-    public BigSpan<byte> ToSpan(ulong pos, ulong len)
-      => _buffer.Span.Slice((nuint)pos, (nuint)len);
+    public readonly BigSpan<byte> ToSpan(ulong pos, ulong len)
+      => Buffer.Span.Slice((nuint)pos, (nuint)len);
     public ReadOnlyBigSpan<byte> ToReadOnlySpan(ulong pos, ulong len)
-      => _buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)len);
+      => Buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)len);
 
-    public ArraySegment<byte> ToArraySegment(int pos, int len)
-      => new ArraySegment<byte>(_buffer.Buffer, pos, len);
+    public readonly ArraySegment<byte> ToArraySegment(int pos, int len)
+      => new ArraySegment<byte>(Buffer.Buffer, pos, len);
 
     public MemoryStream ToMemoryStream(int pos, int len)
-      => new MemoryStream(_buffer.Buffer, pos, len);
+      => new MemoryStream(Buffer.Buffer, pos, len);
     // Helper functions for the unsafe version.
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AssertOffsetAndLength(ulong offset, ulong length)
+    private readonly void AssertOffsetAndLength(ulong offset, ulong length)
     {
 #if !BYTEBUFFER_NO_BOUNDS_CHECK
-      if (offset + length > _buffer.LongLength)
+      if (offset + length > Buffer.LongLength)
         throw new ArgumentOutOfRangeException(nameof(offset));
 #endif
     }
@@ -193,7 +193,7 @@ namespace BigBuffers
     {
       // slice will throw if out of range
       //AssertOffsetAndLength(offset, count);
-      var span = _buffer.Span.Slice((nuint)offset, (nuint)count);
+      var span = Buffer.Span.Slice((nuint)offset, (nuint)count);
       span.Fill(value);
       return count;
     }
@@ -205,7 +205,7 @@ namespace BigBuffers
 #if NETSTANDARD2_1 || NET5_0_OR_GREATER
     public ulong PutStringUtf8(ulong offset, ulong byteLength, string value)
     {
-      var span = (Span<byte>)_buffer.Span.Slice((nuint)offset, (nuint)byteLength);
+      var span = (Span<byte>)Buffer.Span.Slice((nuint)offset, (nuint)byteLength);
       var bytesLength = Encoding.UTF8.GetBytes(value.AsSpan()[..value.Length], span);
       return (ulong)bytesLength;
     }
@@ -213,7 +213,7 @@ namespace BigBuffers
     public unsafe ulong PutStringUtf8(ulong offset, ulong byteLength, string value)
     {
       fixed (char* s = value)
-      fixed (byte* buffer = _buffer.Span)
+      fixed (byte* buffer = Buffer.Span)
       {
         Encoding.UTF8.GetBytes(s, value.Length,
           buffer + offset, checked((int)byteLength));
@@ -223,11 +223,11 @@ namespace BigBuffers
 #endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T Get<T>(ulong index) where T : unmanaged
+    public readonly T Get<T>(ulong index) where T : unmanaged
     {
       var itemSize = SizeOf<T>();
       AssertOffsetAndLength(index, itemSize);
-      ref var item = ref _buffer.Buffer[index];
+      ref var item = ref Buffer.Buffer[index];
       if (BitConverter.IsLittleEndian)
         return Unsafe.As<byte, T>(ref item);
       switch (itemSize)
@@ -258,7 +258,7 @@ namespace BigBuffers
     {
       var itemSize = SizeOf<T>();
       AssertOffsetAndLength(index, itemSize);
-      ref var item = ref _buffer.Buffer[index];
+      ref var item = ref Buffer.Buffer[index];
       if (!BitConverter.IsLittleEndian)
         throw new NotImplementedException($"Ref<{typeof(T).FullName}>");
 
@@ -268,39 +268,39 @@ namespace BigBuffers
     // NOTE: no explicit bounds check on these; they will throw IndexOutOfRangeException if there is any problem
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte GetByte(ulong index)
-      => _buffer.Buffer[index];
+    public readonly byte GetByte(ulong index)
+      => Buffer.Buffer[index];
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref byte RefByte(ulong index)
-      => ref _buffer.Buffer[index];
+      => ref Buffer.Buffer[index];
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BigSpan<T> GetSpan<T>(ulong index, ulong size)
-      => BigSpan.Create(ref Unsafe.As<byte, T>(ref _buffer.Buffer[index]), (nuint)size);
+      => BigSpan.Create(ref Unsafe.As<byte, T>(ref Buffer.Buffer[index]), (nuint)size);
 
     public static readonly ConditionalWeakTable<ByteBufferAllocator, ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>>>
       PerByteBufferStringCache =
         new();
 
-    public ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>> StringCache
-      => PerByteBufferStringCache.GetValue(_buffer, x => new());
+    public readonly ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>> StringCache
+      => PerByteBufferStringCache.GetValue(Buffer, x => new());
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public string GetStringUtf8(ulong startPos, int len)
+    public readonly string GetStringUtf8(ulong startPos, int len)
     {
       var self = this;
 
 #if NETSTANDARD2_1 || NET5_0_OR_GREATER
       string StringFactory((ulong startPos, int len) t)
-        => Encoding.UTF8.GetString(self._buffer.Span.Slice((nuint)t.startPos, t.len));
+        => Encoding.UTF8.GetString(self.Buffer.Span.Slice((nuint)t.startPos, t.len));
 
 #else
       unsafe string StringFactory((ulong startPos, int len) t)
       {
-        fixed (byte* buffer = self._buffer.ReadOnlySpan.Slice((nuint)t.startPos))
+        fixed (byte* buffer = self.Buffer.ReadOnlySpan.Slice((nuint)t.startPos))
           return Encoding.UTF8.GetString(buffer, t.len);
       }
 #endif
@@ -345,7 +345,7 @@ namespace BigBuffers
       {
         // if we are LE, just do a block copy
         new ReadOnlyBigSpan<T>(x).AsBytes()
-          .CopyTo(_buffer.Span.Slice((nuint)offset, (nuint)numBytes));
+          .CopyTo(Buffer.Span.Slice((nuint)offset, (nuint)numBytes));
       }
       else
         throw new NotImplementedException("Big Endian Support not implemented yet for putting typed arrays");
@@ -365,7 +365,7 @@ namespace BigBuffers
       if (BitConverter.IsLittleEndian)
       {
         x.AsBytes()
-          .CopyTo(_buffer.Span.Slice((nuint)offset, (nuint)numBytes));
+          .CopyTo(Buffer.Span.Slice((nuint)offset, (nuint)numBytes));
       }
       else
         throw new NotImplementedException("Big Endian Support not implemented yet for putting typed arrays");
@@ -378,7 +378,7 @@ namespace BigBuffers
       var numBytes = SizeOf<T>();
       var longNumBytes = (int)numBytes;
       AssertOffsetAndLength(offset, numBytes);
-      ref var target = ref _buffer.Buffer[offset];
+      ref var target = ref Buffer.Buffer[offset];
 
       if (BitConverter.IsLittleEndian)
         Unsafe.As<byte, T>(ref target) = x;
@@ -418,7 +418,7 @@ namespace BigBuffers
       var numBytes = SizeOf<T>();
       var longNumBytes = (int)numBytes;
       AssertOffsetAndLength(offset, numBytes);
-      ref var target = ref _buffer.Buffer[offset];
+      ref var target = ref Buffer.Buffer[offset];
 
       if (BitConverter.IsLittleEndian)
         Unsafe.As<byte, T>(ref target) = x;
@@ -451,5 +451,23 @@ namespace BigBuffers
       }
       return numBytes;
     }
+    public bool Equals(ByteBuffer other)
+      => Equals(Buffer, other.Buffer) && _pos == other._pos;
+
+    public override bool Equals(object obj)
+      => obj is ByteBuffer other && Equals(other);
+
+    public override int GetHashCode()
+    {
+      unchecked
+      {
+        return ((Buffer != null ? Buffer.GetHashCode() : 0) * 397) ^ _pos.GetHashCode();
+      }
+    }
+    public static bool operator ==(ByteBuffer left, ByteBuffer right)
+      => left.Equals(right);
+
+    public static bool operator !=(ByteBuffer left, ByteBuffer right)
+      => !left.Equals(right);
   }
 }

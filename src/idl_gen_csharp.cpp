@@ -1030,9 +1030,11 @@ class CSharpGenerator : public BaseGenerator {
 
 
   bool GenRefField(std::string &code, FieldDef &field, StructDef &struct_def) const {
+    if (IsUnion(field.value.type))
+      return false;
+
     std::string type_name = GenTypeGet(field.value.type);
     std::string type_name_dest = GenTypeGet(field.value.type);
-    std::string conditional_cast = "";
     std::string optional = "";
     bool is_optional = false;
     if (!struct_def.fixed &&
@@ -1043,10 +1045,9 @@ class CSharpGenerator : public BaseGenerator {
                     field.value.type.element == BASE_TYPE_UNION)))) {
       is_optional = true;
       optional = "?";
-      conditional_cast = "(" + type_name_dest + optional + ")";
     }
     std::string dest_mask = "";
-    std::string dest_cast = DestinationCast(field.value.type);
+    //std::string dest_cast = DestinationCast(field.value.type);
     std::string src_cast = SourceCast(field.value.type);
     std::string field_name_camel = MakeCamel(field.name, true);
 
@@ -1059,9 +1060,15 @@ class CSharpGenerator : public BaseGenerator {
     // Most field accessors need to retrieve and test the field offset first,
     // this is the prefix code for that:
     auto isArrayType = IsArray(field.value.type);
+    bool isEnumType = IsEnum(field.value.type);
     auto ref_offset_prefix =
         isArrayType
             ? " { return "
+            : isEnumType
+            ? (" { var o = _model.__offset(" + NumToString(field.value.offset) +
+                "); return ref System.Runtime.CompilerServices.Unsafe.As<"+
+                GenTypeBasic(field.value.type, false)+","+
+                type_name_dest+">( ref (o != 0 ? ")
             : (" { var o = _model.__offset(" + NumToString(field.value.offset) +
             "); return ref (o != 0 ? ");
     auto value_offset_prefix =
@@ -1089,27 +1096,10 @@ class CSharpGenerator : public BaseGenerator {
         && field.value.type.base_type != BASE_TYPE_STRUCT
         && field.value.type.base_type != BASE_TYPE_STRING
         && field.value.type.base_type != BASE_TYPE_UNION) {
-      reffer = dest_cast + reffer;
+      //reffer = dest_cast + reffer;
 
       createdRefField = true;
       code += method_start;
-      std::string default_cast = "";
-      // only create default casts for c# scalars or vectors of scalars
-      if ((IsScalar(field.value.type.base_type) ||
-          (IsVector(field.value.type) &&
-              IsScalar(field.value.type.element)))) {
-        // For scalars, default value will be returned by GetDefaultValue().
-        // If the scalar is an enum, GetDefaultValue() returns an actual c# enum
-        // that doesn't need to be casted. However, default values for enum
-        // elements of vectors are integer literals ("0") and are still casted
-        // for clarity.
-        // If the scalar is optional and enum, we still need the cast.
-        if ((field.value.type.enum_def == nullptr ||
-            IsVector(field.value.type)) ||
-            (IsEnum(field.value.type) && field.IsScalarOptional())) {
-          default_cast = "(" + type_name_dest + optional + ")";
-        }
-      }
       std::string member_suffix = "; ";
       if (IsScalar(field.value.type.base_type)) {
         code += " { get";
@@ -1123,7 +1113,11 @@ class CSharpGenerator : public BaseGenerator {
           code += ref_offset_prefix + reffer;
           code += "(o + _model.Offset)" + dest_mask;
           code += " : " + GenNullRefThrower(field.value.type);
-          if (!isArrayType) code += ")";
+          if (!isArrayType) {
+            code += ")";
+            if (isEnumType)
+              code += ")";
+          }
         }
       } else {
         switch (field.value.type.base_type) {
@@ -1135,7 +1129,7 @@ class CSharpGenerator : public BaseGenerator {
               code += "Offset + " + NumToString(field.value.offset) + ", ";
               code += "_model.ByteBuffer)";
             } else {
-              code += ref_offset_prefix + conditional_cast;
+              code += ref_offset_prefix;
               code += obj + ".__assign(";
               code += field.value.type.struct_def->fixed
                   ? "o + _model.Offset"
@@ -1147,7 +1141,6 @@ class CSharpGenerator : public BaseGenerator {
           case BASE_TYPE_VECTOR: {
             auto vectortype = field.value.type.VectorType();
             if (vectortype.base_type == BASE_TYPE_UNION) {
-              conditional_cast = "(TTable?)";
               reffer += "<TTable>";
             }
             code += "(";
@@ -1157,7 +1150,7 @@ class CSharpGenerator : public BaseGenerator {
             }
             code += "ulong j)";
             const auto body =
-                ref_offset_prefix + conditional_cast + reffer + "(";
+                ref_offset_prefix + reffer + "(";
             if (vectortype.base_type == BASE_TYPE_UNION) {
               code += " where TTable : struct, IBigBufferTable" + body;
             } else {
@@ -1267,6 +1260,7 @@ class CSharpGenerator : public BaseGenerator {
     code += "struct " + struct_def.name;
     code += " : ";
     code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
+    code += ", IEquatable<" + struct_def.name + ">";
     code += "\n{\n";
     code += "  internal ";
     code += struct_def.fixed ? "Struct" : "Table";
@@ -1291,6 +1285,23 @@ class CSharpGenerator : public BaseGenerator {
     }
 
     code += "  public ByteBuffer ByteBuffer { get { return _model.ByteBuffer; } }\n";
+
+    // IEquatable<T>
+    code +=
+        "  public bool Equals("+struct_def.name+" other)\n"
+        "    => _model.Equals(other._model);\n"
+        "\n"
+        "  public override bool Equals(object obj)\n"
+        "    => obj is "+struct_def.name+" other && Equals(other);\n"
+        "\n"
+        "  public override int GetHashCode()\n"
+        "    => _model.GetHashCode();\n"
+        "\n"
+        "  public static bool operator ==("+struct_def.name+" left, "+struct_def.name+" right)\n"
+        "    => left.Equals(right);\n"
+        "\n"
+        "  public static bool operator !=("+struct_def.name+" left, "+struct_def.name+" right)\n"
+        "    => !left.Equals(right);";
 
     if (!struct_def.fixed) {
       // Generate verson check method.

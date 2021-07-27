@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -25,9 +26,9 @@ namespace BigBuffers
   /// All structs in the generated code derive from this class, and add their own accessors.
   /// </summary>
   [PublicAPI]
-  public struct Struct : ISchemaModel
+  public readonly struct Struct : ISchemaModel, IEquatable<Struct>
   {
-    private ByteBufferResidentModel _byteBufferResidentModel;
+    private readonly ByteBufferResidentModel _byteBufferResidentModel;
 
     ref ByteBufferResidentModel ISchemaModel.ByteBufferOffset => ref _byteBufferResidentModel.UnsafeSelfReference();
 
@@ -35,23 +36,34 @@ namespace BigBuffers
     {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       get => _byteBufferResidentModel.Offset;
-      private set => _byteBufferResidentModel.Offset = value;
     }
 
     public ByteBuffer ByteBuffer
     {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       get => _byteBufferResidentModel.ByteBuffer;
-      private set => _byteBufferResidentModel.ByteBuffer = value;
     }
 
     // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
     public Struct(ulong i, ByteBuffer byteBuffer) : this()
     {
       Debug.Assert(i <= long.MaxValue);
-      ByteBuffer = byteBuffer;
-      Offset = i;
+      _byteBufferResidentModel = new(byteBuffer, i);
     }
-    
+
+    public bool Equals(Struct other)
+      => _byteBufferResidentModel.Equals(other._byteBufferResidentModel);
+
+    public override bool Equals(object obj)
+      => obj is Struct other && Equals(other);
+
+    public override int GetHashCode()
+      => _byteBufferResidentModel.GetHashCode();
+
+    public static bool operator ==(Struct left, Struct right)
+      => left.Equals(right);
+
+    public static bool operator !=(Struct left, Struct right)
+      => !left.Equals(right);
   }
 }

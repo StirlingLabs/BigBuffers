@@ -76,3 +76,32 @@ table TableK {
 table TableL {
   x:TableK;
 }
+
+union UnionM {
+  TableJ, TableK, TableL
+}
+
+table TableN {
+  x:UnionM;
+}
+
+enum EnumO:short {
+  x,
+  y,
+  z
+}
+
+table TableP {
+  x:EnumO;
+}
+
+table TableQ {
+  x:TableN;
+  y:TableP;
+  z:UnionM;
+}
+
+
+table TableR {
+  x:[UnionM];
+}
