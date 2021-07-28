@@ -91,7 +91,7 @@ namespace BigBuffers
 
     // Increases the size of the ByteBuffer, and copies the old data towards
     // the end of the new buffer.
-    public void GrowFront(ulong newSize)
+    public void Resize(ulong newSize)
       => Buffer.GrowFront(newSize);
 
     public byte[] ToArray(ulong pos, ulong len)
@@ -469,5 +469,10 @@ namespace BigBuffers
 
     public static bool operator !=(ByteBuffer left, ByteBuffer right)
       => !left.Equals(right);
+    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe ref ByteBuffer UnsafeSelfReference()
+      => ref Unsafe.AsRef<ByteBuffer>(Unsafe.AsPointer(ref Unsafe.AsRef(this)));
   }
 }

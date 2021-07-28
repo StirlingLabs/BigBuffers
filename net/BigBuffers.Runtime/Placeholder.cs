@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -254,21 +255,19 @@ namespace BigBuffers
     [Conditional("DEBUG")]
     public static void ValidateAllFilled(BigBufferBuilder bb)
     {
+#if DEBUG
       var placeholders = Tracker.Keys
         .Where(k => k.Buffer == bb)
         .Select(k => k.Offset)
-        .ToArray();
+        .ToImmutableSortedSet();
 
-      if (placeholders.LongLength == 0)
+      if (!placeholders.Any())
         return;
 
-      throw new("Not all placeholders were filled.\nSee Data[\"Placeholders\"] for a list of unfilled placeholders.")
-      {
-        Data =
-        {
-          { "Placeholders", placeholders }
-        }
-      };
+      throw new PlaceholdersUnfilledException(placeholders);
+#else
+      throw new NotImplementedException("This should not exist under release conditions.");
+#endif
     }
   }
 

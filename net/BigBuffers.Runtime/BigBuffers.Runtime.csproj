@@ -6,14 +6,20 @@
     <LangVersion>9</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningsAsErrors>8656</WarningsAsErrors>
+    <RootNamespace>BigBuffers</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(BYTEBUFFER_NO_BOUNDS_CHECK)' == 'true'">
     <DefineConstants>$(DefineConstants);BYTEBUFFER_NO_BOUNDS_CHECK</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup Condition="('$(ENABLE_SPAN_T)' == 'true') And (('$(TargetFramework)' == 'netstandard2.0') Or ('$(TargetFramework)' == 'net46'))">
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
