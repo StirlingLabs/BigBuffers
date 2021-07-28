@@ -5,11 +5,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers
 {
+  [PublicAPI]
   public struct Placeholder
   {
 #if DEBUG
@@ -174,6 +176,7 @@ namespace BigBuffers
     [DebuggerStepThrough]
     public void Fill<T>(T[] s, uint alignment = 0)
       => Fill((ReadOnlyBigSpan<T>)s, alignment);
+
     public void Fill<T>(ReadOnlyBigSpan<T> s, uint alignment = 0)
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
