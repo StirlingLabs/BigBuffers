@@ -1,12 +1,4 @@
-using System;
 using StirlingLabs.Utilities;
-
-// @formatter:off
-#if NETSTANDARD
-using nuint = System.UIntPtr;
-using nint = System.IntPtr;
-#endif
-// @formatter:on
 
 namespace BigBuffers
 {
@@ -14,9 +6,7 @@ namespace BigBuffers
   {
     private byte[] _buffer;
     public ByteArrayAllocator(byte[] buffer)
-    {
-      _buffer = buffer;
-    }
+      => _buffer = buffer;
 
     public override void GrowFront(ulong newSize)
     {

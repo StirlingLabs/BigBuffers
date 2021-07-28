@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-using System;
-
 namespace BigBuffers
 {
   /// <summary>
   /// Offset class for typesafe assignments.
   /// </summary>
-  public struct Offset<T>
+  public readonly struct Offset<T>
   {
-    public ulong Value;
+    public readonly ulong Value;
     public Offset(ulong value)
       => Value = value;
 
@@ -35,9 +33,9 @@ namespace BigBuffers
   /// <summary>
   /// Offset class for typesafe assignments.
   /// </summary>
-  public struct Offset
+  public readonly struct Offset
   {
-    public ulong Value;
+    public readonly ulong Value;
     public Offset(ulong value)
       => Value = value;
   }

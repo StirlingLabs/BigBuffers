@@ -26,7 +26,6 @@ namespace BigBuffers
       get;
     }
 
-
     public uint Length => (uint)Buffer.Length;
 
     public ulong LongLength => (ulong)Buffer.LongLength;
