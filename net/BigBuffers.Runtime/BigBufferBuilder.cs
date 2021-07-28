@@ -153,7 +153,7 @@ namespace BigBuffers
       var multiple = GrowthPattern[patternIndex];
 
       var size = (minimum + multiple - 1) / multiple * multiple;
-      
+
       _bb.Resize(size);
     }
 
@@ -514,6 +514,10 @@ namespace BigBuffers
     private void FinishVTable()
     {
       // clear vtable
+      Unsafe.InitBlock(
+        ref Unsafe.As<ulong, byte>(ref _vtable[0]), 0,
+        (uint)(_vtableUsed * sizeof(ulong)));
+
       _vtableUsed = 0;
       _tableStarted = false;
     }
@@ -537,30 +541,7 @@ namespace BigBuffers
       while (trimmedSize > 0 && _vtable[trimmedSize - 1] == 0)
         trimmedSize--;
 
-      var vtableSize = (ushort)((trimmedSize + 2) * sizeof(ushort));
-      Add(vtableSize);
-
-      var tableSize = (ushort)(vtableStart - _tableStart);
-      Add(tableSize);
-
-      if (trimmedSize > 0)
-        for (var i = 0uL; i < trimmedSize; i++)
-        {
-          // Offset relative to the start of the table.
-          var o = i;
-          var x = _vtable[o];
-          var shortOffset = checked(
-            (ushort)(
-              x != 0
-                ? x - _tableStart
-                : 0
-            )
-          );
-          Add(shortOffset);
-
-          // clear out written entry
-          _vtable[i] = 0;
-        }
+      _vtableUsed = trimmedSize;
 
       if (UseExistingVTables)
       {
@@ -583,8 +564,30 @@ namespace BigBuffers
       }
 
       // No match:
-      // Add the location of the current vtable to the list of
-      // vtables.
+      // Write the vtable and add the location of the current vtable
+      // to the list of vtables.
+
+      var vtableSize = (ushort)((_vtableUsed + 2) * sizeof(ushort));
+      Add(vtableSize);
+
+      var tableSize = (ushort)(vtableStart - _tableStart);
+      Add(tableSize);
+
+      if (_vtableUsed > 0)
+        for (var slot = 0uL; slot < _vtableUsed; slot++)
+        {
+          // Offset relative to the start of the table.
+          var address = _vtable[slot];
+          var shortOffset = checked(
+            (ushort)(
+              address != 0
+                ? address - _tableStart
+                : 0
+            )
+          );
+          Add(shortOffset);
+        }
+
       _writtenVTables.Add(vtableStart);
       // Point table to current vtable.
       _bb.Put(_tableStart, _tableStart - vtableStart);
@@ -602,21 +605,33 @@ namespace BigBuffers
         if (CheckExistingVTable(vtable))
           return vtable;
       }
+
       return 0;
     }
 
     private bool CheckExistingVTable(ulong vtable)
     {
-      var existingVTableSlots = (ulong)_bb.Get<ushort>(vtable) / 2;
+      const int vtableFieldsOffset = sizeof(ushort) * 2;
+      var existingVTableSlots = (ulong)(_bb.Get<ushort>(vtable) - vtableFieldsOffset) / sizeof(ushort);
 
       if (existingVTableSlots != _vtableUsed)
         return false;
 
-      for (ulong slot = 1; slot < existingVTableSlots; ++slot)
+      for (ulong slot = 0; slot < existingVTableSlots; ++slot)
       {
-        var newFieldAddress = _vtable[slot];
-        var existingFieldAddress = _tableStart + _bb.Get<ushort>(vtable + slot * 2);
-        if (existingFieldAddress != newFieldAddress)
+        var newFieldOffset = _vtable[slot];
+
+        var newFieldValue = checked(
+          (ushort)(
+            newFieldOffset != 0
+              ? newFieldOffset - _tableStart
+              : 0
+          )
+        );
+
+        var existingFieldValue = _bb.Get<ushort>(vtable + vtableFieldsOffset + slot * 2);
+
+        if (newFieldValue != existingFieldValue)
           return false;
       }
       return true;

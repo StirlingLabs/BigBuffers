@@ -114,6 +114,35 @@ namespace BigBuffers.Tests
     }
 
     [Test]
+    public static void TableBReuseVTableTest()
+    {
+      if (BigBufferBuilder.UseExistingVTables != true)
+        throw new InconclusiveException("This test requires the usage of existing VTables.");
+
+      var bb = new BigBufferBuilder();
+      TableB.StartTableB(bb);
+      TableB.AddX(bb, StructA.CreateStructA(bb, 0x0102030405060708uL));
+      var b1 = TableB.EndTableB(bb);
+      TableB.StartTableB(bb);
+      TableB.AddX(bb, StructA.CreateStructA(bb, 0x0102030405060708uL));
+      var b2 = TableB.EndTableB(bb);
+
+      var t1 = TableB.GetRootAsTableB(bb.ByteBuffer);
+      var t2 = new TableB(b2.Value, bb.ByteBuffer);
+
+      t1.X.Should().NotBeNull();
+      t2.X.Should().NotBeNull();
+
+      t1.X!.Value.GetX().Should().Be(0x0102030405060708uL);
+      t2.X!.Value.GetX().Should().Be(0x0102030405060708uL);
+
+      var vt1 = t1._model.Offset - bb.ByteBuffer.Get<ulong>(t1._model.Offset);
+      var vt2 = t2._model.Offset - bb.ByteBuffer.Get<ulong>(t2._model.Offset);
+
+      vt1.Should().Be(vt2);
+    }
+
+    [Test]
     public static void TableCTest()
     {
       var a = new byte[]
@@ -240,10 +269,10 @@ namespace BigBuffers.Tests
 
       var x0 = t.X(0)?.X;
       x0.Should().BeTrue();
-      
+
       var x1 = t.X(1)?.X;
       x1.Should().BeFalse();
-      
+
       var x2 = t.X(2)?.X;
       x2.Should().BeTrue();
 
@@ -600,7 +629,7 @@ namespace BigBuffers.Tests
       j!.Value._model.Offset.Should().Be(jo.Value);
 
     }
-    
+
     [Conditional("DEBUG")]
     private static void ValidateAllPlaceholdersNotFilled(BigBufferBuilder bb)
       => Assert.Throws<PlaceholdersUnfilledException>(() => Placeholder.ValidateAllFilled(bb));
