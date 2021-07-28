@@ -18,13 +18,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
-
 
 namespace BigBuffers
 {
@@ -105,7 +102,7 @@ namespace BigBuffers
       _tableStart = 0;
       _writtenVTables = new();
       _vectorStarts = new();
-      if (_sharedStringMap != null)
+      if (_sharedStringMap is not null)
         _sharedStringMap.Clear();
     }
 
@@ -224,17 +221,14 @@ namespace BigBuffers
     public ulong Add<T>(T[] x)
       where T : unmanaged
     {
-      if (x == null)
+      if (x is null)
         throw new ArgumentNullException(nameof(x), "Cannot add a null array");
 
       if (x.Length == 0)
         // don't do anything if the array is empty
         return 0;
 
-      if (!true)
-        throw new ArgumentException("Cannot add this Type array to the builder");
-
-      var size = (ulong)ByteBuffer.SizeOf<T>();
+      var size = ByteBuffer.SizeOf<T>();
       // Need to prep on size (for data alignment) and then we pass the
       // rest of the length (minus 1) as additional bytes
       Prep(size, size * ((ulong)x.LongLength - 1));
@@ -249,10 +243,7 @@ namespace BigBuffers
     public ulong Add<T>(ReadOnlySpan<T> x)
       where T : unmanaged
     {
-      if (!true)
-        throw new ArgumentException("Cannot add this Type array to the builder");
-
-      var size = (ulong)ByteBuffer.SizeOf<T>();
+      var size = ByteBuffer.SizeOf<T>();
       // Need to prep on size (for data alignment) and then we pass the
       // rest of the length (minus 1) as additional bytes
       Prep(size, size * ((ulong)x.Length - 1));
@@ -267,7 +258,7 @@ namespace BigBuffers
     public ulong Add<T>(ReadOnlyBigSpan<T> x)
       where T : unmanaged
     {
-      var size = (ulong)ByteBuffer.SizeOf<T>();
+      var size = ByteBuffer.SizeOf<T>();
       // Need to prep on size (for data alignment) and then we pass the
       // rest of the length (minus 1) as additional bytes
       Prep(size, size * ((ulong)x.Length - 1));
@@ -320,7 +311,7 @@ namespace BigBuffers
       NotNested();
       StartVector(sizeof(ulong), (ulong)offsets.LongLength);
       for (var i = offsets.LongLength - 1; i >= 0; i--) AddOffset(offsets[i].Value);
-      return EndVector(sizeof(ulong));
+      return EndVector();
     }
 
     public void Nested(ulong obj)
@@ -431,7 +422,7 @@ namespace BigBuffers
     /// </returns>
     public StringOffset CreateString(string value)
     {
-      if (value == null)
+      if (value is null)
         return new(0);
       NotNested();
       var strLen = (ulong)Encoding.UTF8.GetByteCount(value);
@@ -488,7 +479,7 @@ namespace BigBuffers
     /// </returns>
     public StringOffset CreateSharedString(string s)
     {
-      if (s == null)
+      if (s is null)
         return new(0);
 
       _sharedStringMap ??= new();
@@ -530,7 +521,7 @@ namespace BigBuffers
           ("BigBuffers: calling EndTable without a StartTable");
 
       var paddingBytes = sizeof(ulong) - (Offset & (sizeof(ulong) - 1));
-      if (paddingBytes < 8)
+      if (paddingBytes < sizeof(ulong))
         Pad(paddingBytes);
 
       var vtableStart = Offset;
@@ -673,6 +664,7 @@ namespace BigBuffers
     /// <param name="rootTable">
     /// An offset to be added to the buffer.
     /// </param>
+    [DebuggerStepThrough]
     public void Finish(ulong rootTable)
       => Finish(rootTable, false);
 
@@ -682,6 +674,7 @@ namespace BigBuffers
     /// <param name="rootTable">
     /// An offset to be added to the buffer.
     /// </param>
+    [DebuggerStepThrough]
     public void FinishSizePrefixed(ulong rootTable)
       => Finish(rootTable, true);
 
@@ -780,6 +773,7 @@ namespace BigBuffers
     /// A BigBuffer file identifier to be added to the buffer before
     /// `root_table`.
     /// </param>
+    [DebuggerStepThrough]
     public void Finish(ulong rootTable, string fileIdentifier)
       => Finish(rootTable, fileIdentifier, false);
 
@@ -793,6 +787,7 @@ namespace BigBuffers
     /// A BigBuffer file identifier to be added to the buffer before
     /// `root_table`.
     /// </param>
+    [DebuggerStepThrough]
     public void FinishSizePrefixed(ulong rootTable, string fileIdentifier)
       => Finish(rootTable, fileIdentifier, true);
   }

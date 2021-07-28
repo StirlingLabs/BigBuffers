@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 namespace BigBuffers
 {
     public static class Constants
     {
-        public const int FileIdentifierLength = 8;
-        public const int SizePrefixLength = 8;
+        public const int FileIdentifierLength = sizeof(ulong);
+        public const int SizePrefixLength = sizeof(ulong);
         /** A version identifier to force a compile error if someone
         accidentally tries to build generated code with a runtime of
         two mismatched version. Versions need to always match, as

@@ -27,20 +27,12 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
-
-// @formatter:off
-#if NETSTANDARD
-using nuint = System.UIntPtr;
-using nint = System.IntPtr;
-#endif
-// @formatter:on
 
 namespace BigBuffers
 {
@@ -286,7 +278,7 @@ namespace BigBuffers
         new();
 
     public readonly ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>> StringCache
-      => PerByteBufferStringCache.GetValue(Buffer, x => new());
+      => PerByteBufferStringCache.GetValue(Buffer, _ => new());
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public readonly string GetStringUtf8(ulong startPos, int len)
@@ -331,7 +323,7 @@ namespace BigBuffers
     public ulong Put<T>(ulong offset, T[] x)
       where T : unmanaged
     {
-      if (x == null)
+      if (x is null)
         throw new ArgumentNullException(nameof(x), "Cannot put a null array");
 
       if (x.LongLength == 0)
@@ -461,7 +453,8 @@ namespace BigBuffers
     {
       unchecked
       {
-        return ((Buffer != null ? Buffer.GetHashCode() : 0) * 397) ^ _pos.GetHashCode();
+        // ReSharper disable once NonReadonlyMemberInGetHashCode
+        return ((Buffer is not null ? Buffer.GetHashCode() : 0) * 397) ^ _pos.GetHashCode();
       }
     }
     public static bool operator ==(ByteBuffer left, ByteBuffer right)

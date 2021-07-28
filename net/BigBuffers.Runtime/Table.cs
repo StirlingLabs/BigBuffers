@@ -15,18 +15,8 @@
  */
 
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-
-// @formatter:off
-#if NETSTANDARD
-using nuint = System.UIntPtr;
-using nint = System.IntPtr;
-#endif
-// @formatter:on
 
 namespace BigBuffers
 {
@@ -65,7 +55,7 @@ namespace BigBuffers
 
     public static bool operator !=(Table left, Table right)
       => !left.Equals(right);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe ref Table UnsafeSelfReference()
       => ref Unsafe.AsRef<Table>(Unsafe.AsPointer(ref Unsafe.AsRef(this)));
