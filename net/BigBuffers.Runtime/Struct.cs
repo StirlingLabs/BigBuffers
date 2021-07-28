@@ -16,53 +16,58 @@
 
 using System;
 using System.Diagnostics;
-using System.Text;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-
-// @formatter:off
-#if NETSTANDARD
-using nuint = System.UIntPtr;
-using nint = System.IntPtr;
-#endif
-// @formatter:on
 
 namespace BigBuffers
 {
   /// <summary>
-  /// All tables in the generated code derive from this struct, and add their own accessors.
+  /// All structs in the generated code derive from this class, and add their own accessors.
   /// </summary>
   [PublicAPI]
-  public readonly struct Table : ISchemaModel, IEquatable<Table>
+  public readonly struct Struct : ISchemaModel, IEquatable<Struct>
   {
     private readonly ByteBufferResidentModel _byteBufferResidentModel;
 
     ref ByteBufferResidentModel ISchemaModel.ByteBufferOffset => ref _byteBufferResidentModel.UnsafeSelfReference();
 
-    public ulong Offset => _byteBufferResidentModel.Offset;
+    public ulong Offset
+    {
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      get => _byteBufferResidentModel.Offset;
+    }
 
-    public ByteBuffer ByteBuffer => _byteBufferResidentModel.ByteBuffer;
+    public ByteBuffer ByteBuffer
+    {
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      get => _byteBufferResidentModel.ByteBuffer;
+    }
 
     // Re-init the internal state with an external buffer {@code ByteBuffer} and an offset within.
-    public Table(ulong i, ByteBuffer byteBuffer) : this()
+    public Struct(ulong i, ByteBuffer byteBuffer) : this()
     {
       Debug.Assert(i <= long.MaxValue);
       _byteBufferResidentModel = new(byteBuffer, i);
     }
 
-    public bool Equals(Table other)
+    public bool Equals(Struct other)
       => _byteBufferResidentModel.Equals(other._byteBufferResidentModel);
 
     public override bool Equals(object obj)
-      => obj is Table other && Equals(other);
+      => obj is Struct other && Equals(other);
 
     public override int GetHashCode()
       => _byteBufferResidentModel.GetHashCode();
 
-    public static bool operator ==(Table left, Table right)
+    public static bool operator ==(Struct left, Struct right)
       => left.Equals(right);
 
-    public static bool operator !=(Table left, Table right)
+    public static bool operator !=(Struct left, Struct right)
       => !left.Equals(right);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe ref Struct UnsafeSelfReference()
+      => ref Unsafe.AsRef<Struct>(Unsafe.AsPointer(ref Unsafe.AsRef(this)));
   }
 }

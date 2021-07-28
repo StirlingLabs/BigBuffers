@@ -642,12 +642,12 @@ class CSharpGenerator : public BaseGenerator {
             member_suffix += "} ";
           }
           if (struct_def.fixed) {
-            code += " { return " + obj + ".__assign(" + "_model.";
+            code += " { return new(_model.";
             code += "Offset + " + NumToString(field.value.offset) + ", ";
             code += "_model.ByteBuffer)";
           } else {
             code += offset_prefix + conditional_cast;
-            code += obj + ".__assign(";
+            code += "new(";
             code += field.value.type.struct_def->fixed
                 ? "o + _model.Offset"
                 : "_model.__indirect(o + _model.Offset)";
@@ -673,7 +673,7 @@ class CSharpGenerator : public BaseGenerator {
           }
           code += "(";
           if (vectortype.base_type == BASE_TYPE_STRUCT) {
-            getter = obj + ".__assign";
+            getter = "new";
           } else if (vectortype.base_type == BASE_TYPE_UNION) {
           }
           code += "ulong j)";
@@ -855,7 +855,7 @@ class CSharpGenerator : public BaseGenerator {
       code += get_nested_method_name + "(";
       code += ") { var o = _model.__offset(";
       code += NumToString(field.value.offset) + "); ";
-      code += "return o != 0 ? " + conditional_cast + obj + ".__assign(";
+      code += "return o != 0 ? " + conditional_cast + "new(";
       code += "_model.";
       code += "__indirect(_model.__vector(o)), ";
       code += "_model.ByteBuffer) : null; }\n";
@@ -940,8 +940,6 @@ class CSharpGenerator : public BaseGenerator {
     if (!parser_.opts.mutable_buffer) method_start += "readonly ";
     method_start += type_name_dest + " " + field_name_camel;
 
-    std::string obj = "(new " + type_name + "())";
-
     // Most field accessors need to retrieve and test the field offset first,
     // this is the prefix code for that:
     auto isArrayType = IsArray(field.value.type);
@@ -1010,12 +1008,12 @@ class CSharpGenerator : public BaseGenerator {
             code += " { get";
             member_suffix += "} ";
             if (struct_def.fixed) {
-              code += " { return " + obj + ".__assign(" + "_model.";
+              code += " { return new(_model.";
               code += "Offset + " + NumToString(field.value.offset) + ", ";
               code += "_model.ByteBuffer)";
             } else {
               code += ref_offset_prefix;
-              code += obj + ".__assign(";
+              code += "new(";
               code += field.value.type.struct_def->fixed
                   ? "o + _model.Offset"
                   : "_model.__indirect(o + _model.Offset)";
@@ -1030,7 +1028,7 @@ class CSharpGenerator : public BaseGenerator {
             }
             code += "(";
             if (vectortype.base_type == BASE_TYPE_STRUCT) {
-              reffer = obj + ".__assign";
+              reffer = "new";
             } else if (vectortype.base_type == BASE_TYPE_UNION) {
             }
             code += "ulong j)";
@@ -1151,12 +1149,17 @@ class CSharpGenerator : public BaseGenerator {
     code += struct_def.fixed ? "Struct" : "Table";
     code += " _model;\n";
 
+    // constructor
+    code +=
+        "  internal "+struct_def.name+"(ulong i, ByteBuffer buffer)\n"
+        "    => _model = new "+(struct_def.fixed ? "Struct" : "Table")+"(i, buffer);\n";
+
     // interface implementation
-    code += "  ";
+    code += "  ref ";
     code += struct_def.fixed ? "Struct" : "Table";
     code += " ";
-    code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
-    code += ".Model => _model;\n";
+    code += struct_def.fixed ? "IBigBufferModel<Struct>" : "IBigBufferModel<Table>";
+    code += ".Model => ref _model.UnsafeSelfReference();\n";
 
     if (struct_def.fixed) {
       // static ByteSize
@@ -1169,7 +1172,7 @@ class CSharpGenerator : public BaseGenerator {
       code += ".ByteSize => ByteSize;\n";
     }
 
-    code += "  public ByteBuffer ByteBuffer { get { return _model.ByteBuffer; } }\n";
+    code += "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
 
     // IEquatable<T>
     code +=
@@ -1186,7 +1189,7 @@ class CSharpGenerator : public BaseGenerator {
         "    => left.Equals(right);\n"
         "\n"
         "  public static bool operator !=("+struct_def.name+" left, "+struct_def.name+" right)\n"
-        "    => !left.Equals(right);";
+        "    => !left.Equals(right);\n";
 
     if (!struct_def.fixed) {
       // Generate verson check method.
@@ -1223,17 +1226,7 @@ class CSharpGenerator : public BaseGenerator {
         }
       }
     }
-    // Generate the __init method that sets the field in a pre-existing
-    // accessor object. This is to allow object reuse.
-    code += "  public void __init(ulong _i, ByteBuffer _bb) ";
-    code += "{ ";
-    code += "_model = new ";
-    code += struct_def.fixed ? "Struct" : "Table";
-    code += "(_i, _bb); ";
-    code += "}\n";
-    code +=
-        "  public " + struct_def.name + " __assign(ulong _i, ByteBuffer _bb) ";
-    code += "{ __init(_i, _bb); return this; }\n\n";
+
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
 

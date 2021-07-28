@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.10.3" />
+    <PackageReference Include="FluentAssertions.Analyzers" Version="0.11.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
@@ -22,7 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BigBuffers.Tests.GeneratedFixture\BigBuffers.Tests.GeneratedFixture.csproj" />
-    <ProjectReference Include="..\BigBuffers\BigBuffers.csproj" />
+    <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.7.3" />
     <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="21.7.0" />
   </ItemGroup>
