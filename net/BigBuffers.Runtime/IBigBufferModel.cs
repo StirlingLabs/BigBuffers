@@ -21,10 +21,12 @@ namespace BigBuffers
   /// </summary>
   public interface IBigBufferModel
   {
-    void __init(ulong i, ByteBuffer bb);
-
-    ByteBuffer ByteBuffer { get; }
+    ref readonly ByteBuffer ByteBuffer { get; }
   }
 
-  //public interface IBigBufferUnion : IBigBufferModel { }
+  public interface IBigBufferModel<TModel> : IBigBufferModel
+    where TModel : struct, ISchemaModel
+  {
+    ref TModel Model { get; }
+  }
 }

@@ -25,9 +25,6 @@ using System.Text;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 
-/// @file
-/// @addtogroup flatbuffers_csharp_api
-/// @{
 
 namespace BigBuffers
 {
@@ -50,19 +47,15 @@ namespace BigBuffers
 
     public ulong Offset { get; set; }
 
-    // The vtable for the current table (if _vtableSize > 0)
+    // The vtable for the current table
     private ulong[] _vtable = new ulong[16];
-    // Whether or not a vtable has been started
-    private bool _hasVtable;
     // The size of the vtable.
-    private ulong _vtableSize;
+    private ulong _vtableUsed;
     // Starting offset of the current struct/table.
     private ulong _tableStart;
-    // List of offsets of all vtables.
-    private ulong[] _vtables = new ulong[16];
-    // Number of entries in `vtables` in use.
-    private ulong _numVtables;
-    // For the current vector being built.
+    // List of offsets of all vtables, excluding the current one.
+    private List<ulong> _writtenVTables = new();
+    // For the vectors being built.
     private Stack<(ulong start, ulong elemSize)> _vectorStarts = new();
 
     // For CreateSharedString
@@ -79,7 +72,7 @@ namespace BigBuffers
       => _bb = new(Math.Max(8, initialSize));
 
     /// <summary>
-    /// Create a BigBufferBuilder backed by the pased in ByteBuffer
+    /// Create a BigBufferBuilder backed by the <paramref name="buffer"/>.
     /// </summary>
     /// <param name="buffer">The ByteBuffer to write to</param>
     public BigBufferBuilder(ByteBuffer buffer)
@@ -107,16 +100,13 @@ namespace BigBuffers
       Offset = 0;
       _bb.Reset();
       _minAlign = 1;
-      while (_vtableSize > 0) _vtable[--_vtableSize] = 0;
-      _hasVtable = false;
-      _vtableSize = 0;
+      while (_vtableUsed > 0) _vtable[--_vtableUsed] = 0;
+      _vtableUsed = 0;
       _tableStart = 0;
-      _numVtables = 0;
+      _writtenVTables = new();
       _vectorStarts = new();
       if (_sharedStringMap != null)
-      {
         _sharedStringMap.Clear();
-      }
     }
 
     /// <summary>
@@ -128,28 +118,43 @@ namespace BigBuffers
     /// </summary>
     public bool ForceDefaults { get; set; }
 
-    /// @cond FLATBUFFERS_INTERNAL
     public void Pad(ulong size)
       => Offset += _bb.PutBytes(Offset, 0, size);
 
-    private static readonly ulong[] growthPattern =
+    private static readonly ulong[] GrowthPattern =
     {
-      8,
-      64,
+      1,
+      32,
+      128,
       512,
       4096,
       65536,
       2097152,
       8388608,
-      1073741824
+      67108864
     };
 
-    void GrowBuffer(ulong needed = 0)
+    private bool _tableStarted;
+
+    void GrowBuffer(ulong needed)
     {
-      var l = Math.Max(_bb.LongLength + needed, (ulong)(_bb.LongLength * 1.5));
-      var p = growthPattern[Array.FindLastIndex(growthPattern, x => x <= l) + 1];
-      var n = (_bb.LongLength + p - 1) / p * p;
-      _bb.GrowFront(n);
+      if (needed == 0)
+        throw new ArgumentOutOfRangeException(nameof(needed), "Must need more than 0 bytes.");
+
+      var currentBufferSize = _bb.LongLength;
+
+      var minimum = currentBufferSize + needed;
+
+      var halfMin = minimum >> 1;
+
+      var patternIndex = Array.FindLastIndex(GrowthPattern, patternValue => patternValue <= halfMin)
+        + 1;
+
+      var multiple = GrowthPattern[patternIndex];
+
+      var size = (minimum + multiple - 1) / multiple * multiple;
+      
+      _bb.Resize(size);
     }
 
     // Prepare to write an element of `size` after `additional_bytes`
@@ -182,7 +187,7 @@ namespace BigBuffers
       => Offset += _bb.Put(Offset, in x);
 
     /// <summary>
-    /// Puts an array of type T into this builder at the
+    /// Puts an array of type <typeparamref name="T"/> into this builder at the
     /// current offset
     /// </summary>
     /// <typeparam name="T">The type of the input data </typeparam>
@@ -192,7 +197,7 @@ namespace BigBuffers
       => Offset += _bb.Put(Offset, x);
 
     /// <summary>
-    /// Puts a span of type T into this builder at the
+    /// Puts a span of type <typeparamref name="T"/> into this builder at the
     /// current offset
     /// </summary>
     /// <typeparam name="T">The type of the input data </typeparam>
@@ -202,7 +207,7 @@ namespace BigBuffers
       => Offset += _bb.Put<T>(Offset, x);
 
     /// <summary>
-    /// Puts a span of type T into this builder at the
+    /// Puts a span of type <typeparamref name="T"/> into this builder at the
     /// current offset
     /// </summary>
     /// <typeparam name="T">The type of the input data </typeparam>
@@ -210,7 +215,6 @@ namespace BigBuffers
     public ulong Put<T>(ReadOnlyBigSpan<T> x)
       => Offset += _bb.Put(Offset, x);
 
-    /// @endcond
     public ulong Add<T>(T x) where T : unmanaged
     {
       Prep(ByteBuffer.SizeOf<T>(), 0);
@@ -221,20 +225,14 @@ namespace BigBuffers
       where T : unmanaged
     {
       if (x == null)
-      {
         throw new ArgumentNullException(nameof(x), "Cannot add a null array");
-      }
 
       if (x.Length == 0)
-      {
         // don't do anything if the array is empty
         return 0;
-      }
 
       if (!true)
-      {
         throw new ArgumentException("Cannot add this Type array to the builder");
-      }
 
       var size = (ulong)ByteBuffer.SizeOf<T>();
       // Need to prep on size (for data alignment) and then we pass the
@@ -252,9 +250,7 @@ namespace BigBuffers
       where T : unmanaged
     {
       if (!true)
-      {
         throw new ArgumentException("Cannot add this Type array to the builder");
-      }
 
       var size = (ulong)ByteBuffer.SizeOf<T>();
       // Need to prep on size (for data alignment) and then we pass the
@@ -293,7 +289,6 @@ namespace BigBuffers
       return Put(off);
     }
 
-    /// @cond FLATBUFFERS_INTERNAL
     public void StartVector(ulong elemSize, ulong count)
     {
       NotNested();
@@ -301,7 +296,7 @@ namespace BigBuffers
       PushVectorStart(Offset, elemSize);
       Put(count);
     }
-    /// @endcond
+
     /// <summary>
     /// Writes data necessary to finish a vector construction.
     /// </summary>
@@ -328,24 +323,21 @@ namespace BigBuffers
       return EndVector(sizeof(ulong));
     }
 
-    /// @cond FLATBUFFERS_INTENRAL
     public void Nested(ulong obj)
     {
       // Structs are always stored inline, so need to be created right
       // where they are used. You'll get this assert if you created it
       // elsewhere.
       if (obj != Offset)
-        throw new(
-          "BigBuffers: unmanaged must be serialized inline.");
+        throw new("BigBuffers: unmanaged must be serialized inline.");
     }
 
     public void NotNested()
     {
       // You should not be creating any other objects or strings/vectors
       // while an object is being constructed
-      if (_hasVtable)
-        throw new(
-          "BigBuffers: object serialization must not be nested.");
+      if (_tableStarted)
+        throw new("BigBuffers: object serialization must not be nested.");
     }
 
     public void StartTable(uint numFields)
@@ -355,19 +347,21 @@ namespace BigBuffers
       if (_vtable.Length < numFields)
         _vtable = new ulong[numFields];
 
-      _hasVtable = true;
-      _vtableSize = numFields;
+      _vtableUsed = numFields;
 
       // Write placeholder for vtable offset
       Add(PlaceholderOffset);
       _tableStart = Offset - 8;
+      _tableStarted = true;
     }
 
-    // Set the current vtable at `voffset` to the current location in the
-    // buffer.
+    /// <summary>
+    /// Set the current vtable at <paramref name="vOffset"/> to the current location in the
+    /// buffer.
+    /// </summary>
     public void Slot(ulong vOffset, ulong size = 0)
     {
-      if (vOffset >= _vtableSize)
+      if (vOffset >= _vtableUsed)
         throw new ArgumentOutOfRangeException(nameof(vOffset));
 
       _vtable[vOffset] = Offset - size;
@@ -418,32 +412,31 @@ namespace BigBuffers
     }
 
     /// <summary>
-    /// Adds a buffer offset to the Table at index `o` in its vtable using the value `x` and default `d`
+    /// Adds a buffer offset to the Table at index <paramref name="offset"/>
+    /// in its vtable using the value <paramref name="value"/> and default <paramref name="defaultValue"/>
     /// </summary>
-    /// <param name="o">The index into the vtable</param>
-    /// <param name="x">The value to put into the buffer. If the value is equal to the default
+    /// <param name="offset">The index into the vtable</param>
+    /// <param name="value">The value to put into the buffer. If the value is equal to the default
     /// the value will be skipped.</param>
-    /// <param name="d">The default value to compare the value against</param>
-    public void AddOffset(ulong o, ulong x, ulong d)
-      => Add(o, Offset - x, d);
-    /// @endcond
+    /// <param name="defaultValue">The default value to compare the value against</param>
+    public void AddOffset(ulong offset, ulong value, ulong defaultValue)
+      => Add(offset, Offset - value, defaultValue);
+
     /// <summary>
-    /// Encode the string `s` in the buffer using UTF-8.
+    /// Encode the string <paramref name="value"/> in the buffer using UTF-8.
     /// </summary>
-    /// <param name="s">The string to encode.</param>
+    /// <param name="value">The string to encode.</param>
     /// <returns>
     /// The offset in the buffer where the encoded string starts.
     /// </returns>
-    public StringOffset CreateString(string s)
+    public StringOffset CreateString(string value)
     {
-      if (s == null)
-      {
+      if (value == null)
         return new(0);
-      }
       NotNested();
-      var strLen = (ulong)Encoding.UTF8.GetByteCount(s);
+      var strLen = (ulong)Encoding.UTF8.GetByteCount(value);
       StartVector(1, strLen + 1);
-      Offset += _bb.PutStringUtf8(Offset, strLen, s);
+      Offset += _bb.PutStringUtf8(Offset, strLen, value);
       Add<byte>(0);
       return new(EndVector(1).Value);
     }
@@ -496,41 +489,41 @@ namespace BigBuffers
     public StringOffset CreateSharedString(string s)
     {
       if (s == null)
-      {
         return new(0);
-      }
 
-      if (_sharedStringMap == null)
-      {
-        _sharedStringMap = new();
-      }
+      _sharedStringMap ??= new();
 
       if (_sharedStringMap.ContainsKey(s))
-      {
         return _sharedStringMap[s];
-      }
 
       var stringOffset = CreateString(s);
       _sharedStringMap.Add(s, stringOffset);
       return stringOffset;
     }
 
-    /// @cond FLATBUFFERS_INTERNAL
     // Structs are stored inline, so nothing additional is being added.
     // `d` is always 0.
-    public void AddStruct(ulong size, ulong voffset, ulong x, ulong d)
+    public void AddStruct(ulong size, ulong vOffset, ulong x, ulong d)
     {
       if (x == d) return;
 
       Nested(x + size);
-      Slot(voffset, size);
+      Slot(vOffset, size);
+    }
+
+    private void FinishVTable()
+    {
+      // clear vtable
+      _vtableUsed = 0;
+      _tableStarted = false;
     }
 
     public ulong EndTable()
     {
-      if (!_hasVtable)
-        throw new InvalidOperationException(
-          "Flatbuffers: calling EndTable without a StartTable");
+
+      if (!_tableStarted)
+        throw new InvalidOperationException
+          ("BigBuffers: calling EndTable without a StartTable");
 
       var paddingBytes = sizeof(ulong) - (Offset & (sizeof(ulong) - 1));
       if (paddingBytes < 8)
@@ -538,7 +531,7 @@ namespace BigBuffers
 
       var vtableStart = Offset;
 
-      var trimmedSize = _vtableSize;
+      var trimmedSize = _vtableUsed;
 
       // Trim trailing empty fields.
       while (trimmedSize > 0 && _vtable[trimmedSize - 1] == 0)
@@ -551,16 +544,15 @@ namespace BigBuffers
       Add(tableSize);
 
       if (trimmedSize > 0)
-      {
-
         for (var i = 0uL; i < trimmedSize; i++)
         {
           // Offset relative to the start of the table.
           var o = i;
+          var x = _vtable[o];
           var shortOffset = checked(
             (ushort)(
-              _vtable[o] != 0
-                ? _vtable[o] - _tableStart
+              x != 0
+                ? x - _tableStart
                 : 0
             )
           );
@@ -569,69 +561,66 @@ namespace BigBuffers
           // clear out written entry
           _vtable[i] = 0;
         }
-      }
 
       if (UseExistingVTables)
       {
         // Search for an existing vtable that matches the current one.
-        ulong existingVtable = 0;
 
-        for (var i = 0uL; i < _numVtables; i++)
-        {
-          var vt1 = _bb.LongLength - _vtables[i];
-          var vt2 = Space;
-          var len = (ulong)_bb.Get<ushort>(vt1);
-          if (len == _bb.Get<ushort>(vt2))
-          {
-            for (ulong j = sizeof(short); j < len; j += sizeof(short))
-            {
-              if (_bb.Get<ushort>(vt1 + j) != _bb.Get<ushort>(vt2 + j))
-                goto endLoop;
-            }
-            existingVtable = _vtables[i];
-            break;
-          }
-
-          endLoop:
-          { }
-        }
+        var existingVtable = FindExistingVTable();
 
         if (existingVtable != 0)
         {
-          //throw new NotImplementedException();
           // Found a match:
           // Remove the current vtable.
           Offset = vtableStart;
           // Point table to existing vtable.
           _bb.Put(_tableStart, _tableStart - existingVtable);
-          _hasVtable = false;
-          _vtableSize = 0;
+
+          FinishVTable();
+
           return _tableStart;
         }
       }
-      
+
       // No match:
       // Add the location of the current vtable to the list of
       // vtables.
-      if (_numVtables == (ulong)_vtables.LongLength)
-      {
-        // Arrays.CopyOf(vtables num_vtables * 2);
-        var newVTables = new ulong[_numVtables * 2];
-        Array.Copy(_vtables, newVTables, _vtables.Length);
-
-        _vtables = newVTables;
-      }
-      _vtables[_numVtables++] = vtableStart;
+      _writtenVTables.Add(vtableStart);
       // Point table to current vtable.
       _bb.Put(_tableStart, _tableStart - vtableStart);
 
-      _hasVtable = false;
-      _vtableSize = 0;
+      FinishVTable();
+
       return _tableStart;
     }
 
-    internal ulong GetLatestVTable()
-      => _vtables[_numVtables - 1];
+    private ulong FindExistingVTable()
+    {
+
+      foreach (var vtable in _writtenVTables)
+      {
+        if (CheckExistingVTable(vtable))
+          return vtable;
+      }
+      return 0;
+    }
+
+    private bool CheckExistingVTable(ulong vtable)
+    {
+      var existingVTableSlots = (ulong)_bb.Get<ushort>(vtable) / 2;
+
+      if (existingVTableSlots != _vtableUsed)
+        return false;
+
+      for (ulong slot = 1; slot < existingVTableSlots; ++slot)
+      {
+        var newFieldAddress = _vtable[slot];
+        var existingFieldAddress = _tableStart + _bb.Get<ushort>(vtable + slot * 2);
+        if (existingFieldAddress != newFieldAddress)
+          return false;
+      }
+      return true;
+    }
 
     // This checks a required field has been set in a given table that has
     // just been constructed.
@@ -644,7 +633,7 @@ namespace BigBuffers
         throw new InvalidOperationException("BigBuffers: field " + field +
           " must be set");
     }
-    /// @endcond
+
     /// <summary>
     /// Finalize a buffer, pointing to the given `root_table`.
     /// </summary>
@@ -659,9 +648,7 @@ namespace BigBuffers
       Prep(_minAlign, sizeof(ulong) + (sizePrefix ? sizeof(ulong) : 0uL));
       AddOffset(rootTable);
       if (sizePrefix)
-      {
         Add(_bb.LongLength - Space);
-      }
       _bb.Position = Offset;
     }
 
@@ -795,5 +782,3 @@ namespace BigBuffers
       => Finish(rootTable, fileIdentifier, true);
   }
 }
-
-/// @}

@@ -6,36 +6,72 @@ namespace BigBuffers
 {
   public static class SchemaModel
   {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref T __init<T, TModel>(ref this T obj, ulong table, ByteBuffer buffer)
+      where TModel : struct, ISchemaModel
+      where T : struct, IBigBufferModel<TModel>
+    {
+      ref var model = ref obj.Model;
+      model.ByteBufferOffset = new(buffer, table);
+      return ref obj;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref T __init<T>(ref this T obj, ulong table, ByteBuffer buffer)
+      where T : struct, IBigBufferTable
+      => ref obj.__init<T, Table>(table, buffer);
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T __assign<T>(this T obj, ulong table, ByteBuffer buffer)
+      where T : struct, IBigBufferStruct
+      => obj.__init<T, Struct>(table, buffer);
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    // ReSharper disable once MethodOverloadWithOptionalParameter
+    public static T __assign<T>(this T obj, ulong table, ByteBuffer buffer, bool _ = false)
+      where T : struct, IBigBufferTable
+      => obj.__init<T, Table>(table, buffer);
+      
+
     // Look up a field in the vtable, return an offset into the object, or 0 if the field is not
     // present.
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong __offset<TModel>(ref this TModel model, ulong vtableOffset) where TModel : struct, ISchemaModel
+    public static ulong __vtable<TModel>(ref this TModel model) where TModel : struct, ISchemaTable
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       ref readonly var table = ref model.ByteBufferOffset.Offset;
       var vtable = table - bb.Get<ulong>(table);
+      return vtable;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong __offset<TModel>(ref this TModel model, ulong vtableOffset)
+      where TModel : struct, ISchemaTable
+    {
+      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
+      var vtable = __vtable(ref model);
       var offset = bb.Get<ushort>(vtable + vtableOffset);
       return offset;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong __offset(ulong vtableOffset, ulong offset, ByteBuffer bb)
+    public static ulong __offset(ulong vtableOffset, ulong table, in ByteBuffer bb)
     {
-      var vtable = bb.LongLength - offset;
-      return bb.Get<ushort>(vtable + vtableOffset - bb.Get<ulong>(vtable)) + vtable;
+      // TODO: verify
+      var vtable = bb.Get<ulong>(table);
+      return bb.Get<ushort>(table + vtableOffset - vtable) + table;
     }
 
     // Retrieve the relative offset stored at "offset"
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __indirect<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
-    {
-      ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
-      return offset + bb.Get<ulong>(offset);
-    }
+      => __indirect(offset, model.ByteBufferOffset.ByteBuffer);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong __indirect(ulong offset, ByteBuffer bb)
+    public static ulong __indirect(ulong offset, in ByteBuffer bb)
       => offset + bb.Get<ulong>(offset);
 
     // Create a .NET String from UTF-8 data stored inside the flatbuffer.
@@ -48,7 +84,7 @@ namespace BigBuffers
       var indirection = field + bb.Get<ulong>(field);
       var strLen = bb.Get<ulong>(indirection);
       var strStart = indirection + sizeof(ulong);
-      return bb.GetStringUtf8(strStart, (int)strLen-1);
+      return bb.GetStringUtf8(strStart, (int)strLen - 1);
     }
 
     // Get the length of a vector whose offset is stored at "offset" in this object.
@@ -79,7 +115,7 @@ namespace BigBuffers
     // then an empty span will be returned.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BigSpan<T> __vector_as_span<TModel, T>(ref this TModel model, ulong offset, ulong elementSize)
-      where T : unmanaged where TModel : struct, ISchemaModel
+      where T : unmanaged where TModel : struct, ISchemaTable
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       if (!BitConverter.IsLittleEndian)
@@ -93,9 +129,6 @@ namespace BigBuffers
       var len = model.__vector_len(o);
       return bb.ToSpan(pos, len * elementSize).CastAs<T>();
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BigSpan<T> __vector_as_span<T>(ref this Struct model, ulong offset, ulong elementSize) where T : unmanaged
-      => model.__vector_as_span<Struct, T>(offset, elementSize);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BigSpan<T> __vector_as_span<T>(ref this Table model, ulong offset, ulong elementSize) where T : unmanaged
@@ -107,7 +140,7 @@ namespace BigBuffers
     // then an empty span will be returned.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BigSpan<byte> __vector_as_byte_span<TModel>(ref this TModel model, ulong offset, ulong elementSize)
-      where TModel : struct, ISchemaModel
+      where TModel : struct, ISchemaTable
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       if (!BitConverter.IsLittleEndian)
@@ -126,7 +159,8 @@ namespace BigBuffers
     // ArraySegment&lt;byte&gt;. If the vector is not present in the ByteBuffer,
     // then a null value will be returned.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ArraySegment<byte>? __vector_as_arraysegment<TModel>(ref this TModel model, ulong offset) where TModel : struct, ISchemaModel
+    public static ArraySegment<byte>? __vector_as_arraysegment<TModel>(ref this TModel model, ulong offset)
+      where TModel : struct, ISchemaTable
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       var o = model.__offset(offset);
@@ -142,7 +176,7 @@ namespace BigBuffers
     // returned.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T[] __vector_as_array<TModel, T>(ref this TModel model, ulong offset)
-      where TModel : struct, ISchemaModel
+      where TModel : struct, ISchemaTable
       where T : unmanaged
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
@@ -158,15 +192,14 @@ namespace BigBuffers
       var len = model.__vector_len(o);
       return bb.ToArray<T>(pos, len);
     }
-    public static T[] __vector_as_array<T>(ref this Struct model, ulong offset) where T : unmanaged
-      => model.__vector_as_array<Struct, T>(offset);
     public static T[] __vector_as_array<T>(ref this Table model, ulong offset) where T : unmanaged
       => model.__vector_as_array<Table, T>(offset);
 
     // Initialize any Table-derived type to point to the union at the given offset.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T __union<TModel, T>(ref this TModel model, ulong offset)
-      where TModel : struct, ISchemaModel where T : struct, IBigBufferModel
+      where TModel : struct, ISchemaTable
+      where T : struct, IBigBufferTable
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       var t = new T();
@@ -174,11 +207,8 @@ namespace BigBuffers
       t.__init(indirect, bb);
       return t;
     }
-
-    public static T __union<T>(ref this Struct model, ulong offset) where T : struct, IBigBufferModel
-      => model.__union<Struct, T>(offset);
-
-    public static T __union<T>(ref this Table model, ulong offset) where T : struct, IBigBufferModel
+    public static T __union<T>(ref this Table model, ulong offset)
+      where T : struct, IBigBufferTable
       => model.__union<Table, T>(offset);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
