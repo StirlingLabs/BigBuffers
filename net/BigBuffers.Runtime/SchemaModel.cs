@@ -15,7 +15,7 @@ namespace BigBuffers
       model.ByteBufferOffset = new(buffer, table);
       return ref obj;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref T __init<T>(ref this T obj, ulong table, ByteBuffer buffer)
       where T : struct, IBigBufferTable
@@ -33,7 +33,7 @@ namespace BigBuffers
     public static T __assign<T>(this T obj, ulong table, ByteBuffer buffer, bool _ = false)
       where T : struct, IBigBufferTable
       => obj.__init<T, Table>(table, buffer);
-      
+
 
     // Look up a field in the vtable, return an offset into the object, or 0 if the field is not
     // present.
@@ -53,6 +53,7 @@ namespace BigBuffers
     {
       ref readonly var bb = ref model.ByteBufferOffset.ByteBuffer;
       var vtable = __vtable(ref model);
+      if (FieldWasTrimmed(bb, vtable, vtableOffset)) return 0;
       var offset = bb.Get<ushort>(vtable + vtableOffset);
       return offset;
     }
@@ -62,8 +63,12 @@ namespace BigBuffers
     {
       // TODO: verify
       var vtable = bb.Get<ulong>(table);
+      if (FieldWasTrimmed(bb, vtable, vtableOffset)) return 0;
       return bb.Get<ushort>(table + vtableOffset - vtable) + table;
     }
+
+    private static bool FieldWasTrimmed(in ByteBuffer bb, ulong vtable, ulong offset)
+      => offset > bb.Get<ushort>(vtable);
 
     // Retrieve the relative offset stored at "offset"
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
