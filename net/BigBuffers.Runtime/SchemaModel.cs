@@ -209,7 +209,7 @@ namespace BigBuffers
 
       for (; i < Constants.FileIdentifierLength; i++)
       {
-        if (bb.GetByte(bbPos + i) == 0)
+        if (bb.GetByte(bbPos + i) != 0)
           return false;
       }
 

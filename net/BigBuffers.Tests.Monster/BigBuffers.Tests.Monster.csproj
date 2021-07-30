@@ -16,6 +16,17 @@
     <None Remove="**/*.dll" />
     <None Remove="**/*.exe" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="monsterdata_test.json" />
+    <Content Include="monsterdata_test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="monsterdata_test.mon" />
+    <Content Include="monsterdata_test.mon">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <PropertyGroup>
     <IsFirstBuild>false</IsFirstBuild>
