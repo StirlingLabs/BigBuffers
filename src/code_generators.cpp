@@ -357,7 +357,8 @@ std::string BinaryFileName(const Parser &parser, const std::string &path,
 }
 
 bool GenerateBinary(const Parser &parser, const std::string &path,
-                    const std::string &file_name) {
+                    const std::string &file_name, std::string &error) {
+  (void)(error);
   if (parser.opts.use_flexbuffers) {
     auto data_vec = parser.flex_builder_.GetBuffer();
     auto data_ptr = reinterpret_cast<char *>(data(data_vec));

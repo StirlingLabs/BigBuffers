@@ -22,11 +22,6 @@ namespace BigBuffers
   public interface IBigBufferModel
   {
     ref readonly ByteBuffer ByteBuffer { get; }
-  }
-
-  public interface IBigBufferModel<TModel> : IBigBufferModel
-    where TModel : struct, ISchemaModel
-  {
-    ref TModel Model { get; }
+    ref Model Model { get; }
   }
 }

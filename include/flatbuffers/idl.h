@@ -441,7 +441,23 @@ struct EnumDef : public Definition {
   const std::vector<EnumVal *> &Vals() const { return vals.vec; }
 
   const EnumVal *Lookup(const std::string &enum_name) const {
-    return vals.Lookup(enum_name);
+    // check Value
+    auto result = vals.Lookup(enum_name);
+    if (result) return result;
+
+    // check Enum.Value
+    auto prefix = this->name + ".";
+    if ( enum_name.rfind(prefix,0) == 0 ) {
+      result = vals.Lookup(enum_name.substr(prefix.size()));
+    }
+    if (result) return result;
+
+    // check Namespace.Enum.Value
+    prefix = this->defined_namespace->GetFullyQualifiedName(prefix);
+    if ( enum_name.rfind(prefix,0) == 0 ) {
+      result = vals.Lookup(enum_name.substr(prefix.size()));
+    }
+    return result;
   }
 
   bool is_union;
@@ -1000,7 +1016,7 @@ class Parser : public ParserState {
   std::vector<Namespace *> namespaces_;
   Namespace *current_namespace_;
   Namespace *empty_namespace_;
-  std::string error_;  // User readable error_ if Parse() == false
+  mutable std::string error_;  // User readable error_ if Parse() == false
 
   FlatBufferBuilder builder_;  // any data contained in the file
   flexbuffers::Builder flex_builder_;
@@ -1051,48 +1067,51 @@ extern std::string MakeScreamingCamel(const std::string &in);
 // byte arrays in String values), returns false.
 extern bool GenerateTextFromTable(const Parser &parser, const void *table,
                                   const std::string &tablename,
-                                  std::string *text);
+                                  std::string *text, std::string &error);
+
 extern bool GenerateText(const Parser &parser, const void *flatbuffer,
-                         std::string *text);
+                         std::string *text, std::string &error);
+
 extern bool GenerateTextFile(const Parser &parser, const std::string &path,
-                             const std::string &file_name);
+                             const std::string &file_name, std::string &error);
 
 // Generate Json schema to string
 // See idl_gen_json_schema.cpp.
-extern bool GenerateJsonSchema(const Parser &parser, std::string *json);
+extern bool GenerateJsonSchema(const Parser &parser, std::string *json, std::string &error);
 
 // Generate binary files from a given FlatBuffer, and a given Parser
 // object that has been populated with the corresponding schema.
 // See code_generators.cpp.
 extern bool GenerateBinary(const Parser &parser, const std::string &path,
-                           const std::string &file_name);
+                           const std::string &file_name, std::string &error);
 
 // Generate a C++ header from the definitions in the Parser object.
 // See idl_gen_cpp.
 extern bool GenerateCPP(const Parser &parser, const std::string &path,
-                        const std::string &file_name);
+                        const std::string &file_name, std::string &error);
 
 // Generate C# files from the definitions in the Parser object.
 // See idl_gen_csharp.cpp.
 extern bool GenerateCSharp(const Parser &parser, const std::string &path,
-                           const std::string &file_name);
+                           const std::string &file_name, std::string &error);
 
 // Generate Go files from the definitions in the Parser object.
 // See idl_gen_go.cpp.
 extern bool GenerateGo(const Parser &parser, const std::string &path,
-                       const std::string &file_name);
+                       const std::string &file_name, std::string &error);
 
 // Generate Json schema file
 // See idl_gen_json_schema.cpp.
 extern bool GenerateJsonSchema(const Parser &parser, const std::string &path,
-                               const std::string &file_name);
+                               const std::string &file_name, std::string &error);
 
 // Generate a schema file from the internal representation, useful after
 // parsing a .proto schema.
 extern std::string GenerateFBS(const Parser &parser,
-                               const std::string &file_name);
+                               const std::string &file_name, std::string &error);
+
 extern bool GenerateFBS(const Parser &parser, const std::string &path,
-                        const std::string &file_name);
+                        const std::string &file_name, std::string &error);
 
 // Generate a make rule for the generated C++ header.
 // See idl_gen_cpp.cpp.
@@ -1118,12 +1137,12 @@ extern std::string BinaryMakeRule(const Parser &parser, const std::string &path,
 // Generate GRPC Cpp interfaces.
 // See idl_gen_grpc.cpp.
 bool GenerateCppGRPC(const Parser &parser, const std::string &path,
-                     const std::string &file_name);
+                     const std::string &file_name, std::string &error);
 
 // Generate GRPC Go interfaces.
 // See idl_gen_grpc.cpp.
 bool GenerateGoGRPC(const Parser &parser, const std::string &path,
-                    const std::string &file_name);
+                    const std::string &file_name, std::string &error);
 
 
 extern bool GenerateRustModuleRootFile(const Parser &parser,

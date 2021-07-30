@@ -1,7 +1,6 @@
-
-attribute fs_nonVirtual;
-attribute fs_serializer;
-attribute csharp_partial;
+attribute "fs_nonVirtual";
+attribute "fs_serializer";
+attribute "csharp_partial";
 
 namespace Generated;
 
