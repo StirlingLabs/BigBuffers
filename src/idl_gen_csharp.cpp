@@ -16,6 +16,9 @@
 
 // independent from idl_parser, since this code is not needed for most clients
 
+#include <iostream>
+#include <string>
+
 #include "flatbuffers/code_generators.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/idl.h"
@@ -140,7 +143,7 @@ class CSharpGenerator : public BaseGenerator {
     if (enableLangOverrides) {
       if (IsEnum(type)) return WrapInNameSpace(*type.enum_def);
       if (type.base_type == BASE_TYPE_STRUCT) {
-        return "Offset<" + WrapInNameSpace(*type.struct_def) + ">";
+        return "Offset<@" + WrapInNameSpace(*type.struct_def) + ">";
       }
     }
 
@@ -169,12 +172,12 @@ class CSharpGenerator : public BaseGenerator {
   }
 
   std::string GenOffsetType(const StructDef &struct_def) const {
-    return "Offset<" + WrapInNameSpace(struct_def) + ">";
+    return "Offset<@" + WrapInNameSpace(struct_def) + ">";
   }
 
   std::string GenOffsetConstruct(const StructDef &struct_def,
                                  const std::string &variable_name) const {
-    return "new Offset<" + WrapInNameSpace(struct_def) + ">(" + variable_name +
+    return "new Offset<@" + WrapInNameSpace(struct_def) + ">(" + variable_name +
            ")";
   }
 
@@ -183,7 +186,7 @@ class CSharpGenerator : public BaseGenerator {
     if (IsSeries(type)) {
       return DestinationCast(type.VectorType());
     } else {
-      if (IsEnum(type)) return "(" + WrapInNameSpace(*type.enum_def) + ")";
+      if (IsEnum(type)) return "(@" + WrapInNameSpace(*type.enum_def) + ")";
     }
     return "";
   }
@@ -303,7 +306,7 @@ class CSharpGenerator : public BaseGenerator {
     for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end(); ++it) {
       auto &ev = **it;
       GenComment(ev.doc_comment, code_ptr, &comment_config, "  ");
-      code += "  ";
+      code += "  @";
       code += ev.name + " = ";
       code += enum_def.ToString(ev);
       code += ",\n";
@@ -356,11 +359,11 @@ class CSharpGenerator : public BaseGenerator {
       case BASE_TYPE_ARRAY: return GenReffer(type.VectorType());
       default: {
         std::string getter = "ref _model.ByteBuffer.";
-        std::string basicType = GenTypeBasic(type, false);
-        if (basicType == "byte") {
+        std::string type_name = GenTypeGet(type);
+        if (type_name == "byte") {
           getter += "RefByte";
-        } else if (basicType != "byte") {
-          getter += "Ref<" + basicType + ">";
+        } else if (type_name != "byte") {
+          getter += "Ref<" + type_name + ">";
         }
         return getter;
       }
@@ -369,8 +372,8 @@ class CSharpGenerator : public BaseGenerator {
 
 
   [[nodiscard]] std::string GenNullRefThrower(const Type &type) const {
-    std::string getter = "ref SchemaModel.ThrowNullRef<";
-    getter += GenTypeBasic(type, false) + ">()";
+    std::string getter = "ref SchemaModel.ThrowNullRef<"
+                         + GenTypeGet(type) + ">()";
     return getter;
   }
 
@@ -381,11 +384,13 @@ class CSharpGenerator : public BaseGenerator {
     auto type = key_field->value.type;
     auto dest_mask = "";
     auto dest_cast = DestinationCast(type);
-    auto getter = data_buffer + ".Get<";
-    if (GenTypeBasic(type, false) != "byte") {
-      getter += GenTypeBasic(type, false);
+    auto getter = data_buffer + ".Get";
+    auto type_name = GenTypeGet(type);
+    if (type_name != "byte") {
+      getter += "<" + type_name + ">";
+    } else {
+      getter += "Byte";
     }
-    getter += ">";
     getter = dest_cast + getter + "(" + GenOffsetGetter(key_field, num) + ")" +
              dest_mask;
     return getter;
@@ -409,7 +414,7 @@ class CSharpGenerator : public BaseGenerator {
   [[nodiscard]] std::string GenSpanner(const Type &type) const {
     if (IsScalar(type.base_type)) {
       std::string spanner = "return _model.ByteBuffer.GetSpan<";
-      spanner += GenTypeBasic(type, false);
+      spanner += GenTypeGet(type);
       spanner += ">";
       return spanner;
     } else {
@@ -423,84 +428,106 @@ class CSharpGenerator : public BaseGenerator {
                                     : (IsStruct(type) ? "Struct" : "Offset");
   }
 
+  void GenStructValueTuple(const StructDef &struct_def, std::string &code) const {
+
+    code += "(";
+    for (auto it = struct_def.fields.vec.begin();
+         it != struct_def.fields.vec.end(); ++it) {
+      auto &field = **it;
+      const auto &fieldType = field.value.type;
+      if (IsStruct(fieldType)) {
+        GenStructValueTuple(*fieldType.struct_def, code);
+        return;
+      }
+      const auto isArrayField = IsArray(fieldType);
+      if (isArrayField) {
+        const auto vecType = fieldType.VectorType();
+        if (IsStruct(vecType)) {
+          for ( auto i = 0; i < fieldType.fixed_length; ++i ) {
+            GenStructValueTuple(*vecType.struct_def, code);
+            code += " @" + MakeCamel(field.name, false) + ", ";
+          }
+          return;
+        }
+        for ( auto i = 0; i < fieldType.fixed_length; ++i ) {
+          code += GenTypeGet(fieldType);
+          code += " @" + MakeCamel(field.name, false) + "_" + NumToString(i)+", ";
+        }
+      } else {
+        code += GenTypeGet(fieldType);
+        code += " @" + MakeCamel(field.name, false) + ", ";
+      }
+    }
+    code.erase(code.end() - 2, code.end());
+    code += ")";
+  }
+
   // Recursively generate arguments for a constructor, to deal with nested
   // structs.
-  void GenStructArgs(const StructDef &struct_def, std::string *code_ptr,
-                     const char *nameprefix, size_t array_count = 0) const {
+  void GenStructArgs(const StructDef &struct_def, std::string *code_ptr) const {
+    // (float X, float Y, float Z, float W)
+    // (float R, float G, float B, float A)
     std::string &code = *code_ptr;
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       auto &field = **it;
-      const auto &field_type = field.value.type;
-      const auto array_field = IsArray(field_type);
-      const auto &type = array_field ? field_type.VectorType() : field_type;
-      const auto array_cnt = array_field ? (array_count + 1) : array_count;
-      if (IsStruct(type)) {
-        // Generate arguments for a struct inside a struct. To ensure names
-        // don't clash, and to make it obvious these arguments are constructing
-        // a nested struct, prefix the name with the field name.
-        GenStructArgs(*field_type.struct_def, code_ptr,
-                      (nameprefix + (field.name + "_")).c_str(), array_cnt);
-      } else {
-        code += ", ";
-        if (array_cnt > 0) {
-          code += "StirlingLabs.Utilities.ReadOnlyBigSpan<";
-          code += GenTypeBasic(type);
-          code += ">";
+      const auto &fieldType = field.value.type;
+      const auto isArray = IsArray(fieldType);
+      code += ", ";
+      if (!IsStruct(fieldType)) {
+        if (!isArray) {
+          code += GenTypeBasic(fieldType);
         } else {
-          code += GenTypeBasic(type);
-          if (field.IsScalarOptional())
-            code += "?";
+          const auto &elemType = fieldType.VectorType();
+          code += "StirlingLabs.Utilities.ReadOnlyBigSpan<";
+          code += GenTypeBasic(elemType);
+          code += ">";
         }
-        code += " ";
-        code += nameprefix;
-        code += MakeCamel(field.name, true);
+      } else {
+        if (!isArray) {
+          GenStructValueTuple(*fieldType.struct_def, *code_ptr);
+        }
+        else {
+          const auto &elemType = fieldType.VectorType();
+          code += "StirlingLabs.Utilities.ReadOnlyBigSpan<";
+          GenStructValueTuple(*elemType.struct_def, *code_ptr);
+          code += ">";
+        }
       }
+      if (field.IsScalarOptional())
+        code += "?";
+      code += " @";
+      code += MakeCamel(field.name, false);
     }
   }
 
   // Recusively generate struct construction statements of the form:
   // builder.putType(name);
   // and insert manual padding.
-  void GenStructBody(const StructDef &struct_def, std::string *code_ptr,
-                     const char *nameprefix, size_t index = 0,
-                     bool in_array = false) const {
+  void GenStructBody(const StructDef &struct_def, std::string *code_ptr) const {
     std::string &code = *code_ptr;
-    std::string indent((index + 1) * 2, ' ');
-    code += indent + "  builder.Prep(";
+    code += "    builder.Prep(";
     code += NumToString(struct_def.minalign) + ", ";
     code += NumToString(struct_def.bytesize) + ");\n";
-    for (auto it = struct_def.fields.vec.rbegin();
-         it != struct_def.fields.vec.rend(); ++it) {
+    for (auto it = struct_def.fields.vec.begin();
+         it != struct_def.fields.vec.end(); ++it) {
       auto &field = **it;
       const auto &field_type = field.value.type;
-      if (field.padding) {
-        code += indent + "  builder.Pad(";
-        code += NumToString(field.padding) + ");\n";
+      auto argname = "@" + MakeCamel(field.name, false);
+
+      if (IsArray(field_type) && field_type.fixed_length > 0) {
+        auto lenStr = NumToString(field_type.fixed_length);
+        code += "    if(" + lenStr + " != "+argname+".LongLength)\n";
+        code += "      throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+argname+"));\n";
       }
-      if (IsStruct(field_type)) {
-        GenStructBody(*field_type.struct_def, code_ptr,
-                      (nameprefix + (field.name + "_")).c_str(), index,
-                      in_array);
-      } else {
-        const auto &type =
-            IsArray(field_type) ? field_type.VectorType() : field_type;
-        const auto index_var = "_idx" + NumToString(index);
 
+      code += "    builder.Put(";
+      code += argname;
+      code += ");\n";
 
-        auto argname = nameprefix + MakeCamel(field.name, true);
-
-        if (IsArray(field_type) && field_type.fixed_length > 0) {
-          auto lenStr = NumToString(field_type.fixed_length);
-          code += indent + "  if(" + lenStr + " != "+argname+".LongLength)\n";
-          code += indent + "    throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+argname+"));\n";
-        }
-
-        code += indent + "  builder.Put";
-        code += GenMethod(type) + "(";
-        code += SourceCast(type);
-        code += argname;
-        code += ");\n";
+      if (field.padding) {
+        code += "    builder.Pad(";
+        code += NumToString(field.padding) + ");\n";
       }
     }
   }
@@ -574,8 +601,9 @@ class CSharpGenerator : public BaseGenerator {
       if (field_name_camel == struct_def.name) { field_name_camel += "_"; }
     std::string method_start = "  public " + type_name_dest + optional + " ";
     if (hasRefField) method_start += "Get";
+    else method_start += "@";
     method_start += field_name_camel;
-    std::string obj = "(new " + type_name + "())";
+    std::string obj = "(new @" + type_name + "())";
 
     // Most field accessors need to retrieve and test the field offset first,
     // this is the prefix code for that:
@@ -679,7 +707,7 @@ class CSharpGenerator : public BaseGenerator {
           code += "ulong j)";
           const auto body = offset_prefix + conditional_cast + getter + "(";
           if (vectortype.base_type == BASE_TYPE_UNION) {
-            code += " where TTable : struct, IBigBufferTable" + body;
+            code += " where TTable : struct, IBigBufferModel" + body;
           } else {
             code += body;
           }
@@ -719,7 +747,7 @@ class CSharpGenerator : public BaseGenerator {
           break;
         }
         case BASE_TYPE_UNION:
-          code += "() where TTable : struct, IBigBufferTable";
+          code += "() where TTable : struct, IBigBufferModel";
           code += offset_prefix + "(TTable?)" + getter;
           code += "<TTable>(o + _model.Offset) : null";
           if (HasUnionStringValue(*field.value.type.enum_def)) {
@@ -867,12 +895,12 @@ class CSharpGenerator : public BaseGenerator {
           is_series ? field.value.type.VectorType() : field.value.type;
       // Boolean parameters have to be explicitly converted to byte
       // representation.
-      auto setter_parameter = field.name;
-      auto mutator_prefix = MakeCamel("set", true);
+      auto setter_parameter = "@"+field.name;
+      auto mutator_prefix = "Set";
       // A vector mutator also needs the index of the vector element it should
       // mutate.
-      auto mutator_params = (is_series ? "(ulong j, " : "(") +
-          GenTypeGet(underlying_type) + " " + field.name +
+      auto mutator_params = (is_series ? "(ulong _j, " : "(") +
+          GenTypeGet(underlying_type) + " @" + field.name +
           ") { ";
       auto setter_index =
           is_series
@@ -880,7 +908,7 @@ class CSharpGenerator : public BaseGenerator {
               (IsArray(field.value.type)
                   ? "Offset + " + NumToString(field.value.offset)
                   : "__vector(o)") +
-              +" + j * " + NumToString(InlineSize(underlying_type))
+              +" + _j * " + NumToString(InlineSize(underlying_type))
               : (struct_def.fixed
               ? "_model.Offset + " + NumToString(field.value.offset)
               : "o + _model.Offset");
@@ -915,8 +943,16 @@ class CSharpGenerator : public BaseGenerator {
 
 
   bool GenRefField(std::string &code, FieldDef &field, StructDef &struct_def) const {
-    if (IsUnion(field.value.type))
+    if (IsUnion(field.value.type) || IsStruct(field.value.type))
       return false;
+
+    if (IsVector(field.value.type) || IsArray(field.value.type)) {
+      auto vectortype = field.value.type.VectorType();
+      if (vectortype.base_type == BASE_TYPE_UNION ||
+          vectortype.base_type == BASE_TYPE_STRUCT) {
+        return false;
+      }
+    }
 
     std::string type_name = GenTypeGet(field.value.type);
     std::string type_name_dest = GenTypeGet(field.value.type);
@@ -938,7 +974,14 @@ class CSharpGenerator : public BaseGenerator {
 
     std::string method_start = "  public ref ";
     if (!parser_.opts.mutable_buffer) method_start += "readonly ";
-    method_start += type_name_dest + " " + field_name_camel;
+
+    method_start += type_name_dest + " @" + field_name_camel;
+    if (field_name_camel == struct_def.name) {
+      Warning("an underscore was appended to the following field because"
+          " it has the same name as the enclosing model, see field "
+          + struct_def.name + "." + field.name + "\n");
+      method_start += "_ /* TODO: don't use the same name as the enclosing model */";
+    }
 
     // Most field accessors need to retrieve and test the field offset first,
     // this is the prefix code for that:
@@ -949,16 +992,9 @@ class CSharpGenerator : public BaseGenerator {
             ? " { return "
             : isEnumType
             ? (" { var o = _model.__offset(" + NumToString(field.value.offset) +
-                "); return ref System.Runtime.CompilerServices.Unsafe.As<"+
-                GenTypeBasic(field.value.type, false)+","+
-                type_name_dest+">( ref (o != 0 ? ")
+                "); return ref (o != 0 ? ")
             : (" { var o = _model.__offset(" + NumToString(field.value.offset) +
             "); return ref (o != 0 ? ");
-    auto value_offset_prefix =
-        isArrayType
-            ? " { return "
-            : (" { var o = _model.__offset(" + NumToString(field.value.offset) +
-            "); return (o != 0 ? ");
     // Generate the accessors that don't do object reuse.
     if (field.value.type.base_type == BASE_TYPE_STRUCT) {
     } else if (IsVector(field.value.type) &&
@@ -998,62 +1034,29 @@ class CSharpGenerator : public BaseGenerator {
           code += " : " + GenNullRefThrower(field.value.type);
           if (!isArrayType) {
             code += ")";
-            if (isEnumType)
-              code += ")";
           }
         }
       } else {
         switch (field.value.type.base_type) {
           case BASE_TYPE_STRUCT:
-            code += " { get";
-            member_suffix += "} ";
-            if (struct_def.fixed) {
-              code += " { return new(_model.";
-              code += "Offset + " + NumToString(field.value.offset) + ", ";
-              code += "_model.ByteBuffer)";
-            } else {
-              code += ref_offset_prefix;
-              code += "new(";
-              code += field.value.type.struct_def->fixed
-                  ? "o + _model.Offset"
-                  : "_model.__indirect(o + _model.Offset)";
-              code += ", _model.ByteBuffer) : " + GenNullRefThrower(field.value.type);
-            }
             break;
-          case BASE_TYPE_ARRAY: FLATBUFFERS_FALLTHROUGH();  // fall thru
+          case BASE_TYPE_ARRAY: FLATBUFFERS_FALLTHROUGH();
           case BASE_TYPE_VECTOR: {
             auto vectortype = field.value.type.VectorType();
-            if (vectortype.base_type == BASE_TYPE_UNION) {
-              reffer += "<TTable>";
+            if (vectortype.base_type == BASE_TYPE_UNION
+                || vectortype.base_type == BASE_TYPE_STRUCT) {
+              FLATBUFFERS_ASSERT(0);
             }
-            code += "(";
-            if (vectortype.base_type == BASE_TYPE_STRUCT) {
-              reffer = "new";
-            } else if (vectortype.base_type == BASE_TYPE_UNION) {
-            }
-            code += "ulong j)";
-            const auto body =
-                ref_offset_prefix + reffer + "(";
-            if (vectortype.base_type == BASE_TYPE_UNION) {
-              code += " where TTable : struct, IBigBufferTable" + body;
-            } else {
-              code += body;
-            }
+            code += "(ulong _j)";
+            code += ref_offset_prefix + reffer + "(";
             std::string index = "_model.";
             if (IsArray(field.value.type)) {
               index += "Offset + " + NumToString(field.value.offset) + " + ";
             } else {
               index += "__vector(o) + ";
             }
-            index += "j * " + NumToString(InlineSize(vectortype));
-            if (vectortype.base_type == BASE_TYPE_STRUCT) {
-              code += vectortype.struct_def->fixed
-                  ? index
-                  : "_model.__indirect(" + index + ")";
-              code += ", _model.ByteBuffer";
-            } else {
-              code += index;
-            }
+            index += "_j * " + NumToString(InlineSize(vectortype));
+            code += index;
             code += ")" + dest_mask;
             if (!IsArray(field.value.type)) {
               code += " : ";
@@ -1145,34 +1148,27 @@ class CSharpGenerator : public BaseGenerator {
     code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
     code += ", IEquatable<" + struct_def.name + ">";
     code += "\n{\n";
-    code += "  internal ";
-    code += struct_def.fixed ? "Struct" : "Table";
-    code += " _model;\n";
+    code += "  internal Model _model;\n";
 
     // constructor
     code +=
         "  internal "+struct_def.name+"(ulong i, ByteBuffer buffer)\n"
-        "    => _model = new "+(struct_def.fixed ? "Struct" : "Table")+"(i, buffer);\n";
+        "    => _model = new(buffer, i);\n";
 
     // interface implementation
-    code += "  ref ";
-    code += struct_def.fixed ? "Struct" : "Table";
-    code += " ";
-    code += struct_def.fixed ? "IBigBufferModel<Struct>" : "IBigBufferModel<Table>";
-    code += ".Model => ref _model.UnsafeSelfReference();\n";
+    code += "  ref Model IBigBufferModel.Model => ref _model.UnsafeSelfReference();\n";
+
+    code += "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
 
     if (struct_def.fixed) {
       // static ByteSize
       code += "  public static ulong ByteSize => ";
       code += NumToString(struct_def.bytesize);
       code +=";\n";
-      // interface implementation
-      code += "  ulong ";
-      code += "IBigBufferStruct";
-      code += ".ByteSize => ByteSize;\n";
-    }
 
-    code += "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
+      // interface implementation
+      code += "  ulong IBigBufferStruct.ByteSize => ByteSize;\n";
+    }
 
     // IEquatable<T>
     code +=
@@ -1249,10 +1245,10 @@ class CSharpGenerator : public BaseGenerator {
       code += "  public static " + GenOffsetType(struct_def) + " ";
       code += "Create";
       code += struct_def.name + "(BigBufferBuilder builder";
-      GenStructArgs(struct_def, code_ptr, "");
+      GenStructArgs(struct_def, code_ptr);
       code += ") {\n";
       code += "    var start = builder.Offset;\n";
-      GenStructBody(struct_def, code_ptr, "");
+      GenStructBody(struct_def, code_ptr);
       code += "    return ";
       code += GenOffsetConstruct(struct_def, "start");
       code += ";\n  }\n";
@@ -1291,13 +1287,13 @@ class CSharpGenerator : public BaseGenerator {
             code += WrapInNameSpace(
                 field.value.type.struct_def->defined_namespace,
                 GenTypeName_ObjectAPI(field.value.type.struct_def->name, opts));
-            code += " ";
+            code += " @";
             code += field.name;
             code += " = null";
           } else {
             code += GenTypeBasic(field.value.type);
             if (field.IsScalarOptional()) { code += "?"; }
-            code += " ";
+            code += " @";
             code += field.name;
             if (!IsScalar(field.value.type.base_type)) code += "Offset";
 
@@ -1321,10 +1317,10 @@ class CSharpGenerator : public BaseGenerator {
               code += MakeCamel(field.name) + "(builder, ";
               if (IsStruct(field.value.type) &&
                   opts.generate_object_based_api) {
-                code += GenTypePointer(field.value.type) + ".Pack(builder, " +
+                code += GenTypePointer(field.value.type) + ".Pack(builder, @" +
                         field.name + ")";
               } else {
-                code += field.name;
+                code += "@"+field.name;
                 if (!IsScalar(field.value.type.base_type)) code += "Offset";
               }
 
@@ -1355,7 +1351,7 @@ class CSharpGenerator : public BaseGenerator {
         code += MakeCamel(field.name);
         code += "(BigBufferBuilder builder, ";
         code += GenTypeBasic(field.value.type);
-        auto argname = MakeCamel(field.name, false);
+        auto argname = "@" + MakeCamel(field.name, false);
         if (!IsScalar(field.value.type.base_type)) argname += "Offset";
         if (field.IsScalarOptional()) { code += "?"; }
         code += " " + argname + ") { builder.Add";
@@ -1457,7 +1453,7 @@ class CSharpGenerator : public BaseGenerator {
       code += "\n  public static VectorOffset ";
       code += "CreateSortedVectorOf" + struct_def.name;
       code += "(BigBufferBuilder builder, ";
-      code += "Offset<" + struct_def.name + ">";
+      code += "Offset<@" + struct_def.name + ">";
       code += "[] offsets) {\n";
       code += "    Array.Sort(offsets, (Offset<" + struct_def.name +
               "> o1, Offset<" + struct_def.name + "> o2) => " +
@@ -1465,7 +1461,7 @@ class CSharpGenerator : public BaseGenerator {
       code += ");\n";
       code += "    return builder.CreateVectorOfTables(offsets);\n  }\n";
 
-      code += "\n  public static " + struct_def.name + "?";
+      code += "\n  public static @" + struct_def.name + "?";
       code += " __lookup_by_key(";
       code += "ulong vectorLocation, ";
       code += GenTypeGet(key_field->value.type);
@@ -1488,8 +1484,7 @@ class CSharpGenerator : public BaseGenerator {
       code += "        span -= middle;\n";
       code += "      } else {\n";
       code += "        return ";
-      code += "new " + struct_def.name + "()";
-      code += ".__assign(tableOffset, bb);\n";
+      code += "new @" + struct_def.name + "(tableOffset, bb);\n";
       code += "      }\n    }\n";
       code += "    return null;\n";
       code += "  }\n";
@@ -2380,9 +2375,13 @@ class CSharpGenerator : public BaseGenerator {
 }  // namespace csharp
 
 bool GenerateCSharp(const Parser &parser, const std::string &path,
-                    const std::string &file_name) {
+                    const std::string &file_name, std::string &error) {
   csharp::CSharpGenerator generator(parser, path, file_name);
-  return generator.generate();
+  auto v = generator.generate();
+
+  error = generator.error_;
+
+  return v;
 }
 
 }  // namespace flatbuffers

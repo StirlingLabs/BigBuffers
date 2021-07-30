@@ -3523,7 +3523,8 @@ class CppGenerator : public BaseGenerator {
 }  // namespace cpp
 
 bool GenerateCPP(const Parser &parser, const std::string &path,
-                 const std::string &file_name) {
+                 const std::string &file_name, std::string &error) {
+  (void)(error);
   cpp::IDLOptionsCpp opts(parser.opts);
   // The '--cpp_std' argument could be extended (like ASAN):
   // Example: "flatc --cpp_std c++17:option1:option2".

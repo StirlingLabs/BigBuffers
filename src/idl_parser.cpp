@@ -643,10 +643,10 @@ CheckedError Parser::ParseType(Type &type) {
     if (IsIdent("bool")) {
       type.base_type = BASE_TYPE_BOOL;
       NEXT();
-    } else if (IsIdent("byte") || IsIdent("int8")) {
+    } else if (IsIdent("byte") || IsIdent("int8") || IsIdent("char")) {
       type.base_type = BASE_TYPE_CHAR;
       NEXT();
-    } else if (IsIdent("ubyte") || IsIdent("uint8")) {
+    } else if (IsIdent("ubyte") || IsIdent("uint8") || IsIdent("uchar")) {
       type.base_type = BASE_TYPE_UCHAR;
       NEXT();
     } else if (IsIdent("short") || IsIdent("int16")) {
@@ -954,7 +954,7 @@ CheckedError Parser::ParseField(StructDef &struct_def) {
   }
 
   if (field->deprecated && struct_def.fixed)
-    return Error("can't deprecate fields in a struct");
+    Warning("deprecated fields in a struct are not enforced");
 
   auto cpp_type = field->attributes.Lookup("cpp_type");
   if (cpp_type) {
@@ -1749,7 +1749,7 @@ CheckedError Parser::ParseEnumFromString(const Type &type,
     if (type.enum_def) {
       ev = type.enum_def->Lookup(word);
     } else {
-      auto dot = word.find_first_of('.');
+      auto dot = word.find_last_of('.');
       if (std::string::npos == dot)
         return Error("enum values need to be qualified by an enum type");
       auto enum_def_str = word.substr(0, dot);
@@ -1972,6 +1972,12 @@ CheckedError Parser::ParseSingleValue(const std::string *name, Value &e,
     // Enum can have only true integer base type.
     if (!match && IsInteger(in_type) && !IsBool(in_type) &&
         IsIdentifierStart(*attribute_.c_str())) {
+
+      const char *start = cursor_ - attribute_.size();
+      while (IsIdentifierStart(*cursor_) || *cursor_ == '.') ++cursor_;
+
+      attribute_ = std::string(start, cursor_ - start);
+
       ECHECK(ParseEnumFromString(e.type, &e.constant));
       NEXT();
       match = true;
@@ -2325,7 +2331,7 @@ CheckedError Parser::ParseEnum(const bool is_union, EnumDef **dest,
   }
   EnumValBuilder evb(*this, *enum_def);
   EXPECT('{');
-  // A lot of code generatos expect that an enum is not-empty.
+  // A lot of code generators expect that an enum is not-empty.
   if ((is_union || Is('}')) && !opts.proto_mode) {
     evb.CreateEnumerator("NONE");
     ECHECK(evb.AcceptEnumerator());
