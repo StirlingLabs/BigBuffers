@@ -304,13 +304,15 @@ class JsonSchemaGenerator : public BaseGenerator {
 }  // namespace jsons
 
 bool GenerateJsonSchema(const Parser &parser, const std::string &path,
-                        const std::string &file_name) {
+                        const std::string &file_name, std::string &error) {
+  (void)(error);
   jsons::JsonSchemaGenerator generator(parser, path, file_name);
   if (!generator.generate()) { return false; }
   return generator.save();
 }
 
-bool GenerateJsonSchema(const Parser &parser, std::string *json) {
+bool GenerateJsonSchema(const Parser &parser, std::string *json, std::string &error) {
+  (void)(error);
   jsons::JsonSchemaGenerator generator(parser, "", "");
   if (!generator.generate()) { return false; }
   *json = generator.getJson();

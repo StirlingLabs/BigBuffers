@@ -530,12 +530,19 @@ int FlatCompiler::Compile(int argc, const char **argv) {
       if (generator_enabled[i]) {
         if (!print_make_rules) {
           flatbuffers::EnsureDirExists(output_path);
+          std::string error;
           if ((!params_.generators[i].schema_only ||
                (is_schema || is_binary_schema)) &&
               !params_.generators[i].generate(*parser.get(), output_path,
-                                              filebase)) {
+                                              filebase, error)) {
             Error(std::string("Unable to generate ") +
                   params_.generators[i].lang_name + " for " + filebase);
+          }
+          if (!error.empty()) {
+            std::ostringstream s;
+            s << params_.generators[i].lang_name << " code generator has messages to report" << std::endl;
+            s << error;
+            Warn(s.str(), false);
           }
         } else {
           if (params_.generators[i].make_rule == nullptr) {
@@ -551,10 +558,14 @@ int FlatCompiler::Compile(int argc, const char **argv) {
         }
         if (grpc_enabled) {
           if (params_.generators[i].generateGRPC != nullptr) {
+            std::string error;
             if (!params_.generators[i].generateGRPC(*parser.get(), output_path,
-                                                    filebase)) {
+                                                    filebase, error)) {
               Error(std::string("Unable to generate GRPC interface for") +
                     params_.generators[i].lang_name);
+            }
+            if (!error.empty()) {
+              Warn(error, false);
             }
           } else {
             Warn(std::string("GRPC interface generator not implemented for ") +

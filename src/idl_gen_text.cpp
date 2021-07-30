@@ -381,7 +381,8 @@ static std::string TextFileName(const std::string &path,
 }
 
 bool GenerateTextFile(const Parser &parser, const std::string &path,
-                      const std::string &file_name) {
+                      const std::string &file_name, std::string &error) {
+  (void)(error);
   if (parser.opts.use_flexbuffers) {
     std::string json;
     parser.flex_root_.ToString(true, parser.opts.strict_json, json);

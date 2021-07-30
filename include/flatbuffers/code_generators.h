@@ -103,6 +103,8 @@ class BaseGenerator {
                                 const std::string &file_name,
                                 const IDLOptions &options) const;
 
+  mutable std::string error_;
+
  protected:
   BaseGenerator(const Parser &parser, const std::string &path,
                 const std::string &file_name, std::string qualifying_start,
@@ -118,6 +120,11 @@ class BaseGenerator {
   // No copy/assign.
   BaseGenerator &operator=(const BaseGenerator &);
   BaseGenerator(const BaseGenerator &);
+
+
+  void Message(const std::string &msg) const;
+  void Warning(const std::string &msg) const;
+  CheckedError Error(const std::string &msg) const;
 
   std::string NamespaceDir(const Namespace &ns,
                            const bool dasherize = false) const;
@@ -151,6 +158,22 @@ class BaseGenerator {
   const std::string qualifying_separator_;
   const std::string default_extension_;
 };
+
+
+inline void BaseGenerator::Message(const std::string &msg) const {
+  if (!error_.empty()) error_ += "\n";  // log all warnings and errors
+  error_ += file_name_.length() ? AbsolutePath(file_name_) : "";
+  error_ += ": " + msg;
+}
+
+inline void BaseGenerator::Warning(const std::string &msg) const {
+  if (!parser_.opts.no_warnings) { Message("warning: " + msg); }
+}
+
+inline CheckedError BaseGenerator::Error(const std::string &msg) const {
+  Message("error: " + msg);
+  return CheckedError(true);
+}
 
 struct CommentConfig {
   const char *first_line;

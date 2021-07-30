@@ -1366,7 +1366,8 @@ class GoGenerator : public BaseGenerator {
 }  // namespace go
 
 bool GenerateGo(const Parser &parser, const std::string &path,
-                const std::string &file_name) {
+                const std::string &file_name, std::string &error) {
+  (void)(error);
   go::GoGenerator generator(parser, path, file_name, parser.opts.go_namespace);
   return generator.generate();
 }
