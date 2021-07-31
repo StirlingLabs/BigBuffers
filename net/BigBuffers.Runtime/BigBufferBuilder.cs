@@ -63,10 +63,10 @@ namespace BigBuffers
     /// </summary>
     /// <param name="initialSize">
     /// The initial size to use for the internal buffer.
-    /// Note: If this value is less than 8, it will assume the value is 8.
+    /// Note: If this value is less than 32, it will assume the value is 32.
     /// </param>
     public BigBufferBuilder(ulong initialSize = 0)
-      => _bb = new(Math.Max(8, initialSize));
+      => _bb = new(Math.Max(sizeof(ulong)*4, initialSize));
 
     /// <summary>
     /// Create a BigBufferBuilder backed by the <paramref name="buffer"/>.
@@ -283,7 +283,7 @@ namespace BigBuffers
     public void StartVector(ulong elemSize, ulong count)
     {
       NotNested();
-      Prep(sizeof(long) + elemSize * count, 0);
+      Prep(sizeof(ulong), elemSize * count);
       PushVectorStart(Offset, elemSize);
       Put(count);
     }
@@ -297,7 +297,7 @@ namespace BigBuffers
       var len = _bb.Get<ulong>(start);
       var expected = start + 8 + len * elemSize;
       if (Offset != expected)
-        throw new InvalidOperationException($"Incomplete vector, {expected - Offset} bytes missing.");
+        throw new InvalidOperationException($"Incomplete vector, {(long)(expected - Offset)} bytes missing.");
       Prep(alignment, 0);
       return new(start);
     }
@@ -426,10 +426,19 @@ namespace BigBuffers
         return new(0);
       NotNested();
       var strLen = (ulong)Encoding.UTF8.GetByteCount(value);
-      StartVector(1, strLen + 1);
+      NotNested();
+      Prep(sizeof(ulong), strLen + 1);
+      var start = Offset;
+      Put(strLen);
       Offset += _bb.PutStringUtf8(Offset, strLen, value);
       Add<byte>(0);
-      return new(EndVector(1).Value);
+#if DEBUG
+      var expected = start + 8 + strLen + 1;
+      if (Offset != expected)
+        throw new InvalidOperationException($"Incorrect string ending, {(long)(expected - Offset)} bytes missing.");
+#endif
+      //Prep(8, 0);
+      return new(start);
     }
 
     public StringOffset CreateString(out Placeholder placeholder)

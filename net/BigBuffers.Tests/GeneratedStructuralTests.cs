@@ -10,6 +10,7 @@ using Generated;
 using NUnit.Framework;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Assertions;
+using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers.Tests
 {
@@ -199,21 +200,26 @@ namespace BigBuffers.Tests
       TableE.AddX(bb, bb.CreateString(out var sp1));
       TableE.EndTableE(bb);
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,1);
 
-      sp1.Fill("Hello World");
+      var str16Chars = "Hello World 16ch";
+
+      sp1.Fill(str16Chars);
 
       Placeholder.ValidateAllFilled(bb);
 
       var t = TableE.GetRootAsTableE(bb.ByteBuffer);
 
-      t.X.Should().Be("Hello World");
+      t.X.Should().Be(str16Chars);
 
-      var utf8 = new BigSpan<byte>(Encoding.UTF8.GetBytes("Hello World"));
+      var utf8 = new BigSpan<byte>(Encoding.UTF8.GetBytes(str16Chars));
       var xSpan = t.GetXSpan();
       for (var i = 0u; i < 11; ++i)
         xSpan[i].Should().Be(utf8[i]);
-      xSpan[11u].Should().Be((byte)0);
+      
+      // null terminator check
+      Unsafe.AddByteOffset(ref t.GetXSpan().GetReference(), (nint)str16Chars.Length)
+        .Should().Be(0);
     }
 
     [Test]
@@ -223,7 +229,12 @@ namespace BigBuffers.Tests
       TableF.StartTableF(bb);
       TableF.AddX(bb, TableF.CreateXVector(bb, out var x));
       TableF.EndTableF(bb);
+
+      Placeholder.ValidateUnfilledCount(bb,1);
+      
       x.Fill(new[] { "Hello", "World" });
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableF.GetRootAsTableF(bb.ByteBuffer);
 
@@ -238,6 +249,8 @@ namespace BigBuffers.Tests
       TableG.StartTableG(bb);
       TableG.AddX(bb, bb.CreateVector(out var x));
       TableG.EndTableG(bb);
+
+      Placeholder.ValidateUnfilledCount(bb,1);
 
       var bkp = bb.Offset;
       Assert.Throws<InvalidOperationException>(() => {
@@ -258,6 +271,8 @@ namespace BigBuffers.Tests
         StructG.CreateStructG(bb, true),
         StructG.CreateStructG(bb, false)
       });
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableG.GetRootAsTableG(bb.ByteBuffer);
 
@@ -287,7 +302,12 @@ namespace BigBuffers.Tests
       TableH.StartTableH(bb);
       TableH.AddX(bb, TableH.CreateXVector(bb, out var x));
       TableH.EndTableH(bb);
+
+      Placeholder.ValidateUnfilledCount(bb,1);
+
       x.Fill(new[] { true, false, true, false });
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableH.GetRootAsTableH(bb.ByteBuffer);
 
@@ -306,6 +326,8 @@ namespace BigBuffers.Tests
       TableI.AddX(bb, bb.CreateVector(out var x));
       TableI.EndTableI(bb);
 
+      Placeholder.ValidateUnfilledCount(bb,1);
+
       var bkp = bb.Offset;
       Assert.Throws<InvalidOperationException>(() => {
         x.Fill(new[]
@@ -318,6 +340,8 @@ namespace BigBuffers.Tests
       });
       bb.Offset = bkp;
 
+      Placeholder.ValidateUnfilledCount(bb,1);
+
       x.FillInline(() => new[]
       {
         StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { true, false }),
@@ -325,6 +349,8 @@ namespace BigBuffers.Tests
         StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { false, false }),
         StructI.CreateStructI(bb, (ReadOnlyBigSpan<bool>)new[] { false, true }),
       });
+
+      Placeholder.ValidateAllFilled(bb);
 
       var t = TableI.GetRootAsTableI(bb.ByteBuffer);
 
@@ -355,7 +381,7 @@ namespace BigBuffers.Tests
       TableJ.AddX(bb, bb.CreateVector(out var x));
       var to = TableJ.EndTableJ(bb);
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,1);
 
       x.Fill(new[] { to });
 
@@ -380,6 +406,8 @@ namespace BigBuffers.Tests
       ko.Value.Should().Be(0);
 
       ValidateAllPlaceholdersNotFilled(bb);
+
+      Placeholder.ValidateUnfilledCount(bb,1);
 
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
@@ -420,7 +448,7 @@ namespace BigBuffers.Tests
       TableL.AddX(bb, bb.CreateOffset<TableK>(out var lx));
       TableL.EndTableL(bb);
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,1);
 
       TableK.StartTableK(bb);
       TableK.AddX(bb, bb.CreateVector(out var kx));
@@ -428,9 +456,14 @@ namespace BigBuffers.Tests
 
       ValidateAllPlaceholdersNotFilled(bb);
 
+      Placeholder.ValidateUnfilledCount(bb,2);
+
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
+      
+      Placeholder.ValidateUnfilledCount(bb,3);
+      
       jx.Fill(new[] { jo });
       kx.Fill(new[] { jo });
       lx.Fill(ko);
@@ -457,12 +490,15 @@ namespace BigBuffers.Tests
       TableN.AddXType(bb, UnionM.TableJ);
       var no = TableN.EndTableN(bb);
       no.Value.Should().Be(0);
-
-      ValidateAllPlaceholdersNotFilled(bb);
+      
+      Placeholder.ValidateUnfilledCount(bb,1);
 
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
+      
+      Placeholder.ValidateUnfilledCount(bb,2);
+      
       jx.Fill(new[] { jo });
       nx.Fill(jo);
 
@@ -513,28 +549,31 @@ namespace BigBuffers.Tests
       var qo = TableQ.EndTableQ(bb);
       qo.Value.Should().Be(0);
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,3);
 
       TableN.StartTableN(bb);
       TableN.AddX(bb, bb.CreateOffset<TableJ>(out var nx).Value);
       TableN.AddXType(bb, UnionM.TableJ);
       var no = TableN.EndTableN(bb);
-
-      ValidateAllPlaceholdersNotFilled(bb);
+      
+      Placeholder.ValidateUnfilledCount(bb,4);
 
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,5);
 
       jx.Fill(new[] { jo });
       nx.Fill(jo);
+      
+      Placeholder.ValidateUnfilledCount(bb,3);
+      
       TableP.StartTableP(bb);
       TableP.AddX(bb, EnumO.z);
       var po = TableP.EndTableP(bb);
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,3);
 
       qx.Fill(no);
       qy.Fill(po);
@@ -593,20 +632,21 @@ namespace BigBuffers.Tests
       var ro = TableR.EndTableR(bb);
 
       ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,2);
 
       TableJ.StartTableJ(bb);
       TableJ.AddX(bb, bb.CreateVector(out var jx));
       var jo = TableJ.EndTableJ(bb);
       jx.Fill(new[] { jo });
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,2);
 
       TableK.StartTableK(bb);
       TableK.AddX(bb, bb.CreateVector(out var kx));
       var ko = TableK.EndTableK(bb);
       kx.Fill(new[] { jo });
 
-      ValidateAllPlaceholdersNotFilled(bb);
+      Placeholder.ValidateUnfilledCount(bb,2);
 
       rxt.Fill(new[] { UnionM.TableK, UnionM.TableJ });
       rx.Fill(new Offset[] { ko, jo });
