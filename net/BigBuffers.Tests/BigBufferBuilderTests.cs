@@ -15,7 +15,7 @@ namespace BigBuffers.Tests
         // table:
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.ByteBuffer.ToFullArray());
+      }, builder.SizedByteArray());
       builder.EndTable();
       CollectionAssert.AreEqual(new byte[]
         {
@@ -41,7 +41,7 @@ namespace BigBuffers.Tests
       {
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.ByteBuffer.ToFullArray());
+      }, builder.SizedByteArraySegment());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -79,7 +79,7 @@ namespace BigBuffers.Tests
       {
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.ByteBuffer.ToFullArray());
+      }, builder.SizedByteArraySegment());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -127,7 +127,7 @@ namespace BigBuffers.Tests
       {
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.ByteBuffer.ToFullArray());
+      }, builder.SizedByteArraySegment());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
