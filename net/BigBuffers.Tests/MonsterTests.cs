@@ -41,7 +41,7 @@ namespace BigBuffers.Tests
 
       monster.Hp.Should().Be(80);
 
-      //monster.Name.Should().Be("MyMonster"); // TODO: fix
+      monster.Name.Should().Be("MyMonster");
 
       monster.InventoryLength.Should().Be(5);
 
@@ -58,7 +58,7 @@ namespace BigBuffers.Tests
         
       var testMonValue = testMon!.Value;
         
-      //testMonValue.Name.Should().Be("Fred"); // TODO: fix
+      testMonValue.Name.Should().Be("Fred");
 
       monster.Test4Length.Should().Be(2);
 
@@ -83,11 +83,11 @@ namespace BigBuffers.Tests
 
       monster.TestarrayofstringLength.Should().Be(2);
       
-      //var taoS0 = monster.Testarrayofstring(0); // TODO: fix
-      //taoS0.Should().Be("Test2"); // TODO: fix
+      var taoS0 = monster.Testarrayofstring(0);
+      taoS0.Should().Be("test1");
 
-      //var taoS1 = monster.Testarrayofstring(1); // TODO: fix
-      //taoS1.Should().Be("test1"); // TODO: fix
+      var taoS1 = monster.Testarrayofstring(1);
+      taoS1.Should().Be("test2");
       
       monster.Testarrayofstring2Length.Should().Be(0);
 

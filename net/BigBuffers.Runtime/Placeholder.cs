@@ -60,11 +60,12 @@ namespace BigBuffers
       var t = s.GetType().GetElementType();
       var elemSize = (ulong)SizeOf.Get(t);
       if (alignment == 0)
-        alignment = (uint)Math.Min(8u, elemSize);
+        alignment = (uint)Math.Min(sizeof(ulong), elemSize);
 
       if (!e.MoveNext())
       {
         if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
+        Builder.Prep(sizeof(ulong),0);
         Builder.Put(BigBufferBuilder.PlaceholderOffset);
         Builder.StartVector(elemSize, 0);
         Builder.EndVector(alignment);
@@ -109,7 +110,8 @@ namespace BigBuffers
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
       var offset = Builder.CreateString(s);
-      Builder.Prep(8, 0);
+      Builder.Prep(sizeof(ulong), 0);
+      //Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
     }
@@ -122,7 +124,7 @@ namespace BigBuffers
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
       var elemSize = Unsafe.NullRef<TStruct>().ByteSize;
-      var alignment = (uint)Math.Min(8u, elemSize);
+      var alignment = (uint)Math.Min(sizeof(ulong), elemSize);
       Builder.StartVector(elemSize, 0);
       var lengthOffset = Builder.Offset - 8;
       var l = f();
@@ -149,7 +151,7 @@ namespace BigBuffers
       if (IfType<T>.IsAssignableTo<IBigBufferTable>())
       {
         if (alignment == 0) alignment = sizeof(ulong);
-        Builder.StartVector(sizeof(ulong), s.LongLength);
+        Builder.StartVector(sizeof(ulong), s.Length);
         for (nuint i = 0; i < s.Length; ++i)
           Builder.Put(s[i].Value - Builder.Offset);
         var offset = Builder.EndVector(alignment);
@@ -181,8 +183,8 @@ namespace BigBuffers
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
       var elemSize = (ulong)Unsafe.SizeOf<T>();
-      if (alignment == 0) alignment = (uint)Math.Min(8u, elemSize);
-      var length = s.LongLength;
+      if (alignment == 0) alignment = (uint)Math.Min(sizeof(ulong), elemSize);
+      var length = s.Length;
       Builder.StartVector(elemSize, length);
       if (IfType<T>.Is<string>())
       {
@@ -198,6 +200,7 @@ namespace BigBuffers
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
 
         // fill placeholders
+        Builder.Prep(s.Length * sizeof(ulong),0);
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as string);
       }
@@ -206,6 +209,7 @@ namespace BigBuffers
         var placeholders = new Placeholder[length];
 
         // create placeholders
+        Builder.Prep(s.Length * sizeof(ulong),0);
         for (var i = (nuint)0; i < length; ++i)
         {
           Builder.Put(Builder.CreateVector(out var p));
@@ -215,6 +219,7 @@ namespace BigBuffers
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
 
         // fill placeholders
+        Builder.Prep(s.Length * sizeof(ulong),0);
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as string[], alignment);
       }
@@ -223,6 +228,7 @@ namespace BigBuffers
         var placeholders = new Placeholder[length];
 
         // create placeholders
+        Builder.Prep(s.Length * sizeof(ulong),0);
         for (var i = (nuint)0; i < length; ++i)
         {
           Builder.Put(Builder.CreateVector(out var p));
@@ -240,6 +246,7 @@ namespace BigBuffers
       else
       {
         // no placeholders needed
+        Builder.Prep(s.AsBytes().Length,0);
         Builder.Put(s);
         var offset = Builder.EndVector(alignment);
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
@@ -251,6 +258,7 @@ namespace BigBuffers
     internal void FillOffset<T>(Offset<T> offset)
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
+      Builder.Prep(sizeof(ulong),0);
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
     }
@@ -268,6 +276,22 @@ namespace BigBuffers
         return;
 
       throw new PlaceholdersUnfilledException(placeholders);
+#else
+      throw new NotImplementedException("This should not exist under release conditions.");
+#endif
+    }
+
+    [Conditional("DEBUG")]
+    public static void ValidateUnfilledCount(BigBufferBuilder bb, int count)
+    {
+#if DEBUG
+      var placeholders = Tracker.Keys
+        .Where(k => k.Buffer == bb)
+        .Select(k => k.Offset)
+        .ToImmutableSortedSet();
+
+      if (placeholders.Count!=count)
+        throw new PlaceholdersUnfilledException(placeholders, $"Expected {count}, but there were {placeholders.Count} unfilled placeholders.");
 #else
       throw new NotImplementedException("This should not exist under release conditions.");
 #endif

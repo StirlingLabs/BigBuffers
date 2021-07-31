@@ -72,12 +72,12 @@ namespace BigBuffers
     public static string __string(ref this Model model, ulong offset)
     {
       ref readonly var bb = ref model.ByteBuffer;
-      ref readonly var table = ref model.Offset;
-      var field = offset + table;
+      //ref readonly var table = ref model.Offset;
+      var field = offset;
       var indirection = field + bb.Get<ulong>(field);
       var strLen = bb.Get<ulong>(indirection);
       var strStart = indirection + sizeof(ulong);
-      return bb.GetStringUtf8(strStart, (int)strLen - 1);
+      return bb.GetStringUtf8(strStart, (int)strLen);
     }
 
     // Get the length of a vector whose offset is stored at "offset" in this object.
