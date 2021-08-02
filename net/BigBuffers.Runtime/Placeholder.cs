@@ -109,9 +109,8 @@ namespace BigBuffers
     public void Fill(string s)
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
-      var offset = Builder.CreateString(s);
+      var offset = Builder.WriteSharedString(s);
       Builder.Prep(sizeof(ulong), 0);
-      //Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
     }

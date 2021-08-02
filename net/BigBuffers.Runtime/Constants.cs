@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace BigBuffers
 {
     public static class Constants
@@ -27,6 +29,7 @@ namespace BigBuffers
         Changes to the C# implementation need to be sure to change
         the version here and in the code generator on every possible
         incompatible change */
+        [ExcludeFromCodeCoverage]
         public static void VERSION_2_0_0() {}
     }
 }
