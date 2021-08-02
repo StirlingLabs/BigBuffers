@@ -115,9 +115,9 @@ class CSharpGenerator : public BaseGenerator {
       code += "namespace " + namespace_name + "\n{\n\n";
     }
     if (needs_includes) {
-      code += "using global::System;\n";
-      code += "using global::System.Collections.Generic;\n";
-      code += "using global::BigBuffers;\n\n";
+      code += "using global::System;\n"
+              "using global::System.Collections.Generic;\n"
+              "using global::BigBuffers;\n\n";
     }
     code += classcode;
     if (!namespace_name.empty()) { code += "\n}\n"; }
@@ -517,8 +517,8 @@ class CSharpGenerator : public BaseGenerator {
 
       if (IsArray(field_type) && field_type.fixed_length > 0) {
         auto lenStr = NumToString(field_type.fixed_length);
-        code += "    if(" + lenStr + " != "+argname+".LongLength)\n";
-        code += "      throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+argname+"));\n";
+        code += "    if(" + lenStr + " != "+argname+".LongLength)\n"
+                "      throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+argname+"));\n";
       }
 
       code += "    builder.Put(";
@@ -547,12 +547,11 @@ class CSharpGenerator : public BaseGenerator {
 
   std::string GenLookupKeyGetter(flatbuffers::FieldDef *key_field) const {
     std::string key_getter = "      ";
-    key_getter += "var tableOffset = SchemaModel.";
-    key_getter += "__indirect(vectorLocation + sizeof(ulong) * (start + middle)";
-    key_getter += ", bb);\n      ";
+    key_getter += "var tableOffset = bb.__indirect(vectorLocation"
+        " + sizeof(ulong) * (start + middle));"
+        "\n      ";
     if (IsString(key_field->value.type)) {
-      key_getter += "var comp = SchemaModel.";
-      key_getter += "CompareStrings(";
+      key_getter += "var comp = SchemaModel.CompareStrings(";
       key_getter += GenOffsetGetter(key_field);
       key_getter += ", byteKey, bb);\n";
     } else {
@@ -670,12 +669,12 @@ class CSharpGenerator : public BaseGenerator {
             member_suffix += "} ";
           }
           if (struct_def.fixed) {
-            code += " { return new(_model.";
-            code += "Offset + " + NumToString(field.value.offset) + ", ";
-            code += "_model.ByteBuffer)";
+            code += " { return new (_model."
+                    "Offset + " + NumToString(field.value.offset) + ", "
+                    "_model.ByteBuffer)";
           } else {
             code += offset_prefix + conditional_cast;
-            code += "new(";
+            code += "new (";
             code += field.value.type.struct_def->fixed
                 ? "o + _model.Offset"
                 : "_model.__indirect(o + _model.Offset)";
@@ -689,8 +688,8 @@ class CSharpGenerator : public BaseGenerator {
             code += " { get";
             member_suffix += "} ";
           }
-          code += offset_prefix + getter + "(o + " + "_model.";
-          code += "Offset) : null";
+          code += offset_prefix + getter + "(o + " + "_model."
+                  "Offset) : null";
           break;
         case BASE_TYPE_ARRAY: FLATBUFFERS_FALLTHROUGH();  // fall thru
         case BASE_TYPE_VECTOR: {
@@ -738,8 +737,8 @@ class CSharpGenerator : public BaseGenerator {
           if (vectortype.base_type == BASE_TYPE_UNION &&
               HasUnionStringValue(*vectortype.enum_def)) {
             code += member_suffix;
-            code += "}\n";
-            code += "  public string " + MakeCamel(field.name, true) +
+            code += "}\n"
+                    "  public string " + MakeCamel(field.name, true) +
                 "AsString(ulong j)";
             code += offset_prefix + GenGetter(Type(BASE_TYPE_STRING));
             code += "(" + index + ") : null";
@@ -752,8 +751,8 @@ class CSharpGenerator : public BaseGenerator {
           code += "<TTable>(o + _model.Offset) : null";
           if (HasUnionStringValue(*field.value.type.enum_def)) {
             code += member_suffix;
-            code += "}\n";
-            code += "  public string " + MakeCamel(field.name, true) +
+            code += "}\n"
+                    "  public string " + MakeCamel(field.name, true) +
                 "AsString()";
             code += offset_prefix + GenGetter(Type(BASE_TYPE_STRING));
             code += "(o + _model.Offset) : null";
@@ -790,12 +789,12 @@ class CSharpGenerator : public BaseGenerator {
     code += "}\n";
     if (IsVector(field.value.type)) {
       code += "  public ulong " + MakeCamel(field.name, true);
-      code += "Length";
-      code += " { get";
+      code += "Length"
+              " { get";
       code += offset_prefix;
-      code += "_model.__vector_len(o) : 0; ";
-      code += "} ";
-      code += "}\n";
+      code += "_model.__vector_len(o) : 0; "
+              "} "
+              "}\n";
       // See if we should generate a by-key accessor.
       if (field.value.type.element == BASE_TYPE_STRUCT &&
           !field.value.type.struct_def->fixed) {
@@ -809,10 +808,10 @@ class CSharpGenerator : public BaseGenerator {
             code += MakeCamel(field.name, true) + "ByKey(";
             code += GenTypeGet(key_field.value.type) + " key)";
             code += offset_prefix;
-            code += qualified_name + ".__lookup_by_key(";
-            code += "_model.__vector(o), key, ";
-            code += "_model.ByteBuffer) : null; ";
-            code += "}\n";
+            code += qualified_name + ".__lookup_by_key("
+                    "_model.__vector(o), key, "
+                    "_model.ByteBuffer) : null; "
+                    "}\n";
             break;
           }
         }
@@ -825,17 +824,17 @@ class CSharpGenerator : public BaseGenerator {
       code += "  public StirlingLabs.Utilities.BigSpan<" + GenTypeBasic(field.value.type.VectorType()) +
           "> Get";
       code += MakeCamel(field.name, true);
-      code += "Span() { return ";
-      code += "_model.__vector_as_span<" +
+      code += "Span() { return "
+              "_model.__vector_as_span<" +
           GenTypeBasic(field.value.type.VectorType()) + ">(";
       code += NumToString(field.value.offset);
       code += ", " + NumToString(SizeOf(field.value.type.VectorType().base_type));
-      code += "); }\n";
+      code += "); }\n"
 
-      code += "  public ArraySegment<byte>? Get";
+              "  public ArraySegment<byte>? Get";
       code += MakeCamel(field.name, true);
-      code += "ByteArraySegment() { return ";
-      code += "_model.__vector_as_arraysegment(";
+      code += "ByteArraySegment() { return "
+              "_model.__vector_as_arraysegment(";
       code += NumToString(field.value.offset);
       code += "); }\n";
 
@@ -850,19 +849,19 @@ class CSharpGenerator : public BaseGenerator {
         // fill array using an explicit loop.
         code += "var o = _model.__offset(";
         code += NumToString(field.value.offset);
-        code += "); if (o == 0) return null; var p = ";
-        code += "_model.__vector(o); var l = ";
-        code += "_model.__vector_len(o); ";
+        code += "); if (o == 0) return null; var p = "
+                "_model.__vector(o); var l = "
+                "_model.__vector_len(o); ";
         code += GenTypeBasic(field.value.type.VectorType());
-        code += "[] a = new ";
+        code += "[] a = new @";
         code += GenTypeBasic(field.value.type.VectorType());
         code += "[l]; for (var i = 0uL; i < l; i++) { a[i] = " + getter;
         code += "(p + i * ";
         code += NumToString(InlineSize(field.value.type.VectorType()));
         code += "); } return a;";
       } else {
-        code += "return ";
-        code += "_model.__vector_as_array<";
+        code += "return "
+                "_model.__vector_as_array<";
         code += GenTypeBasic(field.value.type.VectorType());
         code += ">(";
         code += NumToString(field.value.offset);
@@ -878,15 +877,14 @@ class CSharpGenerator : public BaseGenerator {
       auto get_nested_method_name = nested_method_name;
       get_nested_method_name = "Get" + nested_method_name;
       conditional_cast = "(" + nested_type_name + "?)";
-      obj = "(new " + nested_type_name + "())";
+      obj = "(new @" + nested_type_name + "())";
       code += "  public " + nested_type_name + "? ";
-      code += get_nested_method_name + "(";
-      code += ") { var o = _model.__offset(";
-      code += NumToString(field.value.offset) + "); ";
-      code += "return o != 0 ? " + conditional_cast + "new(";
-      code += "_model.";
-      code += "__indirect(_model.__vector(o)), ";
-      code += "_model.ByteBuffer) : null; }\n";
+      code += get_nested_method_name + "("
+              ") { var o = _model.__offset(";
+      code += NumToString(field.value.offset) + "); "
+              "return o != 0 ? " + conditional_cast + "new ("
+              "_model.__indirect(_model.__vector(o)), "
+              "_model.ByteBuffer) : null; }\n";
     }
     // Generate mutators for scalar fields or vectors of scalars.
     if (parser_.opts.mutable_buffer) {
@@ -922,8 +920,8 @@ class CSharpGenerator : public BaseGenerator {
           code += src_cast + setter_parameter + "); }\n";
         } else {
           code += "var o = _model.__offset(";
-          code += NumToString(field.value.offset) + ");";
-          code += " if (o != 0) { " + GenSetter(underlying_type);
+          code += NumToString(field.value.offset) + ");"
+                  " if (o != 0) { " + GenSetter(underlying_type);
           code += "(" + setter_index + ", " + src_cast + setter_parameter +
               "); return true; } else { return false; } }\n";
         }
@@ -1103,8 +1101,8 @@ class CSharpGenerator : public BaseGenerator {
           code += GenSpanner(underlying_type) + "("+spanner_index+", "+NumToString(span_size)+"); }\n";
         } else {
           code += "var o = _model.__offset(";
-          code += NumToString(field.value.offset) + ");";
-          code += " if (o != 0) { " + GenSpanner(underlying_type);
+          code += NumToString(field.value.offset) + ");"
+                  " if (o != 0) { " + GenSpanner(underlying_type);
           code += "("+spanner_index+", 1); } else { return default; } }\n";
         }
       }
@@ -1146,19 +1144,18 @@ class CSharpGenerator : public BaseGenerator {
     code += "struct " + struct_def.name;
     code += " : ";
     code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
-    code += ", IEquatable<" + struct_def.name + ">";
-    code += "\n{\n";
-    code += "  internal Model _model;\n";
+    code += ", IEquatable<" + struct_def.name + ">"
+            "\n{\n"
+            "  internal Model _model;\n";
 
     // constructor
-    code +=
-        "  internal "+struct_def.name+"(ulong i, ByteBuffer buffer)\n"
-        "    => _model = new(buffer, i);\n";
+    code += "  internal "+struct_def.name+"(ulong i, ByteBuffer buffer)\n"
+            "    => _model = new(buffer, i);\n";
 
     // interface implementation
-    code += "  ref Model IBigBufferModel.Model => ref _model.UnsafeSelfReference();\n";
+    code += "  ref Model IBigBufferModel.Model => ref _model.UnsafeSelfReference();\n"
 
-    code += "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
+            "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
 
     if (struct_def.fixed) {
       // static ByteSize
@@ -1190,10 +1187,10 @@ class CSharpGenerator : public BaseGenerator {
     if (!struct_def.fixed) {
       // Generate verson check method.
       // Force compile time error if not using the same version runtime.
-      code += "  public static void ValidateVersion() {";
-      code += " BigBuffers.Constants.";
-      code += "VERSION_2_0_0(); ";
-      code += "}\n";
+      code += "  public static void ValidateVersion() {"
+              " BigBuffers.Constants."
+              "VERSION_2_0_0(); "
+              "}\n";
 
       // Generate a special accessor for the table that when used as the root
       // of a FlatBuffer
@@ -1202,8 +1199,8 @@ class CSharpGenerator : public BaseGenerator {
           "  public static " + struct_def.name + " " + method_name;
 
       // create convenience method that doesn't require an existing object
-      code += method_signature + "(ByteBuffer _bb) ";
-      code += "{ return " + method_name + "(_bb, new " + struct_def.name +
+      code += method_signature + "(ByteBuffer _bb) "
+              "{ return " + method_name + "(_bb, new @" + struct_def.name +
               "()); }\n";
 
       // create method that allows object reuse
@@ -1213,10 +1210,10 @@ class CSharpGenerator : public BaseGenerator {
       if (parser_.root_struct_def_ == &struct_def) {
         if (parser_.file_identifier_.length()) {
           // Check if a buffer has the identifier.
-          code += "  public static ";
-          code += "bool " + struct_def.name;
-          code += "BufferHasIdentifier(ByteBuffer _bb) { return ";
-          code += "SchemaModel.__has_identifier(_bb, \"";
+          code += "  public static "
+                  "bool " + struct_def.name;
+          code += "BufferHasIdentifier(ByteBuffer _bb) { return "
+                  "SchemaModel.__has_identifier(_bb, \"";
           code += parser_.file_identifier_;
           code += "\"); }\n";
         }
@@ -1242,12 +1239,12 @@ class CSharpGenerator : public BaseGenerator {
     if (struct_def.fixed) {
       struct_has_create = true;
       // create a struct constructor function
-      code += "  public static " + GenOffsetType(struct_def) + " ";
-      code += "Create";
+      code += "  public static " + GenOffsetType(struct_def) + " "
+              "Create";
       code += struct_def.name + "(BigBufferBuilder builder";
       GenStructArgs(struct_def, code_ptr);
-      code += ") {\n";
-      code += "    var start = builder.Offset;\n";
+      code += ") {\n"
+              "    var start = builder.Offset;\n";
       GenStructBody(struct_def, code_ptr);
       code += "    return ";
       code += GenOffsetConstruct(struct_def, "start");
@@ -1275,8 +1272,8 @@ class CSharpGenerator : public BaseGenerator {
         struct_has_create = true;
         // Generate a table constructor of the form:
         // public static int createName(BigBufferBuilder builder, args...)
-        code += "  public static " + GenOffsetType(struct_def) + " ";
-        code += "Create" + struct_def.name;
+        code += "  public static " + GenOffsetType(struct_def) + " "
+                "Create" + struct_def.name;
         code += "(BigBufferBuilder builder";
         for (auto it = struct_def.fields.vec.begin();
              it != struct_def.fields.vec.end(); ++it) {
@@ -1301,8 +1298,8 @@ class CSharpGenerator : public BaseGenerator {
             code += GenDefaultValueBasic(field);
           }
         }
-        code += ") {\n    builder.";
-        code += "StartTable(";
+        code += ") {\n    builder."
+                "StartTable(";
         code += NumToString(struct_def.fields.vec.size()) + ");\n";
         for (size_t size = struct_def.sortbysize ? sizeof(largest_scalar_t) : 1;
              size; size /= 2) {
@@ -1312,8 +1309,8 @@ class CSharpGenerator : public BaseGenerator {
             if (!field.deprecated &&
                 (!struct_def.sortbysize ||
                  size == SizeOf(field.value.type.base_type))) {
-              code += "    " + struct_def.name + ".";
-              code += "Add";
+              code += "    " + struct_def.name + "."
+                      "Add";
               code += MakeCamel(field.name) + "(builder, ";
               if (IsStruct(field.value.type) &&
                   opts.generate_object_based_api) {
@@ -1328,8 +1325,8 @@ class CSharpGenerator : public BaseGenerator {
             }
           }
         }
-        code += "    return " + struct_def.name + ".";
-        code += "End" + struct_def.name;
+        code += "    return " + struct_def.name + "."
+                "End" + struct_def.name;
         code += "(builder);\n  }\n\n";
       }
       // Generate a set of static methods that allow table construction,
@@ -1339,8 +1336,8 @@ class CSharpGenerator : public BaseGenerator {
       // Unlike the Create function, these always work.
       code += "  public static void Start";
       code += struct_def.name;
-      code += "(BigBufferBuilder builder) { builder.";
-      code += "StartTable(";
+      code += "(BigBufferBuilder builder) { builder."
+              "StartTable(";
       code += NumToString(struct_def.fields.vec.size()) + "); }\n";
       for (auto it = struct_def.fields.vec.begin();
            it != struct_def.fields.vec.end(); ++it) {
@@ -1381,27 +1378,27 @@ class CSharpGenerator : public BaseGenerator {
           auto elem_size = InlineSize(vector_type);
           if (!IsStruct(vector_type)) {
             field_has_create_set.insert(&field);
-            code += "  public static VectorOffset ";
-            code += "Create";
+            code += "  public static VectorOffset "
+                    "Create";
             code += MakeCamel(field.name);
-            code += "Vector(BigBufferBuilder builder, out Placeholder placeholder) ";
-            code += "{ return builder.CreateVector(out placeholder); }\n";
+            code += "Vector(BigBufferBuilder builder, out Placeholder placeholder) "
+                    "{ return builder.CreateVector(out placeholder); }\n"
 
-            code += "  public static void ";
-            code += "Fill";
+                    "  public static void "
+                    "Fill";
             code += MakeCamel(field.name);
             code += "Vector(Placeholder placeholder, ";
-            code += GenTypeBasic(vector_type) + "[] data) ";
-            code += "{ placeholder.Fill((StirlingLabs.Utilities.ReadOnlyBigSpan<";
+            code += GenTypeBasic(vector_type) + "[] data) "
+                    "{ placeholder.Fill((StirlingLabs.Utilities.ReadOnlyBigSpan<";
             code += GenTypeBasic(vector_type) + ">)data, " + NumToString(alignment);
-            code += "); }\n";
+            code += "); }\n"
 
-            code += "  public static void ";
-            code += "Fill";
+                    "  public static void "
+                    "Fill";
             code += MakeCamel(field.name);
             code += "Vector(Placeholder placeholder, StirlingLabs.Utilities.ReadOnlyBigSpan<";
-            code += GenTypeBasic(vector_type) + "> data) ";
-            code += "{ placeholder.Fill(data, ";
+            code += GenTypeBasic(vector_type) + "> data) "
+                    "{ placeholder.Fill(data, ";
             code += NumToString(alignment);
             code += "); }\n";
           }
@@ -1409,16 +1406,16 @@ class CSharpGenerator : public BaseGenerator {
           // after.
           code += "  public static void Start";
           code += MakeCamel(field.name);
-          code += "Vector(BigBufferBuilder builder, ulong numElems) ";
-          code += "{ builder.StartVector(";
+          code += "Vector(BigBufferBuilder builder, ulong numElems) "
+                  "{ builder.StartVector(";
           code += NumToString(elem_size);
           code += ", numElems); }\n";
         }
       }
-      code += "  public static " + GenOffsetType(struct_def) + " ";
-      code += "End" + struct_def.name;
-      code += "(BigBufferBuilder builder) {\n    var o = builder.";
-      code += "EndTable();\n";
+      code += "  public static " + GenOffsetType(struct_def) + " "
+              "End" + struct_def.name;
+      code += "(BigBufferBuilder builder) {\n    var o = builder."
+              "EndTable();\n";
       for (auto it = struct_def.fields.vec.begin();
            it != struct_def.fields.vec.end(); ++it) {
         auto &field = **it;
@@ -1432,13 +1429,13 @@ class CSharpGenerator : public BaseGenerator {
       if (parser_.root_struct_def_ == &struct_def) {
         std::string size_prefix[] = { "", "SizePrefixed" };
         for (int i = 0; i < 2; ++i) {
-          code += "  public static void ";
-          code += "Finish" + size_prefix[i] + struct_def.name;
+          code += "  public static void "
+                  "Finish" + size_prefix[i] + struct_def.name;
           code +=
               "Buffer(BigBufferBuilder builder, " + GenOffsetType(struct_def);
-          code += " offset) {";
-          code += " builder.Finish" + size_prefix[i] + "(offset";
-          code += ".Value";
+          code += " offset) {"
+                  " builder.Finish" + size_prefix[i] + "(offset"
+                  ".Value";
 
           if (parser_.file_identifier_.length())
             code += ", \"" + parser_.file_identifier_ + "\"";
@@ -1450,44 +1447,44 @@ class CSharpGenerator : public BaseGenerator {
     // because `key_field` is not set for struct
     if (struct_def.has_key && !struct_def.fixed) {
       FLATBUFFERS_ASSERT(key_field);
-      code += "\n  public static VectorOffset ";
-      code += "CreateSortedVectorOf" + struct_def.name;
-      code += "(BigBufferBuilder builder, ";
-      code += "Offset<@" + struct_def.name + ">";
-      code += "[] offsets) {\n";
-      code += "    Array.Sort(offsets, (Offset<" + struct_def.name +
+      code += "\n  public static VectorOffset "
+              "CreateSortedVectorOf" + struct_def.name;
+      code += "(BigBufferBuilder builder, "
+              "Offset<@" + struct_def.name + ">"
+              "[] offsets) {\n"
+              "    Array.Sort(offsets, (Offset<" + struct_def.name +
               "> o1, Offset<" + struct_def.name + "> o2) => " +
               GenKeyGetter(key_field);
-      code += ");\n";
-      code += "    return builder.CreateVectorOfTables(offsets);\n  }\n";
+      code += ");\n"
+              "    return builder.CreateVectorOfTables(offsets);\n  }\n"
 
-      code += "\n  public static @" + struct_def.name + "?";
-      code += " __lookup_by_key(";
-      code += "ulong vectorLocation, ";
+              "\n  public static @" + struct_def.name + "?"
+              " __lookup_by_key("
+              "ulong vectorLocation, ";
       code += GenTypeGet(key_field->value.type);
       code += " key, ByteBuffer bb) {\n";
       if (IsString(key_field->value.type)) {
-        code += "    byte[] byteKey = ";
-        code += "System.Text.Encoding.UTF8.GetBytes(key);\n";
+        code += "    byte[] byteKey = "
+                "System.Text.Encoding.UTF8.GetBytes(key);\n";
       }
-      code += "    var span = ";
-      code += "bb.Get<ulong>(vectorLocation - sizeof(ulong));\n";
-      code += "    var start = 0uL;\n";
-      code += "    while (span != 0uL) {\n";
-      code += "      var middle = span >> 1;\n";
+      code += "    var span = "
+              "bb.Get<ulong>(vectorLocation - sizeof(ulong));\n"
+              "    var start = 0uL;\n"
+              "    while (span != 0uL) {\n"
+              "      var middle = span >> 1;\n";
       code += GenLookupKeyGetter(key_field);
-      code += "      if (comp > 0) {\n";
-      code += "        span = middle;\n";
-      code += "      } else if (comp < 0) {\n";
-      code += "        middle++;\n";
-      code += "        start += middle;\n";
-      code += "        span -= middle;\n";
-      code += "      } else {\n";
-      code += "        return ";
-      code += "new @" + struct_def.name + "(tableOffset, bb);\n";
-      code += "      }\n    }\n";
-      code += "    return null;\n";
-      code += "  }\n";
+      code += "      if (comp > 0) {\n"
+              "        span = middle;\n"
+              "      } else if (comp < 0) {\n"
+              "        middle++;\n"
+              "        start += middle;\n"
+              "        span -= middle;\n"
+              "      } else {\n"
+              "        return "
+              "new @" + struct_def.name + "(tableOffset, bb);\n"
+              "      }\n    }\n"
+              "    return null;\n"
+              "  }\n";
     }
 
     if (opts.generate_object_based_api) {
@@ -1505,27 +1502,27 @@ class CSharpGenerator : public BaseGenerator {
                              std::string *code_ptr) const {
     auto &code = *code_ptr;
     // Generate a vector of structs accessor class.
-    code += "\n";
-    code += "  ";
+    code += "\n"
+            "  ";
     if (!struct_def.attributes.Lookup("private")) code += "public ";
     code += "static struct Vector : BaseVector\n{\n";
 
     // Generate the __assign method that sets the field in a pre-existing
     // accessor object. This is to allow object reuse.
     std::string method_indent = "    ";
-    code += method_indent + "public Vector ";
-    code += "__assign(ulong _vector, ulong _element_size, ByteBuffer _bb) { ";
-    code += "__reset(_vector, _element_size, _bb); return this; }\n\n";
+    code += method_indent + "public Vector "
+            "__assign(ulong _vector, ulong _element_size, ByteBuffer _bb) { "
+            "__reset(_vector, _element_size, _bb); return this; }\n\n";
 
     auto type_name = struct_def.name;
     auto method_start = method_indent + "public " + type_name + " Get";
     // Generate the accessors that don't do object reuse.
-    code += method_start + "(ulong j) { return Get";
-    code += "(new " + type_name + "(), j); }\n";
-    code += method_start + "(" + type_name + " obj, ulong j) { ";
-    code += " return obj.__assign(";
-    code += struct_def.fixed ? "_model.__element(j)"
-                             : "_model.__indirect(_model.__element(j), bb)";
+    code += method_start + "(ulong _j) { return Get"
+            "(new @" + type_name + "(), _j); }\n";
+    code += method_start + "(" + type_name + " obj, ulong _j) { "
+            " return obj.__assign(";
+    code += struct_def.fixed ? "_model.__element(_j)"
+                             : "_model.__indirect(_model.__element(j))";
     code += ", _model.ByteBuffer); }\n";
     // See if we should generate a by-key accessor.
     if (!struct_def.fixed) {
@@ -1536,22 +1533,22 @@ class CSharpGenerator : public BaseGenerator {
           auto nullable_annotation =
               parser_.opts.gen_nullable ? "@Nullable " : "";
           code += method_indent + nullable_annotation;
-          code += "public " + type_name + "? ";
-          code += "GetByKey(";
-          code += GenTypeGet(key_field.value.type) + " key) { ";
-          code += " return __lookup_by_key(null, ";
-          code += "_model.__vector(), key, ";
-          code += "_model.ByteBuffer); ";
-          code += "}\n";
+          code += "public " + type_name + "? "
+                  "GetByKey(";
+          code += GenTypeGet(key_field.value.type) + " key) { "
+                  " return __lookup_by_key(null, "
+                  "_model.__vector(), key, "
+                  "_model.ByteBuffer); "
+                  "}\n";
           code += method_indent + nullable_annotation;
-          code += "public " + type_name + "?" + " ";
-          code += "GetByKey(";
+          code += "public " + type_name + "?" + " "
+                  "GetByKey(";
           code += type_name + "? obj, ";
-          code += GenTypeGet(key_field.value.type) + " key) { ";
-          code += " return __lookup_by_key(obj, ";
-          code += "_model.__vector(), key, ";
-          code += "_model.ByteBuffer); ";
-          code += "}\n";
+          code += GenTypeGet(key_field.value.type) + " key) { "
+                  " return __lookup_by_key(obj, "
+                  "_model.__vector(), key, "
+                  "_model.ByteBuffer); "
+                  "}\n";
           break;
         }
       }
@@ -1574,14 +1571,14 @@ class CSharpGenerator : public BaseGenerator {
     // Type
     code += "  public " + enum_def.name + " Type { get; set; }\n";
     // Value
-    code += "  public object Value { get; set; }\n";
-    code += "\n";
+    code += "  public object Value { get; set; }\n"
+            "\n";
     // Constructor
-    code += "  public " + union_name + "() {\n";
-    code += "    this.Type = " + enum_def.name + "." +
+    code += "  public " + union_name + "() {\n"
+            "    this.Type = " + enum_def.name + "." +
             enum_def.Vals()[0]->name + ";\n";
-    code += "    this.Value = null;\n";
-    code += "  }\n\n";
+    code += "    this.Value = null;\n"
+            "  }\n\n";
     // As<T>
     code += "  public T As<T>() where T : class { return this.Value as T; }\n";
     // As, From
@@ -1625,9 +1622,9 @@ class CSharpGenerator : public BaseGenerator {
         }
       }
     }
-    code += "    }\n";
-    code += "  }\n";
-    code += "}\n\n";
+    code += "    }\n"
+            "  }\n"
+            "}\n\n";
     // JsonConverter
     if (opts.cs_gen_json_serializer) {
       if (enum_def.attributes.Lookup("private")) {
@@ -1636,64 +1633,59 @@ class CSharpGenerator : public BaseGenerator {
         code += "public ";
       }
       code += "class " + union_name +
-              "_JsonConverter : Newtonsoft.Json.JsonConverter {\n";
-      code += "  public override bool CanConvert(System.Type objectType) {\n";
-      code += "    return objectType == typeof(" + union_name +
+              "_JsonConverter : Newtonsoft.Json.JsonConverter {\n"
+              "  public override bool CanConvert(System.Type objectType) {\n"
+              "    return objectType == typeof(" + union_name +
               ") || objectType == typeof(System.Collections.Generic.List<" +
-              union_name + ">);\n";
-      code += "  }\n";
-      code +=
-          "  public override void WriteJson(Newtonsoft.Json.JsonWriter writer, "
-          "object value, "
-          "Newtonsoft.Json.JsonSerializer serializer) {\n";
-      code += "    var _olist = value as System.Collections.Generic.List<" +
-              union_name + ">;\n";
-      code += "    if (_olist != null) {\n";
-      code += "      writer.WriteStartArray();\n";
-      code +=
-          "      foreach (var _o in _olist) { this.WriteJson(writer, _o, "
-          "serializer); }\n";
-      code += "      writer.WriteEndArray();\n";
-      code += "    } else {\n";
-      code += "      this.WriteJson(writer, value as " + union_name +
-              ", serializer);\n";
-      code += "    }\n";
-      code += "  }\n";
-      code += "  public void WriteJson(Newtonsoft.Json.JsonWriter writer, " +
+              union_name + ">);\n"
+              "  }\n"
+              "  public override void WriteJson(Newtonsoft.Json.JsonWriter writer, "
+              "object value, "
+              "Newtonsoft.Json.JsonSerializer serializer) {\n"
+              "    var _olist = value as System.Collections.Generic.List<" +
+              union_name + ">;\n"
+              "    if (_olist != null) {\n"
+              "      writer.WriteStartArray();\n"
+              "      foreach (var _o in _olist) { this.WriteJson(writer, _o, "
+              "serializer); }\n"
+              "      writer.WriteEndArray();\n"
+              "    } else {\n"
+              "      this.WriteJson(writer, value as " + union_name +
+              ", serializer);\n"
+              "    }\n"
+              "  }\n"
+              "  public void WriteJson(Newtonsoft.Json.JsonWriter writer, " +
               union_name +
               " _o, "
-              "Newtonsoft.Json.JsonSerializer serializer) {\n";
-      code += "    if (_o == null) return;\n";
-      code += "    serializer.Serialize(writer, _o.Value);\n";
-      code += "  }\n";
-      code +=
-          "  public override object ReadJson(Newtonsoft.Json.JsonReader "
-          "reader, "
-          "System.Type objectType, "
-          "object existingValue, Newtonsoft.Json.JsonSerializer serializer) "
-          "{\n";
-      code +=
-          "    var _olist = existingValue as System.Collections.Generic.List<" +
-          union_name + ">;\n";
-      code += "    if (_olist != null) {\n";
-      code += "      for (var _j = 0; _j < _olist.Count; ++_j) {\n";
-      code += "        reader.Read();\n";
-      code +=
-          "        _olist[_j] = this.ReadJson(reader, _olist[_j], "
-          "serializer);\n";
-      code += "      }\n";
-      code += "      reader.Read();\n";
-      code += "      return _olist;\n";
-      code += "    } else {\n";
-      code += "      return this.ReadJson(reader, existingValue as " +
-              union_name + ", serializer);\n";
-      code += "    }\n";
-      code += "  }\n";
-      code += "  public " + union_name +
+              "Newtonsoft.Json.JsonSerializer serializer) {\n"
+              "    if (_o == null) return;\n"
+              "    serializer.Serialize(writer, _o.Value);\n"
+              "  }\n"
+              "  public override object ReadJson(Newtonsoft.Json.JsonReader "
+              "reader, "
+              "System.Type objectType, "
+              "object existingValue, Newtonsoft.Json.JsonSerializer serializer) "
+              "{\n"
+              "    var _olist = existingValue as System.Collections.Generic.List<"
+              + union_name + ">;\n"
+              "    if (_olist != null) {\n"
+              "      for (var _j = 0; _j < _olist.Count; ++_j) {\n"
+              "        reader.Read();\n"
+              "        _olist[_j] = this.ReadJson(reader, _olist[_j], "
+              "serializer);\n"
+              "      }\n"
+              "      reader.Read();\n"
+              "      return _olist;\n"
+              "    } else {\n"
+              "      return this.ReadJson(reader, existingValue as " +
+              union_name + ", serializer);\n"
+              "    }\n"
+              "  }\n"
+              "  public " + union_name +
               " ReadJson(Newtonsoft.Json.JsonReader reader, " + union_name +
-              " _o, Newtonsoft.Json.JsonSerializer serializer) {\n";
-      code += "    if (_o == null) return null;\n";
-      code += "    switch (_o.Type) {\n";
+              " _o, Newtonsoft.Json.JsonSerializer serializer) {\n"
+              "    if (_o == null) return null;\n"
+              "    switch (_o.Type) {\n";
       for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end();
            ++it) {
         auto &ev = **it;
@@ -1706,10 +1698,10 @@ class CSharpGenerator : public BaseGenerator {
                   ">(reader); break;\n";
         }
       }
-      code += "    }\n";
-      code += "    return _o;\n";
-      code += "  }\n";
-      code += "}\n\n";
+      code += "    }\n"
+              "    return _o;\n"
+              "  }\n"
+              "}\n\n";
     }
   }
 
@@ -1733,9 +1725,9 @@ class CSharpGenerator : public BaseGenerator {
       indent = "      ";
     }
     if (is_vector) {
-      code += indent + "var " + varialbe_name + " = new ";
+      code += indent + "var " + varialbe_name + " = new @";
     } else {
-      code += indent + varialbe_name + " = new ";
+      code += indent + varialbe_name + " = new @";
     }
     code += WrapInNameSpace(enum_def) + "Union();\n";
     code += indent + varialbe_name + ".Type = this." + camel_name + "Type" +
@@ -1775,11 +1767,11 @@ class CSharpGenerator : public BaseGenerator {
     auto &code = *code_ptr;
     auto struct_name = GenTypeName_ObjectAPI(struct_def.name, opts);
     // UnPack()
-    code += "  public " + struct_name + " UnPack() {\n";
-    code += "    var _o = new " + struct_name + "();\n";
-    code += "    this.UnPackTo(_o);\n";
-    code += "    return _o;\n";
-    code += "  }\n";
+    code += "  public " + struct_name + " UnPack() {\n"
+            "    var _o = new " + struct_name + "();\n"
+            "    this.UnPackTo(_o);\n"
+            "    return _o;\n"
+            "  }\n";
     // UnPackTo()
     code += "  public void UnPackTo(" + struct_name + " _o) {\n";
     for (auto it = struct_def.fields.vec.begin();
@@ -1828,8 +1820,8 @@ class CSharpGenerator : public BaseGenerator {
             code += start + "new " +
                     GenTypeGet_ObjectAPI(field.value.type, opts) + "();\n";
             code += "    for (var _j = 0; _j < this." + camel_name +
-                    "Length; ++_j) {";
-            code += "_o." + camel_name + ".Add(";
+                    "Length; ++_j) {"
+                    "_o." + camel_name + ".Add(";
             if (fixed) {
               code += "this." + camel_name + "(_j)";
             } else {
@@ -1854,8 +1846,8 @@ class CSharpGenerator : public BaseGenerator {
     code += "  }\n";
     // Pack()
     code += "  public static " + GenOffsetType(struct_def) +
-            " Pack(BigBufferBuilder builder, " + struct_name + " _o) {\n";
-    code += "    if (_o == null) return default(" + GenOffsetType(struct_def) +
+            " Pack(BigBufferBuilder builder, " + struct_name + " _o) {\n"
+            "    if (_o == null) return default(" + GenOffsetType(struct_def) +
             ");\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
@@ -1925,17 +1917,17 @@ class CSharpGenerator : public BaseGenerator {
                 break;
               default: gen_for_loop = false; break;
             }
-            code += "    var _" + field.name + " = default(VectorOffset);\n";
-            code += "    if (_o." + property_name + " != null) {\n";
+            code += "    var _" + field.name + " = default(VectorOffset);\n"
+                    "    if (_o." + property_name + " != null) {\n";
             if (gen_for_loop) {
-              code += "      var " + array_name + " = new " + array_type + "[_o." + property_name + ".Count];\n";
-              code += "      for (var _j = 0; _j < " + array_name + ".Length; ++_j) { ";
+              code += "      var " + array_name + " = new " + array_type + "[_o." + property_name + ".Count];\n"
+                      "      for (var _j = 0; _j < " + array_name + ".Length; ++_j) { ";
               code += array_name + "[_j] = " + to_array + "; }\n";
             } else {
               code += "      var " + array_name + " = _o." + property_name + ".ToArray();\n";
             }
-            code += "      _" + field.name + " = Create" + camel_name + "Vector(builder, " + array_name + ");\n";
-            code += "    }\n";
+            code += "      _" + field.name + " = Create" + camel_name + "Vector(builder, " + array_name + ");\n"
+                    "    }\n";
           } else {
             auto vector_type = field.value.type.VectorType();
             auto alignment = InlineAlignment(vector_type);
@@ -1945,12 +1937,12 @@ class CSharpGenerator : public BaseGenerator {
                           "(_o." + camel_name + "[_j]);"
                     : GenTypeGet(field.value.type) + ".Pack(builder, _o." +
                           camel_name + "[_j]);";
-            code += "    var _" + field.name + " = default(VectorOffset);\n";
-            code += "    if (_o." + camel_name + " != null) {\n";
-            code += "      Start" + camel_name + "Vector(builder, _o." + camel_name + ".Count);\n";
-            code += "      for (var _j = _o." + camel_name + ".Count - 1; _j >= 0; --_j) { " + pack_method + " }\n";
-            code += "      _" + field.name + " = builder.EndVector("+NumToString(alignment)+");\n";
-            code += "    }\n";
+            code += "    var _" + field.name + " = default(VectorOffset);\n"
+                    "    if (_o." + camel_name + " != null) {\n"
+                    "      Start" + camel_name + "Vector(builder, _o." + camel_name + ".Count);\n"
+                    "      for (var _j = _o." + camel_name + ".Count - 1; _j >= 0; --_j) { " + pack_method + " }\n"
+                    "      _" + field.name + " = builder.EndVector("+NumToString(alignment)+");\n"
+                    "    }\n";
           }
           break;
         }
@@ -1972,11 +1964,10 @@ class CSharpGenerator : public BaseGenerator {
         case BASE_TYPE_UNION: {
           code += "    var _" + field.name + "_type = _o." + camel_name +
                   " == null ? " + WrapInNameSpace(*field.value.type.enum_def) +
-                  ".NONE : " + "_o." + camel_name + ".Type;\n";
-          code +=
-              "    var _" + field.name + " = _o." + camel_name +
-              " == null ? 0 : " + GenTypeGet_ObjectAPI(field.value.type, opts) +
-              ".Pack(builder, _o." + camel_name + ");\n";
+                  ".NONE : " + "_o." + camel_name + ".Type;\n"
+                  "    var _" + field.name + " = _o." + camel_name +
+                  " == null ? 0 : " + GenTypeGet_ObjectAPI(field.value.type, opts) +
+                  ".Pack(builder, _o." + camel_name + ");\n";
           break;
         }
         default: break;
@@ -1984,8 +1975,8 @@ class CSharpGenerator : public BaseGenerator {
     }
     if (struct_has_create) {
       // Create
-      code += "    return Create" + struct_def.name + "(\n";
-      code += "      builder";
+      code += "    return Create" + struct_def.name + "(\n"
+              "      builder";
       for (auto it = struct_def.fields.vec.begin();
            it != struct_def.fields.vec.end(); ++it) {
         auto &field = **it;
@@ -2017,8 +2008,8 @@ class CSharpGenerator : public BaseGenerator {
                                           code_ptr,
                                           "      _" + field.name + "_");
             } else {
-              code += ",\n";
-              code += "      _" + field.name;
+              code += ",\n"
+                      "      _" + field.name;
             }
             break;
           }
@@ -2026,13 +2017,13 @@ class CSharpGenerator : public BaseGenerator {
           case BASE_TYPE_UTYPE: FLATBUFFERS_FALLTHROUGH();   // fall thru
           case BASE_TYPE_STRING: FLATBUFFERS_FALLTHROUGH();  // fall thru
           case BASE_TYPE_VECTOR: {
-            code += ",\n";
-            code += "      _" + field.name;
+            code += ",\n"
+                    "      _" + field.name;
             break;
           }
           default:  // scalar
-            code += ",\n";
-            code += "      _o." + camel_name;
+            code += ",\n"
+                    "      _o." + camel_name;
             break;
         }
       }
@@ -2052,30 +2043,26 @@ class CSharpGenerator : public BaseGenerator {
                       GenTypeGet(field.value.type) + ".Pack(builder, _o." +
                       camel_name + "));\n";
             } else {
-              code +=
-                  "    Add" + camel_name + "(builder, _" + field.name + ");\n";
+              code += "    Add" + camel_name + "(builder, _" + field.name + ");\n";
             }
             break;
           }
           case BASE_TYPE_STRING: FLATBUFFERS_FALLTHROUGH();  // fall thru
           case BASE_TYPE_ARRAY: FLATBUFFERS_FALLTHROUGH();   // fall thru
           case BASE_TYPE_VECTOR: {
-            code +=
-                "    Add" + camel_name + "(builder, _" + field.name + ");\n";
+            code += "    Add" + camel_name + "(builder, _" + field.name + ");\n";
             break;
           }
           case BASE_TYPE_UTYPE: break;
           case BASE_TYPE_UNION: {
             code += "    Add" + camel_name + "Type(builder, _" + field.name +
                     "_type);\n";
-            code +=
-                "    Add" + camel_name + "(builder, _" + field.name + ");\n";
+            code += "    Add" + camel_name + "(builder, _" + field.name + ");\n";
             break;
           }
           // scalar
           default: {
-            code +=
-                "    Add" + camel_name + "(builder, _o." + camel_name + ");\n";
+            code += "    Add" + camel_name + "(builder, _o." + camel_name + ");\n";
             break;
           }
         }
@@ -2121,8 +2108,8 @@ class CSharpGenerator : public BaseGenerator {
             if (i != 0) { code += ","; }
             code += NumToString(array_only_lengths[i].length);
           }
-          code += "];\n";
-          code += "    ";
+          code += "];\n"
+                  "    ";
           // initialize array
           for (size_t i = 0; i < array_only_lengths.size(); ++i) {
             auto idx = "idx" + NumToString(i);
@@ -2251,39 +2238,38 @@ class CSharpGenerator : public BaseGenerator {
           code +=
               "  [Newtonsoft.Json.JsonProperty(\"" + field.name + "_type\")]\n";
           if (IsVector(field.value.type)) {
-            code += "  internal " + utype_name + "[] " + camel_name + "Type {\n";
-            code += "    get {\n";
-            code += "      if (this." + camel_name + " == null) return null;\n";
-            code += "      var _o = new " + utype_name + "[this." + camel_name +
-                    ".Count];\n";
-            code +=
-                "      for (var _j = 0; _j < _o.Length; ++_j) { _o[_j] = "
-                "this." +
-                camel_name + "[_j].Type; }\n";
-            code += "      return _o;\n";
-            code += "    }\n";
-            code += "    set {\n";
-            code += "      this." + camel_name + " = new List<" + utype_name +
-                    "Union>();\n";
-            code += "      for (var _j = 0; _j < value.Length; ++_j) {\n";
-            code += "        var _o = new " + utype_name + "Union();\n";
-            code += "        _o.Type = value[_j];\n";
-            code += "        this." + camel_name + ".Add(_o);\n";
-            code += "      }\n";
-            code += "    }\n";
-            code += "  }\n";
+            code += "  internal " + utype_name + "[] " + camel_name + "Type {\n"
+                    "    get {\n"
+                    "      if (this." + camel_name + " == null) return null;\n"
+                    "      var _o = new " + utype_name + "[this." + camel_name +
+                    ".Count];\n"
+                    "      for (var _j = 0; _j < _o.Length; ++_j) { _o[_j] = "
+                    "this." +
+                    camel_name + "[_j].Type; }\n"
+                    "      return _o;\n"
+                    "    }\n"
+                    "    set {\n"
+                    "      this." + camel_name + " = new List<" + utype_name +
+                    "Union>();\n"
+                    "      for (var _j = 0; _j < value.Length; ++_j) {\n"
+                    "        var _o = new " + utype_name + "Union();\n"
+                    "        _o.Type = value[_j];\n"
+                    "        this." + camel_name + ".Add(_o);\n"
+                    "      }\n"
+                    "    }\n"
+                    "  }\n";
           } else {
-            code += "  internal " + utype_name + " " + camel_name + "Type {\n";
-            code += "    get {\n";
-            code += "      return this." + camel_name + " != null ? this." +
-                    camel_name + ".Type : " + utype_name + ".NONE;\n";
-            code += "    }\n";
-            code += "    set {\n";
-            code += "      this." + camel_name + " = new " + utype_name +
-                    "Union();\n";
-            code += "      this." + camel_name + ".Type = value;\n";
-            code += "    }\n";
-            code += "  }\n";
+            code += "  internal " + utype_name + " " + camel_name + "Type {\n"
+                    "    get {\n"
+                    "      return this." + camel_name + " != null ? this." +
+                    camel_name + ".Type : " + utype_name + ".NONE;\n"
+                    "    }\n"
+                    "    set {\n"
+                    "      this." + camel_name + " = new " + utype_name +
+                    "Union();\n"
+                    "      this." + camel_name + ".Type = value;\n"
+                    "    }\n"
+                    "  }\n";
           }
         }
         code += "  [Newtonsoft.Json.JsonProperty(\"" + field.name + "\")]\n";
@@ -2302,8 +2288,8 @@ class CSharpGenerator : public BaseGenerator {
       code += "  public " + type_name + " " + camel_name + " { get; set; }\n";
     }
     // Generate Constructor
-    code += "\n";
-    code += "  public " + class_name + "() {\n";
+    code += "\n"
+            "  public " + class_name + "() {\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       auto &field = **it;
@@ -2340,30 +2326,29 @@ class CSharpGenerator : public BaseGenerator {
     // Generate Serialization
     if (opts.cs_gen_json_serializer &&
         parser_.root_struct_def_ == &struct_def) {
-      code += "\n";
-      code += "  public static " + class_name +
-              " DeserializeFromJson(string jsonText) {\n";
-      code += "    return Newtonsoft.Json.JsonConvert.DeserializeObject<" +
-              class_name + ">(jsonText);\n";
-      code += "  }\n";
-      code += "  public string SerializeToJson() {\n";
-      code +=
-          "    return Newtonsoft.Json.JsonConvert.SerializeObject(this, "
-          "Newtonsoft.Json.Formatting.Indented);\n";
-      code += "  }\n";
+      code += "\n"
+              "  public static " + class_name +
+              " DeserializeFromJson(string jsonText) {\n"
+              "    return Newtonsoft.Json.JsonConvert.DeserializeObject<" +
+              class_name + ">(jsonText);\n"
+              "  }\n"
+              "  public string SerializeToJson() {\n"
+              "    return Newtonsoft.Json.JsonConvert.SerializeObject(this, "
+              "Newtonsoft.Json.Formatting.Indented);\n";
+              "  }\n";
     }
     if (parser_.root_struct_def_ == &struct_def) {
       code += "  public static " + class_name +
-              " DeserializeFromBinary(byte[] fbBuffer) {\n";
-      code += "    return " + struct_def.name + ".GetRootAs" + struct_def.name +
-              "(new ByteBuffer(fbBuffer)).UnPack();\n";
-      code += "  }\n";
-      code += "  public byte[] SerializeToBinary() {\n";
-      code += "    var fbb = new BigBufferBuilder(0x10000);\n";
-      code += "    " + struct_def.name + ".Finish" + struct_def.name +
-              "Buffer(fbb, " + struct_def.name + ".Pack(fbb, this));\n";
-      code += "    return fbb.ByteBuffer.ToSizedArray();\n";
-      code += "  }\n";
+              " DeserializeFromBinary(byte[] fbBuffer) {\n"
+              "    return " + struct_def.name + ".GetRootAs" + struct_def.name +
+              "(new ByteBuffer(fbBuffer)).UnPack();\n"
+              "  }\n"
+              "  public byte[] SerializeToBinary() {\n"
+              "    var fbb = new BigBufferBuilder(0x10000);\n"
+              "    " + struct_def.name + ".Finish" + struct_def.name +
+              "Buffer(fbb, " + struct_def.name + ".Pack(fbb, this));\n"
+              "    return fbb.ByteBuffer.ToSizedArray();\n"
+              "  }\n";
     }
     code += "}\n\n";
   }

@@ -61,10 +61,10 @@ namespace BigBuffers
     // Retrieve the relative offset stored at "offset"
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __indirect(ref this Model bb, ulong offset)
-      => __indirect(offset, bb.ByteBuffer);
+      => bb.ByteBuffer.__indirect(offset);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong __indirect(ulong offset, in ByteBuffer bb)
+    public static ulong __indirect(in this ByteBuffer bb, ulong offset)
       => offset + bb.Get<ulong>(offset);
 
     // Create a .NET String from UTF-8 data stored inside the flatbuffer.
