@@ -15,7 +15,7 @@ namespace BigBuffers.Tests
 
       var buffer = new ByteBuffer(bytes);
 
-      var root = buffer.Get<ulong>(0);
+      var root = buffer.__indirect(0);
 
       MyGame.Example.Monster.MonsterBufferHasIdentifier(buffer)
         .Should().BeTrue();

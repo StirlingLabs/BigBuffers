@@ -9,5 +9,6 @@ AlwaysBreakTemplateDeclarations: false
 AllowShortCaseLabelsOnASingleLine: true
 SpaceAfterTemplateKeyword: false
 AllowShortBlocksOnASingleLine: true
+ColumnLimit: 240
 ...
 

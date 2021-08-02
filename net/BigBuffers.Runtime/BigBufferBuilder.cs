@@ -16,6 +16,7 @@
 
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -56,7 +57,7 @@ namespace BigBuffers
     private Stack<(ulong start, ulong elemSize)> _vectorStarts = new();
 
     // For CreateSharedString
-    private Dictionary<string, StringOffset> _sharedStringMap;
+    private ConcurrentDictionary<string, StringOffset> _sharedStringMap = new();
 
     /// <summary>
     /// Create a BigBufferBuilder with a given initial size.
@@ -420,7 +421,7 @@ namespace BigBuffers
     /// <returns>
     /// The offset in the buffer where the encoded string starts.
     /// </returns>
-    public StringOffset CreateString(string value)
+    public StringOffset WriteString(string value)
     {
       if (value is null)
         return new(0);
@@ -467,7 +468,7 @@ namespace BigBuffers
     /// <returns>
     /// The offset in the buffer where the encoded string starts.
     /// </returns>
-    public StringOffset CreateUtf8String(BigSpan<byte> chars)
+    public StringOffset WriteString(BigSpan<byte> chars)
     {
       NotNested();
       Add<byte>(0);
@@ -486,20 +487,8 @@ namespace BigBuffers
     /// <returns>
     /// The offset in the buffer where the encoded string starts.
     /// </returns>
-    public StringOffset CreateSharedString(string s)
-    {
-      if (s is null)
-        return new(0);
-
-      _sharedStringMap ??= new();
-
-      if (_sharedStringMap.ContainsKey(s))
-        return _sharedStringMap[s];
-
-      var stringOffset = CreateString(s);
-      _sharedStringMap.Add(s, stringOffset);
-      return stringOffset;
-    }
+    public StringOffset WriteSharedString(string s)
+      => s is null ? new(0) : _sharedStringMap.GetOrAdd(s, WriteString);
 
     // Structs are stored inline, so nothing additional is being added.
     // `d` is always 0.
