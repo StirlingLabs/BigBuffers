@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
+using JetBrains.Annotations;
+
 namespace BigBuffers
 {
   /// <summary>
   /// Offset class for typesafe assignments.
   /// </summary>
   public readonly struct Offset<T>
+    where T : struct, IBigBufferEntity
   {
     public readonly ulong Value;
     public Offset(ulong value)
       => Value = value;
 
+    public static implicit operator Offset<T>(T o)
+      => new(o.Model.Offset);
     public static implicit operator Offset(Offset<T> o)
       => new(o.Value);
   }
@@ -38,5 +43,20 @@ namespace BigBuffers
     public readonly ulong Value;
     public Offset(ulong value)
       => Value = value;
+  }
+
+  [PublicAPI]
+  public static class OffsetExtensions
+  {
+    public static T Resolve<T>(in this Offset<T> offset, in ByteBuffer buffer)
+      where T : struct, IBigBufferEntity
+    {
+      var t = new T
+      {
+        Model = new(buffer, offset.Value)
+      };
+
+      return t;
+    }
   }
 }

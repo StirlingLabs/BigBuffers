@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text.Json;
+using BigBuffers.JsonParsing;
 using FluentAssertions;
 using NUnit.Framework;
 using StirlingLabs.Utilities;
@@ -8,8 +10,11 @@ namespace BigBuffers.Tests
 {
   public static class MonsterDataTest
   {
-    [Test]
-    public static void ReadMonsterDataTest()
+    private static readonly byte[] MonsterDataTestJsonBytes = File.ReadAllBytes("monsterdata_test.json");
+    private static readonly JsonDocument MonsterDataTestJsonDoc = JsonDocument.Parse(MonsterDataTestJsonBytes);
+
+    [Theory]
+    public static void ReadMonsterDataTest(bool validate)
     {
       var bytes = File.ReadAllBytes("monsterdata_test.mon");
 
@@ -19,12 +24,32 @@ namespace BigBuffers.Tests
 
       MyGame.Example.Monster.MonsterBufferHasIdentifier(buffer)
         .Should().BeTrue();
-      
+
       buffer.Position = root;
-      
+
       var monster = MyGame.Example.Monster.GetRootAsMonster(buffer);
       monster._model.Offset.Should().Be(root);
 
+      if (validate)
+        ValidateMonsterJson(monster);
+    }
+
+    [Theory]
+    public static void WriteMonsterDataTest(bool validate)
+    {
+
+      var jsonRoot = MonsterDataTestJsonDoc.RootElement;
+
+      var builder = new BigBufferBuilder();
+      var parser = new JsonParser<MyGame.Example.Monster>(builder);
+      var monster = parser.Parse(jsonRoot);
+
+      if (validate)
+        ValidateMonsterJson(monster);
+    }
+
+    private static void ValidateMonsterJson(MyGame.Example.Monster monster)
+    {
       monster.Pos.Should().NotBeNull();
       var pos = monster.Pos!.Value;
 
@@ -55,26 +80,25 @@ namespace BigBuffers.Tests
       testMon
         .Should().NotBeNull()
         .And.BeOfType<MyGame.Example.Monster>();
-        
+
       var testMonValue = testMon!.Value;
-        
+
       testMonValue.Name.Should().Be("Fred");
 
       monster.Test4Length.Should().Be(2);
 
       var test4First = monster.Test4(0);
       test4First.Should().NotBeNull();
-      
+
       var test4FirstValue = test4First!.Value;
       test4FirstValue.Should().BeOfType<MyGame.Example.Test>();
 
       test4FirstValue.A.Should().Be(10);
       test4FirstValue.B.Should().Be(20);
-      
-      
+
       var test4Second = monster.Test4(1);
       test4Second.Should().NotBeNull();
-      
+
       var test4SecondValue = test4Second!.Value;
       test4SecondValue.Should().BeOfType<MyGame.Example.Test>();
 
@@ -82,13 +106,13 @@ namespace BigBuffers.Tests
       test4SecondValue.B.Should().Be(40);
 
       monster.TestarrayofstringLength.Should().Be(2);
-      
+
       var taoS0 = monster.Testarrayofstring(0);
       taoS0.Should().Be("test1");
 
       var taoS1 = monster.Testarrayofstring(1);
       taoS1.Should().Be("test2");
-      
+
       monster.Testarrayofstring2Length.Should().Be(0);
 
       monster.TestarrayofboolsLength.Should().Be(3);

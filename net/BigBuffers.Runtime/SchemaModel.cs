@@ -7,7 +7,7 @@ namespace BigBuffers
   public static class SchemaModel
   {
     internal static ref Model Model<TModel>(ref this TModel model)
-      where TModel : struct, IBigBufferModel
+      where TModel : struct, IBigBufferEntity
       => ref model.Model;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -18,7 +18,7 @@ namespace BigBuffers
     }
 
     public static ref readonly TModel __assign<TModel>(ref this TModel model, ulong table, in ByteBuffer buffer)
-      where TModel : struct, IBigBufferModel
+      where TModel : struct, IBigBufferEntity
     {
       model.Model.__init(table, buffer);
       return ref model;
@@ -106,7 +106,7 @@ namespace BigBuffers
     // Initialize any Table-derived type to point to the union at the given offset.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TResult __union<TResult>(ref this Model bb, ulong offset)
-      where TResult : struct, IBigBufferModel
+      where TResult : struct, IBigBufferEntity
     {
       var t = new TResult();
       var indirect = bb.__indirect(offset);

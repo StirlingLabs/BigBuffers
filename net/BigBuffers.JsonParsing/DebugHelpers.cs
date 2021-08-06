@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace BigBuffers
+namespace BigBuffers.JsonParsing
 {
   [PublicAPI]
   internal static class Debug
