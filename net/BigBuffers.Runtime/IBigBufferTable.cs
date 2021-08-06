@@ -1,6 +1,6 @@
 namespace BigBuffers
 {
-  public interface IBigBufferTable : IBigBufferModel
+  public interface IBigBufferTable : IBigBufferEntity
   {
   }
 }

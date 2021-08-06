@@ -21,11 +21,16 @@ namespace BigBuffers
       = new();
 #endif
 
+#if DEBUG
+    private static BigBufferBuilder DoneBuilder = new();
+#endif
+
     internal BigBufferBuilder Builder;
     internal readonly ulong Offset;
 
     public Placeholder(BigBufferBuilder builder, ulong offset)
     {
+      Debug.Assert(builder != null);
       Builder = builder;
       Offset = offset;
 #if DEBUG
@@ -52,6 +57,9 @@ namespace BigBuffers
       Tracker.TryRemove((Builder, Offset), out _);
 #endif
       Builder = null;
+#if DEBUG
+      Builder = DoneBuilder;
+#endif
     }
 
     public void Fill(Array s, uint alignment = 0)
@@ -65,7 +73,10 @@ namespace BigBuffers
       if (!e.MoveNext())
       {
         if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
-        Builder.Prep(sizeof(ulong),0);
+#if DEBUG
+        if (Builder == DoneBuilder) throw new InvalidOperationException("Placeholder has already been filled.");
+#endif
+        Builder.Prep(sizeof(ulong), 0);
         Builder.Put(BigBufferBuilder.PlaceholderOffset);
         Builder.StartVector(elemSize, 0);
         Builder.EndVector(alignment);
@@ -109,41 +120,81 @@ namespace BigBuffers
     public void Fill(string s)
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
+#if DEBUG
+      if (Builder == DoneBuilder) throw new InvalidOperationException("Placeholder has already been filled.");
+#endif
       var offset = Builder.WriteSharedString(s);
       Builder.Prep(sizeof(ulong), 0);
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
     }
 
-    public delegate Offset<TStruct>[] InlineStructs<TStruct>()
+    public delegate Offset<TStruct>[] FillInlineStructs<TStruct>()
       where TStruct : struct, IBigBufferStruct;
 
-    public void FillInline<TStruct>(InlineStructs<TStruct> f)
+    public void FillInline<TStruct>([InstantHandle] FillInlineStructs<TStruct> f)
       where TStruct : struct, IBigBufferStruct
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
+#if DEBUG
+      if (Builder == DoneBuilder) throw new InvalidOperationException("Placeholder has already been filled.");
+#endif
       var elemSize = Unsafe.NullRef<TStruct>().ByteSize;
       var alignment = (uint)Math.Min(sizeof(ulong), elemSize);
       Builder.StartVector(elemSize, 0);
-      var lengthOffset = Builder.Offset - 8;
+      var lengthOffset = Builder.Offset - sizeof(ulong);
       var l = f();
-      Builder.ByteBuffer.Put(lengthOffset, (ulong)l.LongLength);
+      var itemCount = (ulong)l.LongLength;
+      Debug.Assert(Builder.Offset == lengthOffset + sizeof(ulong) + elemSize * itemCount);
+      Builder.ByteBuffer.Put(lengthOffset, itemCount);
       var offset = Builder.EndVector(alignment);
+      Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
+      Done();
+    }
+
+    
+    public void FillVector([InstantHandle] Func<ulong> filler)
+    {
+      if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
+#if DEBUG
+      if (Builder == DoneBuilder) throw new InvalidOperationException("Placeholder has already been filled.");
+#endif
+      Builder.StartVector(sizeof(ulong), 0);
+      var lengthOffset = Builder.Offset - sizeof(ulong);
+      var itemCount = filler();
+      Builder.ByteBuffer.Put(lengthOffset, itemCount);
+      var offset = Builder.EndVector();
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
     }
 
     [DebuggerStepThrough]
     public void Fill<T>(Offset<T>[] s, uint alignment = 0)
-      => Fill((ReadOnlyBigSpan<Offset<T>>)s, alignment);
+      where T : struct, IBigBufferEntity
+      => throw new InvalidOperationException(
+        $"Use the Fill method that has {nameof(Func<Offset<T>[]>)} as the first parameter type for vectors of struct offset types instead.");
+
+    [DebuggerStepThrough]
+    public void Fill(StringOffset[] s, uint alignment = 0)
+    {
+      var length = (ulong)s.LongLength;
+      Builder.StartVector(sizeof(ulong), length);
+      for (var i = (nuint)0; i < length; ++i)
+        Builder.Put(Offset - s[i].Value);
+      var offset = Builder.EndVector(alignment);
+      Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
+    }
 
 
     [DebuggerStepThrough]
     public void Fill(Offset[] s, uint alignment = 0)
-      => Fill((ReadOnlyBigSpan<Offset>)s, alignment);
+      => throw new InvalidOperationException(
+        $"Use the Fill method that has {nameof(Func<Offset>)} as the first parameter type for vectors of offsets instead.");
+    //=> Fill((ReadOnlyBigSpan<Offset>)s, alignment);
 
 
     public void Fill<T>(ReadOnlyBigSpan<Offset<T>> s, uint alignment = 0)
+      where T : struct, IBigBufferEntity
     {
       if (IfType<T>.IsAssignableTo<IBigBufferStruct>())
         throw new InvalidOperationException($"Use the {nameof(FillInline)} method for vectors of struct types instead.");
@@ -158,7 +209,8 @@ namespace BigBuffers
         Done();
       }
       else
-        Fill<Offset<T>>(s, alignment);
+        throw new InvalidOperationException(
+          $"Use the Fill method that has {nameof(Func<Offset<T>[]>)} as the first parameter type for vectors of struct offset types instead.");
     }
 
 
@@ -181,25 +233,28 @@ namespace BigBuffers
     public void Fill<T>(ReadOnlyBigSpan<T> s, uint alignment = 0)
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
+#if DEBUG
+      if (Builder == DoneBuilder) throw new InvalidOperationException("Placeholder has already been filled.");
+#endif
       var elemSize = (ulong)Unsafe.SizeOf<T>();
       if (alignment == 0) alignment = (uint)Math.Min(sizeof(ulong), elemSize);
       var length = s.Length;
-      Builder.StartVector(elemSize, length);
       if (IfType<T>.Is<string>())
       {
         var placeholders = new Placeholder[length];
 
+        Builder.StartVector(elemSize, length);
         // create placeholders
         for (var i = (nuint)0; i < length; ++i)
         {
-          Builder.Put(Builder.CreateString(out var p));
+          Builder.Put(Builder.MarkStringPlaceholder(out var p));
           placeholders[i] = p;
         }
         var offset = Builder.EndVector(alignment);
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
 
         // fill placeholders
-        Builder.Prep(s.Length * sizeof(ulong),0);
+        Builder.Prep(length * sizeof(ulong), 0);
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as string);
       }
@@ -208,17 +263,17 @@ namespace BigBuffers
         var placeholders = new Placeholder[length];
 
         // create placeholders
-        Builder.Prep(s.Length * sizeof(ulong),0);
+        Builder.StartVector(elemSize, length);
         for (var i = (nuint)0; i < length; ++i)
         {
-          Builder.Put(Builder.CreateVector(out var p));
+          Builder.Put(Builder.MarkVectorPlaceholder(out var p));
           placeholders[i] = p;
         }
         var offset = Builder.EndVector(alignment);
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
 
         // fill placeholders
-        Builder.Prep(s.Length * sizeof(ulong),0);
+        Builder.Prep(length * sizeof(ulong), 0);
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as string[], alignment);
       }
@@ -227,10 +282,10 @@ namespace BigBuffers
         var placeholders = new Placeholder[length];
 
         // create placeholders
-        Builder.Prep(s.Length * sizeof(ulong),0);
+        Builder.StartVector(elemSize, length);
         for (var i = (nuint)0; i < length; ++i)
         {
-          Builder.Put(Builder.CreateVector(out var p));
+          Builder.Put(Builder.MarkVectorPlaceholder(out var p));
           placeholders[i] = p;
         }
         var offset = Builder.EndVector(alignment);
@@ -240,12 +295,27 @@ namespace BigBuffers
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as Array, alignment);
       }
+      else if (IfType<T>.IsAssignableTo<StringOffset>())
+      {
+        Builder.StartVector(elemSize, length);
+        var sos = s.CastAs<StringOffset>();
+        for (var i = (nuint)0; i < length; ++i)
+        {
+          var so = sos[i];
+          Builder.Put(Offset - so.Value);
+        }
+        var offset = Builder.EndVector(alignment);
+        Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
+      }
       else if (IfType<T>.IsAssignableTo<IVectorOffset>())
-        throw new NotImplementedException();
+      {
+        throw new NotImplementedException(); // ???
+      }
       else
       {
         // no placeholders needed
-        Builder.Prep(s.AsBytes().Length,0);
+        //Builder.Prep(sizeof(ulong), s.AsBytes().Length);
+        Builder.StartVector(elemSize, length);
         Builder.Put(s);
         var offset = Builder.EndVector(alignment);
         Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
@@ -255,9 +325,13 @@ namespace BigBuffers
 
 
     internal void FillOffset<T>(Offset<T> offset)
+      where T : struct, IBigBufferEntity
     {
       if (Builder is null) throw new InvalidOperationException("Placeholder has already been filled.");
-      Builder.Prep(sizeof(ulong),0);
+#if DEBUG
+      if (Builder == DoneBuilder) throw new InvalidOperationException("Placeholder has already been filled.");
+#endif
+      Builder.Prep(sizeof(ulong), 0);
       Builder.ByteBuffer.Put(Offset, offset.Value - Offset);
       Done();
     }
@@ -289,7 +363,7 @@ namespace BigBuffers
         .Select(k => k.Offset)
         .ToImmutableSortedSet();
 
-      if (placeholders.Count!=count)
+      if (placeholders.Count != count)
         throw new PlaceholdersUnfilledException(placeholders, $"Expected {count}, but there were {placeholders.Count} unfilled placeholders.");
 #else
       throw new NotImplementedException("This should not exist under release conditions.");
@@ -298,6 +372,7 @@ namespace BigBuffers
   }
 
   public struct Placeholder<T>
+    where T : struct, IBigBufferEntity
   {
     internal Placeholder Internal;
 

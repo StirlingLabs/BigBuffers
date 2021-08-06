@@ -420,6 +420,11 @@ class CSharpGenerator : public BaseGenerator {
     for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end(); ++it) {
       auto &ev = **it;
       GenComment(ev.doc_comment, code_ptr, &comment_config, "  ");
+      if (enum_def.is_union && ev.IsNonZero()) {
+        code += "  [BigBuffers.UnionTypeAssociation(typeof(";
+        code += GenTypeGet(ev.union_type);
+        code += "))]\n";
+      }
       code += "  @";
       code += Name(ev) + " = ";
       code += enum_def.ToString(ev);
@@ -622,7 +627,8 @@ class CSharpGenerator : public BaseGenerator {
     std::string &code = *code_ptr;
     code += "    builder.Prep(";
     code += NumToString(struct_def.minalign) + ", ";
-    code += NumToString(struct_def.bytesize) + ");\n";
+    code += NumToString(struct_def.bytesize) + ");\n"
+            "    var start = builder.Offset;\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       auto &field = **it;
@@ -692,7 +698,7 @@ class CSharpGenerator : public BaseGenerator {
     return key_getter;
   }
 
-  bool GenField(std::string &code, FieldDef &field, StructDef &struct_def,
+  bool GenField(uint64_t index, std::string &code, FieldDef &field, StructDef &struct_def,
                 bool hasRefField) const {
     std::string type_name = GenTypeGet(field.value.type);
     std::string type_name_dest = GenTypeGet(field.value.type);
@@ -713,7 +719,15 @@ class CSharpGenerator : public BaseGenerator {
     std::string src_cast = SourceCast(field.value.type);
       std::string field_name_camel = Name(field);
       if (field_name_camel == struct_def.name) { field_name_camel += "_"; }
-    std::string method_start = "  public " + type_name_dest + optional + " ";
+
+    std::string method_start = "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                               "  public " + type_name_dest + optional + " ";
+
+
+    if (field.deprecated)
+      method_start = "  [System.Obsolete(\"Deprecated\")]\n"
+          + method_start;
+
     if (hasRefField) method_start += "Get";
     else method_start += "@";
     method_start += field_name_camel;
@@ -818,27 +832,26 @@ class CSharpGenerator : public BaseGenerator {
             getter = "new";
           } else if (vectortype.base_type == BASE_TYPE_UNION) {
           }
-          code += "ulong j)";
+          code += "ulong _j)";
           const auto body = offset_prefix + conditional_cast + getter + "(";
           if (vectortype.base_type == BASE_TYPE_UNION) {
-            code += " where TTable : struct, IBigBufferModel" + body;
+            code += " where TTable : struct, IBigBufferEntity" + body;
           } else {
             code += body;
           }
-          std::string index = "_model.";
+          std::string indexer = "_model.";
           if (IsArray(field.value.type)) {
-            index += "Offset + " + NumToString(field.value.offset) + " + ";
+            indexer += "Offset + " + NumToString(field.value.offset) + " + ";
           } else {
-            index += "__vector(o) + ";
+            indexer += "__vector(o) + ";
           }
-          index += "j * " + NumToString(InlineSize(vectortype));
+          indexer += "_j * " + NumToString(InlineSize(vectortype));
           if (vectortype.base_type == BASE_TYPE_STRUCT) {
             code += vectortype.struct_def->fixed
-                ? index
-                : "_model.__indirect(" + index + ")";
+                ? indexer : "_model.__indirect(" + indexer + ")";
             code += ", _model.ByteBuffer";
           } else {
-            code += index;
+            code += indexer;
           }
           code += ")" + dest_mask;
           if (!IsArray(field.value.type)) {
@@ -855,12 +868,12 @@ class CSharpGenerator : public BaseGenerator {
             code += "}\n";
               code += "  public string " + Name(field) + "AsString(int _j)";
             code += offset_prefix + GenGetter(Type(BASE_TYPE_STRING));
-            code += "(" + index + ") : null";
+            code += "(" + indexer + ") : null";
           }
           break;
         }
         case BASE_TYPE_UNION:
-          code += "() where TTable : struct, IBigBufferModel";
+          code += "() where TTable : struct, IBigBufferEntity";
           code += offset_prefix + "(TTable?)" + getter;
           code += "<TTable>(o + _model.Offset) : null";
           if (HasUnionStringValue(*field.value.type.enum_def)) {
@@ -1024,7 +1037,12 @@ class CSharpGenerator : public BaseGenerator {
               ? "_model.Offset + " + NumToString(field.value.offset)
               : "o + _model.Offset");
       if (IsScalar(underlying_type.base_type) && !IsUnion(field.value.type)) {
-        code += "  public ";
+
+        if (field.deprecated)
+          code += "  [System.Obsolete(\"Deprecated\")]\n";
+
+        code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                "  public ";
         code += struct_def.fixed ? "void " : "bool ";
           code += mutator_prefix + Name(field);
         code += mutator_params;
@@ -1053,7 +1071,7 @@ class CSharpGenerator : public BaseGenerator {
   }
 
 
-  bool GenRefField(std::string &code, FieldDef &field, StructDef &struct_def) const {
+  bool GenRefField(uint64_t index, std::string &code, FieldDef &field, StructDef &struct_def) const {
     if (IsUnion(field.value.type) || IsStruct(field.value.type))
       return false;
 
@@ -1083,7 +1101,13 @@ class CSharpGenerator : public BaseGenerator {
     std::string src_cast = SourceCast(field.value.type);
     std::string field_name_camel = MakeCamel(field.name, true);
 
-    std::string method_start = "  public ref ";
+    std::string method_start = "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                               "  public ref ";
+
+    if (field.deprecated)
+      method_start = "  [System.Obsolete(\"Deprecated\")]\n"
+                     + method_start;
+
     if (!parser_.opts.mutable_buffer) method_start += "readonly ";
 
     method_start += type_name_dest + " @" + field_name_camel;
@@ -1160,14 +1184,14 @@ class CSharpGenerator : public BaseGenerator {
             }
             code += "(ulong _j)";
             code += ref_offset_prefix + reffer + "(";
-            std::string index = "_model.";
+            std::string indexer = "_model.";
             if (IsArray(field.value.type)) {
-              index += "Offset + " + NumToString(field.value.offset) + " + ";
+              indexer += "Offset + " + NumToString(field.value.offset) + " + ";
             } else {
-              index += "__vector(o) + ";
+              indexer += "__vector(o) + ";
             }
-            index += "_j * " + NumToString(InlineSize(vectortype));
-            code += index;
+            indexer += "_j * " + NumToString(InlineSize(vectortype));
+            code += indexer;
             code += ")" + dest_mask;
             if (!IsArray(field.value.type)) {
               code += " : ";
@@ -1266,36 +1290,39 @@ class CSharpGenerator : public BaseGenerator {
             "    => _model = new(buffer, i);\n";
 
     // interface implementation
-    code += "  ref Model IBigBufferModel.Model => ref _model.UnsafeSelfReference();\n"
+    code += "  ref Model IBigBufferEntity.Model => ref _model.UnsafeSelfReference();\n"
 
             "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
 
     if (struct_def.fixed) {
-      // static ByteSize
-      code += "  public static ulong ByteSize => ";
+      // static members
+      code += "  public static ulong Alignment => ";
+      code += NumToString(struct_def.minalign);
+      code += ";\n"
+              "  public static ulong ByteSize => ";
       code += NumToString(struct_def.bytesize);
-      code +=";\n";
-
+      code += ";\n"
       // interface implementation
-      code += "  ulong IBigBufferStruct.ByteSize => ByteSize;\n";
+              "  ulong IBigBufferStruct.Alignment => Alignment;\n"
+              "  ulong IBigBufferStruct.ByteSize => ByteSize;\n";
     }
 
     // IEquatable<T>
-    code +=
-        "  public bool Equals("+struct_def.name+" other)\n"
-        "    => _model.Equals(other._model);\n"
-        "\n"
-        "  public override bool Equals(object obj)\n"
-        "    => obj is "+struct_def.name+" other && Equals(other);\n"
-        "\n"
-        "  public override int GetHashCode()\n"
-        "    => _model.GetHashCode();\n"
-        "\n"
-        "  public static bool operator ==("+struct_def.name+" left, "+struct_def.name+" right)\n"
-        "    => left.Equals(right);\n"
-        "\n"
-        "  public static bool operator !=("+struct_def.name+" left, "+struct_def.name+" right)\n"
-        "    => !left.Equals(right);\n";
+    code += "  public bool Equals("+struct_def.name+" other)\n"
+            "    => _model.Equals(other._model);\n"
+            "\n";
+
+    code += "  public override bool Equals(object obj)\n"
+            "    => obj is "+struct_def.name+" other && Equals(other);\n"
+            "\n"
+            "  public override int GetHashCode()\n"
+            "    => _model.GetHashCode();\n"
+            "\n"
+            "  public static bool operator ==("+struct_def.name+" left, "+struct_def.name+" right)\n"
+            "    => left.Equals(right);\n"
+            "\n"
+            "  public static bool operator !=("+struct_def.name+" left, "+struct_def.name+" right)\n"
+            "    => !left.Equals(right);\n";
 
     if (!struct_def.fixed) {
       // Generate verson check method.
@@ -1317,8 +1344,7 @@ class CSharpGenerator : public BaseGenerator {
               "()); }\n";
 
       // create method that allows object reuse
-      code +=
-          method_signature + "(ByteBuffer _bb, " + struct_def.name + " obj) { ";
+      code += method_signature + "(ByteBuffer _bb, " + struct_def.name + " obj) { ";
       code += "return (obj.__assign(_bb.Position, _bb)); }\n";
       if (parser_.root_struct_def_ == &struct_def) {
         if (parser_.file_identifier_.length()) {
@@ -1333,19 +1359,41 @@ class CSharpGenerator : public BaseGenerator {
       }
     }
 
-    for (auto it = struct_def.fields.vec.begin();
-         it != struct_def.fields.vec.end(); ++it) {
+    { // scope for index variable
+      uint16_t index = UINT16_MAX;
+      // for (auto it = fields_start; it != struct_def.fields.vec.end(); ++it) {
+      for (auto &it : struct_def.fields.vec) {
+        ++index;
+        auto &field = *it;
+        //if (field.deprecated) continue;
+        GenComment(field.doc_comment, code_ptr, &comment_config, "  ");
 
-
-      auto &field = **it;
-      if (field.deprecated) continue;
-      GenComment(field.doc_comment, code_ptr, &comment_config, "  ");
-
-      auto madeRefField = GenRefField(code, field, struct_def);
-      if (!GenField(code, field, struct_def, madeRefField))
-        continue;
+        auto madeRefField = GenRefField(index, code, field, struct_def);
+        if (!GenField(index, code, field, struct_def, madeRefField)) continue;
+      }
     }
     code += "\n";
+
+    code += "  public static class Metadata {\n"
+            "    public static (string Name, bool Deprecated, ushort Offset, ushort Size, ushort Align, object Default)[] Fields = {\n";
+    for (auto & it : struct_def.fields.vec) {
+      auto &field = *it;
+      code += "      (@\"" + field.name + "\",";
+      code += field.deprecated ? "true" : "false";
+      code += ",";
+      code += NumToString(field.value.offset);
+      code += ",";
+      code += NumToString(InlineSize(field.value.type));
+      code += ",";
+      code += NumToString(InlineAlignment(field.value.type));
+      code += ",";
+      code += GenDefaultValue(field, false);
+      code += "),\n";
+    }
+    code += "    };\n"
+            "  }\n";
+
+
     auto struct_has_create = false;
     std::set<flatbuffers::FieldDef *> field_has_create_set;
     flatbuffers::FieldDef *key_field = nullptr;
@@ -1356,8 +1404,7 @@ class CSharpGenerator : public BaseGenerator {
               "Create";
       code += struct_def.name + "(BigBufferBuilder builder";
       GenStructArgs(struct_def, code_ptr);
-      code += ") {\n"
-              "    var start = builder.Offset;\n";
+      code += ") {\n";
       GenStructBody(struct_def, code_ptr);
       code += "    return ";
       code += GenOffsetConstruct(struct_def, "start");
@@ -1388,9 +1435,8 @@ class CSharpGenerator : public BaseGenerator {
         code += "  public static " + GenOffsetType(struct_def) + " "
                 "Create" + struct_def.name;
         code += "(BigBufferBuilder builder";
-        for (auto it = struct_def.fields.vec.begin();
-             it != struct_def.fields.vec.end(); ++it) {
-          auto &field = **it;
+        for (auto & it : struct_def.fields.vec) {
+          auto &field = *it;
           if (field.deprecated) continue;
           code += ",\n      ";
           if (IsStruct(field.value.type) && opts.generate_object_based_api) {
@@ -1411,8 +1457,7 @@ class CSharpGenerator : public BaseGenerator {
             code += GenDefaultValueBasic(field);
           }
         }
-        code += ") {\n    builder."
-                "StartTable(";
+        code += ") {\n    builder.StartTable(";
         code += NumToString(struct_def.fields.vec.size()) + ");\n";
         for (size_t size = struct_def.sortbysize ? sizeof(largest_scalar_t) : 1;
              size; size /= 2) {
@@ -1438,8 +1483,7 @@ class CSharpGenerator : public BaseGenerator {
             }
           }
         }
-        code += "    return " + struct_def.name + "."
-                "End" + struct_def.name;
+        code += "    return " + struct_def.name + ".End" + struct_def.name;
         code += "(builder);\n  }\n\n";
       }
       // Generate a set of static methods that allow table construction,
@@ -1449,15 +1493,17 @@ class CSharpGenerator : public BaseGenerator {
       // Unlike the Create function, these always work.
       code += "  public static void Start";
       code += struct_def.name;
-      code += "(BigBufferBuilder builder) { builder."
-              "StartTable(";
+      code += "(BigBufferBuilder builder) { builder.StartTable(";
       code += NumToString(struct_def.fields.vec.size()) + "); }\n";
-      for (auto it = struct_def.fields.vec.begin();
-           it != struct_def.fields.vec.end(); ++it) {
-        auto &field = **it;
-        if (field.deprecated) continue;
+      uint16_t index = UINT16_MAX;
+      for (auto it : struct_def.fields.vec ) {
+        ++index;
+        auto &field = *it;
+        if (field.deprecated)
+          code += "  [System.Obsolete(\"Deprecated\")]\n";
         if (field.key) key_field = &field;
-        code += "  public static void Add";
+        code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                "  public static void Add";
         code += Name(field);
         code += "(BigBufferBuilder builder, ";
         code += GenTypeBasic(field.value.type);
@@ -1470,7 +1516,7 @@ class CSharpGenerator : public BaseGenerator {
           code += NumToString(InlineSize(field.value.type));
           code += ", ";
         }
-        code += NumToString(it - struct_def.fields.vec.begin()) + ", ";
+        code += NumToString(index) + ", ";
         code += SourceCastBasic(field.value.type);
         code += EscapeKeyword(argname);
         if (!IsScalar(field.value.type.base_type) &&
@@ -1485,39 +1531,51 @@ class CSharpGenerator : public BaseGenerator {
           code += GenDefaultValue(field, false);
         }
         code += "); }\n";
-        if (IsVector(field.value.type)) {
+        if (IsVector(field.value.type))
+        {
           auto vector_type = field.value.type.VectorType();
           auto alignment = InlineAlignment(vector_type);
           auto elem_size = InlineSize(vector_type);
-          if (!IsStruct(vector_type)) {
+          //if (!IsStruct(vector_type))
+          {
             field_has_create_set.insert(&field);
-            code += "  public static VectorOffset "
-                    "Create";
+            if (field.deprecated)
+              code += "  [System.Obsolete(\"Deprecated\")]\n";
+            code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                    "  public static VectorOffset Create";
             code += Name(field);
             code += "Vector(BigBufferBuilder builder, out Placeholder placeholder) "
-                    "{ return builder.CreateVector(out placeholder); }\n"
+                    "{ return builder.MarkVectorPlaceholder(out placeholder); }\n";
 
-                    "  public static void "
-                    "Fill";
+            if (field.deprecated)
+              code += "  [System.Obsolete(\"Deprecated\")]\n";
+            code += "  [BigBuffers.MetadataIndex(" + NumToString(index) +
+                    ")]\n"
+                    "  public static void Fill";
             code += MakeCamel(field.name);
             code += "Vector(Placeholder placeholder, ";
             code += GenTypeBasic(vector_type) + "[] data) "
                     "{ placeholder.Fill((StirlingLabs.Utilities.ReadOnlyBigSpan<";
             code += GenTypeBasic(vector_type) + ">)data, " + NumToString(alignment);
-            code += "); }\n"
+            code += "); }\n";
 
-                    "  public static void "
-                    "Fill";
+            if (field.deprecated)
+              code += "  [System.Obsolete(\"Deprecated\")]\n";
+            code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                    "  public static void Fill";
             code += Name(field);
             code += "Vector(Placeholder placeholder, StirlingLabs.Utilities.ReadOnlyBigSpan<";
-            code += GenTypeBasic(vector_type) + "> data) "
-                    "{ placeholder.Fill(data, ";
+            code += GenTypeBasic(vector_type) + "> data) { placeholder.Fill(data, ";
             code += NumToString(alignment);
             code += "); }\n";
           }
           // Generate a method to start a vector, data to be added manually
           // after.
-          code += "  public static void Start";
+
+          if (field.deprecated)
+            code += "  [System.Obsolete(\"Deprecated\")]\n";
+          code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                  "  public static void Start";
           code += Name(field);
           code += "Vector(BigBufferBuilder builder, ulong numElems) "
                   "{ builder.StartVector(";
@@ -1525,8 +1583,8 @@ class CSharpGenerator : public BaseGenerator {
           code += ", numElems); }\n";
         }
       }
-      code += "  public static " + GenOffsetType(struct_def) + " "
-              "End" + struct_def.name;
+
+      code += "  public static " + GenOffsetType(struct_def) + " End" + struct_def.name;
       code += "(BigBufferBuilder builder) {\n    var o = builder."
               "EndTable();\n";
       for (auto it = struct_def.fields.vec.begin();
@@ -1542,17 +1600,20 @@ class CSharpGenerator : public BaseGenerator {
       if (parser_.root_struct_def_ == &struct_def) {
         std::string size_prefix[] = { "", "SizePrefixed" };
         for (int i = 0; i < 2; ++i) {
-          code += "  public static void "
-                  "Finish" + size_prefix[i] + struct_def.name;
-          code +=
-              "Buffer(BigBufferBuilder builder, " + GenOffsetType(struct_def);
-          code += " offset) {"
-                  " builder.Finish" + size_prefix[i] + "(offset"
-                  ".Value";
+          code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                  "  public static void Begin" + size_prefix[i] + struct_def.name + "Buffer(BigBufferBuilder builder) {"
+                  "  builder.Begin" + size_prefix[i] + "(";
 
           if (parser_.file_identifier_.length())
-            code += ", \"" + parser_.file_identifier_ + "\"";
+            code += "\"" + parser_.file_identifier_ + "\"";
+
           code += "); }\n";
+
+          code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                  "  public static void Finish" + size_prefix[i] + struct_def.name;
+
+          code += "Buffer(BigBufferBuilder builder, " + GenOffsetType(struct_def) + " offset) {"
+                  "  builder.Finish" + size_prefix[i] + "(); }\n";
         }
       }
     }
@@ -1635,7 +1696,7 @@ class CSharpGenerator : public BaseGenerator {
     code += method_start + "(" + type_name + " obj, ulong _j) { "
             " return obj.__assign(";
     code += struct_def.fixed ? "_model.__element(_j)"
-                             : "_model.__indirect(_model.__element(j))";
+                             : "_model.__indirect(_model.__element(_j))";
     code += ", _model.ByteBuffer); }\n";
     // See if we should generate a by-key accessor.
     if (!struct_def.fixed) {
@@ -1728,7 +1789,7 @@ class CSharpGenerator : public BaseGenerator {
       } else {
         code += "      case " + Name(enum_def) + "." + Name(ev) + ": return ";
         if (IsString(ev.union_type)) {
-          code += "builder.CreateString(_o.As" + ev.name + "()).Value;\n";
+          code += "builder.MarkStringPlaceholder(_o.As" + ev.name + "()).Value;\n";
         } else {
           code += GenTypeGet(ev.union_type) + ".Pack(builder, _o.As" + ev.name +
                   "()).Value;\n";

@@ -14,6 +14,7 @@ namespace BigBuffers
     public Model(ByteBuffer byteBuffer, ulong offset)
     {
       Debug.Assert(offset <= long.MaxValue);
+      Debug.Assert(byteBuffer.Buffer != null);
       ByteBuffer = byteBuffer;
       Offset = offset;
     }

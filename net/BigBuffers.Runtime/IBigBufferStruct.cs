@@ -1,7 +1,8 @@
 namespace BigBuffers
 {
-  public interface IBigBufferStruct : IBigBufferModel
+  public interface IBigBufferStruct : IBigBufferEntity
   {
     ulong ByteSize { get; }
+    ulong Alignment { get; }
   }
 }
