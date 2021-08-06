@@ -104,3 +104,9 @@ table TableQ {
 table TableR {
   x:[UnionM];
 }
+
+table TableS {
+  x:[string];
+  y:[string];
+}
+

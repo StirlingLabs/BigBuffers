@@ -19,7 +19,7 @@ namespace BigBuffers
   /// <summary>
   /// This is the base for both structs and tables.
   /// </summary>
-  public interface IBigBufferModel
+  public interface IBigBufferEntity
   {
     ref readonly ByteBuffer ByteBuffer { get; }
     ref Model Model { get; }
