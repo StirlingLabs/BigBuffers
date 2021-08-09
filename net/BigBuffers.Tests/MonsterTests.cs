@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using BigBuffers.JsonParsing;
 using FluentAssertions;
@@ -41,15 +43,25 @@ namespace BigBuffers.Tests
       var jsonRoot = MonsterDataTestJsonDoc.RootElement;
 
       var builder = new BigBufferBuilder();
+      MyGame.Example.Monster.BeginMonsterBuffer(builder);
       var parser = new JsonParser<MyGame.Example.Monster>(builder);
       var monster = parser.Parse(jsonRoot);
+      MyGame.Example.Monster.FinishMonsterBuffer(builder, monster);
 
-      if (validate)
-        ValidateMonsterJson(monster);
+      if (!validate) return;
+      
+      Placeholder.ValidateAllFilled(builder);
+      ValidateMonsterJson(monster);
+
+      using var f = File.OpenWrite("monsterdata_test_check.mon");
+      f.SetLength(0);
+      f.Write(builder.SizedReadOnlySpan());
+      f.Close();
     }
 
     private static void ValidateMonsterJson(MyGame.Example.Monster monster)
     {
+
       monster.Pos.Should().NotBeNull();
       var pos = monster.Pos!.Value;
 

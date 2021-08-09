@@ -29,7 +29,8 @@ namespace BigBuffers.JsonParsing
         var name = md.Name;
 
 #if DEBUG
-        var pushOffsetMethod = typeof(JsonParser).GetMethod(nameof(PushOffset), AnyAccessBindingFlags | BindingFlags.Static);
+        var pushOffsetMethod = Info.OfMethod("BigBuffers.JsonParsing", "BigBuffers.JsonParsing.JsonParser", nameof(PushOffset));
+        //typeof(JsonParser).GetMethod(nameof(PushOffset), AnyAccessBindingFlags | BindingFlags.Static);
         body.Add(Expression.Call(pushOffsetMethod!,
           DescendPropertiesOrFields(parser,
             nameof(Builder),
@@ -114,44 +115,54 @@ namespace BigBuffers.JsonParsing
             {
               // var builder = parser.Builder;
               var builder = Expression.Variable(typeof(BigBufferBuilder), "builder");
-              vars.Add(builder);
-              body.Add(Expression.Assign(builder, Expression.PropertyOrField(parser, nameof(Builder))));
+              var getBuilder = Expression.Assign(builder, Expression.PropertyOrField(parser, nameof(Builder)));
 
-              // var placeholder;
-              var creator = typeof(BigBufferBuilder).GetMethod(nameof(BigBufferBuilder.MarkStringPlaceholder))!;
+              // builder.Prep(sizeof(ulong), sizeof(ulong));
+              var prepMethod = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.Prep));
+              var prep = Expression.Call(builder, prepMethod, Expression.Constant((ulong)sizeof(ulong)), Expression.Constant((ulong)sizeof(ulong)));
+
+              var creator = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.MarkStringPlaceholder));
+
+              // T.AddField(builder, builder.MarkStringPlaceholder(out var placeholder));
               var placeholder = Expression.Variable(typeof(Placeholder), "placeholder");
-              vars.Add(placeholder);
-
-              // T.AddField(builder, builder.CreateString(out placeholder));
               var offset = Expression.Call(builder, creator!, placeholder);
               var add = Expression.Call(adder, builder, offset);
 
               // parser.ParseAndFillString(placeholder, element);
               var parseAndFillString = Expression.Call(parser, ParseAndFillStringMethodInfo, element, placeholder);
 
+              //  case String: {
+              //    var builder = parser.Builder;
+              //    TEntity.AddField(builder, builder.MarkStringPlaceholder(out var placeholder));
+              //    parser.ParseAndFillString(placeholder, element);
+              //    break;
+              //  }
               Expression.SwitchCase(Expression.Block(
+                new [] { builder, placeholder },
+                getBuilder,
+                prep,
                 add,
                 parseAndFillString
               ));
             }
             else
             {
-              // new JsonParser<TAssoc>(parser).Parse(element)._model.Offset
-              var caseBody = new List<Expression>();
-              var caseVars = new List<ParameterExpression>();
-
-              var builder = Expression.Variable(typeof(BigBufferBuilder), "builder");
-              caseVars.Add(builder);
-              caseBody.Add(Expression.Assign(builder, Expression.PropertyOrField(parser, nameof(Builder))));
-
               var typedPlaceholder = typeof(Placeholder<>).MakeGenericType(assocType);
 
-              var placeholder = Expression.Variable(typedPlaceholder, "placeholder");
-              caseVars.Add(placeholder);
+              // var builder = parser.Builder;
+              var builder = Expression.Variable(typeof(BigBufferBuilder), "builder");
+              var getBuilder = Expression.Assign(builder, Expression.PropertyOrField(parser, nameof(Builder)));
 
-              var creator = typeof(BigBufferBuilder).GetMethod(nameof(BigBufferBuilder.MarkOffsetPlaceholder))!
+              // builder.Prep(sizeof(ulong), sizeof(ulong));
+              var prepMethod = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.Prep));
+              var prep = Expression.Call(builder, prepMethod,
+                Expression.Constant((ulong)sizeof(ulong)), Expression.Constant((ulong)sizeof(ulong)));
+
+              var creator = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.MarkOffsetPlaceholder))
                 .MakeGenericMethod(assocType);
 
+              // T.AddField(builder, builder.MarkOffsetPlaceholder(out var placeholder));
+              var placeholder = Expression.Variable(typedPlaceholder, "placeholder");
               var offset = Expression.Call(builder, creator!, placeholder);
               var offsetValue = Expression.PropertyOrField(offset, nameof(Offset<T>.Value));
 
@@ -161,25 +172,49 @@ namespace BigBuffers.JsonParsing
                 null, new[] { typeof(JsonParser<T>), typedPlaceholder }, null);
               Debug.Assert(modelParserCtor != null);
 
-              caseBody.Add(Expression.Call(adder, builder, offsetValue));
+              var add = Expression.Call(adder, builder, offsetValue);
 
-              caseBody.Add(Expression.Call(Expression.New(modelParserCtor, parser, placeholder), modelParserType.GetMethod(nameof(IJsonVectorParser.Parse))!, element));
+              // new JsonParser<T>(parser, placeholder).Parse(element);
+              var parseAndFillOffset = Expression.Call(
+                Expression.New(modelParserCtor, parser, placeholder),
+                modelParserType.GetMethod(nameof(IJsonElementParser.Parse))!, element);
 
               enumValue = ReBox(enumValue, enumType);
 
+              //  case T: {
+              //    var builder = parser.Builder;
+              //    builder.Prep(sizeof(ulong), sizeof(ulong));
+              //    TEntity.AddField(builder, builder.MarkOffsetPlaceholder(out var placeholder));
+              //    new JsonParser<TField>(parser, placeholder).Parse(element);
+              //    break;
+              //  }
               var switchCaseValue = Expression.Constant(enumValue, enumType);
-              switchCases[e] = Expression.SwitchCase(Expression.Block(caseVars, caseBody), switchCaseValue);
+              switchCases[e] = Expression.SwitchCase(
+                Expression.Block(
+                  new [] { builder, placeholder },
+                  getBuilder,
+                  prep,
+                  add,
+                  parseAndFillOffset
+                ),
+                switchCaseValue);
             }
           }
 
           // switch(unionType) {
-          //  case String:
-          //    T.AddField(builder, builder.CreateString(out var placeholder));
-          //    new JsonStringParser(this, placeholder).Parse(element);
+          //  case String: {
+          //    var builder = parser.Builder;
+          //    TEntity.AddField(builder, builder.MarkStringPlaceholder(out var placeholder));
+          //    parser.ParseAndFillString(placeholder, element);
           //    break;
-          //  case Table: case Struct:
-          //    T.AddField(builder, new JsonParser<TAssoc>(parser).Parse(element)._model.Offset);
+          //  }
+          //  case T: { // per table or struct in union 
+          //    var builder = parser.Builder;
+          //    builder.Prep(sizeof(ulong), sizeof(ulong));
+          //    TEntity.AddField(builder, builder.MarkOffsetPlaceholder(out var placeholder));
+          //    new JsonParser<TField>(parser, placeholder).Parse(element);
           //    break;
+          //  }
           //  default:
           //    throw new NotSupportedException();
           //  }
@@ -338,13 +373,20 @@ namespace BigBuffers.JsonParsing
           }
           else if (adderType == typeof(StringOffset))
           {
-            var creator = typeof(BigBufferBuilder).GetMethod(nameof(BigBufferBuilder.MarkStringPlaceholder))!;
-            var placeholder = Expression.Variable(typeof(Placeholder), "placeholder");
-            vars.Add(placeholder);
-
             var builder = Expression.Variable(typeof(BigBufferBuilder), "builder");
             vars.Add(builder);
             body.Add(Expression.Assign(builder, Expression.PropertyOrField(parser, nameof(Builder))));
+
+            // builder.Prep(sizeof(ulong), sizeof(ulong));
+            var prepMethod = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.Prep));
+            var prep = Expression.Call(builder, prepMethod,
+              Expression.Constant((ulong)sizeof(ulong)), Expression.Constant((ulong)sizeof(ulong)));
+            body.Add(prep);
+
+            var creator = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.MarkStringPlaceholder));
+            //typeof(BigBufferBuilder).GetMethod(nameof(BigBufferBuilder.MarkStringPlaceholder))!;
+            var placeholder = Expression.Variable(typeof(Placeholder), "placeholder");
+            vars.Add(placeholder);
 
             var offset = Expression.Call(builder, creator!, placeholder);
             var add = Expression.Call(adder, builder, offset);
@@ -371,6 +413,12 @@ namespace BigBuffers.JsonParsing
               vars.Add(builder);
               body.Add(Expression.Assign(builder, Expression.PropertyOrField(parser, nameof(Builder))));
 
+              // builder.Prep(sizeof(ulong), sizeof(ulong));
+              var prepMethod = Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.Prep));
+              var prep = Expression.Call(builder, prepMethod,
+                Expression.Constant((ulong)sizeof(ulong)), Expression.Constant((ulong)sizeof(ulong)));
+              body.Add(prep);
+              
               var offset = Expression.Call(builder, creator, placeholder);
               var add = Expression.Call(adder, builder, offset);
               body.Add(add);
@@ -416,7 +464,7 @@ namespace BigBuffers.JsonParsing
               */
 
               // builder.Prep(align, size);
-              body.Add(Expression.Call(builder, typeof(BigBufferBuilder).GetMethod(nameof(BigBufferBuilder.Prep))!,
+              body.Add(Expression.Call(builder, Info.OfMethod<BigBufferBuilder>(nameof(BigBufferBuilder.Prep)),
                 alignConst, sizeConst));
 
               // newStruct = new T(builder.Offset, builder.ByteBuffer);

@@ -18,8 +18,12 @@ namespace BigBuffers.JsonParsing
 
     public void Parse(JsonElement element)
       => _parser.DeferredQueue.Enqueue(() => {
+        var builder = _parser.Builder;
+        builder.Prep(ByteBuffer.AlignOf<T>(), 0);
         var parser = new JsonParser<T>(_parser);
-        _placeholder.Fill(parser.Parse(element));
+        var entity = parser.Parse(element);
+        Debug.Assert(builder.ByteBuffer.Buffer is not null);
+        _placeholder.Fill(entity);
       });
   }
 }

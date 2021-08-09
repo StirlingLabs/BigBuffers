@@ -27,7 +27,9 @@ namespace BigBuffers.Tests
           // size of vtable (4)
           4, 0,
           // size of table (8)
-          8, 0
+          8, 0,
+          // alignment
+          0,0,0,0
         },
         builder.SizedByteArray());
     }
@@ -66,6 +68,8 @@ namespace BigBuffers.Tests
           // size of table (16)
           16, 0,
           8, 0, // offset to bool field (1)
+          // alignment
+          0,0
         },
         builder.SizedByteArray());
     }
@@ -178,7 +182,7 @@ namespace BigBuffers.Tests
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
-        1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1
       }, builder.SizedByteArraySegment());
       builder.EndTable();
       CollectionAssert.AreEqual(new byte[]
@@ -203,6 +207,8 @@ namespace BigBuffers.Tests
           13, 0, // offset to bool field (6),
           14, 0, // offset to bool field (7),
           15, 0, // offset to bool field (8)
+          // alignment
+          0,0,0,0
         },
         builder.SizedByteArraySegment());
     }

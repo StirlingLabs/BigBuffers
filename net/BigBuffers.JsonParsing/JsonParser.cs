@@ -355,6 +355,10 @@ namespace BigBuffers.JsonParsing
         var s = (IBigBufferStruct)Entity;
         Builder.Prep(s.Alignment, s.ByteSize);
       }
+      else
+      {
+        Builder.Prep(sizeof(ulong), 0);
+      }
       Entity.Model = new(Builder.ByteBuffer, Builder.Offset);
     }
 
@@ -435,7 +439,7 @@ namespace BigBuffers.JsonParsing
       var parentParser = parser.Parent;
       Debug.Assert(parentParser != null, nameof(parentParser) + " != null");
 
-      if (!parentParser.IsInline) return;
+      if (!parentParser!.IsInline) return;
 
       var parentEntity = parentParser.Entity;
       var parentOffset = parentEntity.Model.Offset;
@@ -459,6 +463,11 @@ namespace BigBuffers.JsonParsing
 
     public T Parse(JsonElement element)
     {
+#if DEBUG
+      var unfilledCount = 0;
+      if (!_hasParent)
+        Placeholder.GetUnfilledCount(Builder, out unfilledCount);
+#endif
       try
       {
         if (IfType<T>.IsAssignableTo<IBigBufferTable>())
@@ -497,7 +506,7 @@ namespace BigBuffers.JsonParsing
           while (DeferredQueue.TryDequeue(out var filler))
             filler();
 
-          Placeholder.ValidateAllFilled(Builder);
+          Placeholder.ValidateUnfilledCount(Builder, unfilledCount);
         }
       }
       finally
