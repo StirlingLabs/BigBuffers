@@ -33,12 +33,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
+using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers
 {
-  /// <summary>
-  /// Class to mimic Java's ByteBuffer which is used heavily in Flatbuffers.
-  /// </summary>
   [DebuggerTypeProxy(typeof(ByteBufferDebugger))]
   public struct ByteBuffer : IEquatable<ByteBuffer>
   {
@@ -462,10 +460,26 @@ namespace BigBuffers
 
     public static bool operator !=(ByteBuffer left, ByteBuffer right)
       => !left.Equals(right);
-    
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe ref ByteBuffer UnsafeSelfReference()
       => ref Unsafe.AsRef<ByteBuffer>(Unsafe.AsPointer(ref Unsafe.AsRef(this)));
+
+    public static ulong AlignOf<T>()
+      => IfType<T>.IsPrimitive()
+        ? SizeOf<T>()
+        : IfType<T>.IsAssignableTo<IBigBufferStruct>()
+          ? TypeAlignments.GetOrAdd(typeof(T), GetAlignment)
+          : sizeof(ulong);
+
+    private static ulong GetAlignment(Type t)
+      => (ulong)Info.OfMethod<ByteBuffer>("GetAlignment").MakeGenericMethod(t).Invoke(null, null)!;
+
+    private static readonly ConcurrentDictionary<Type, ulong> TypeAlignments = new();
+
+    private ulong GetAlignment<T>()
+      where T : struct, IBigBufferStruct
+      => Unsafe.NullRef<T>().Alignment;
   }
 }

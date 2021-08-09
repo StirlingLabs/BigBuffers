@@ -25,7 +25,7 @@
     <ProjectReference Include="..\BigBuffers.JsonParsing\BigBuffers.JsonParsing.csproj" />
     <ProjectReference Include="..\BigBuffers.Tests.GeneratedFixture\BigBuffers.Tests.GeneratedFixture.csproj" />
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
-    <PackageReference Include="StirlingLabs.BigSpans" Version="21.7.3" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.0" />
     <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="21.7.0" />
     <ProjectReference Include="..\BigBuffers.Tests.Monster\BigBuffers.Tests.Monster.csproj" />
   </ItemGroup>

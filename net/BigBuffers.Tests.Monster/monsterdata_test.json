@@ -37,7 +37,9 @@
     "test1",
     "test2"
   ],
-  "testarrayofbools":[
-    true, false, true
+  "testarrayofbools": [
+    true,
+    false,
+    true
   ]
 }

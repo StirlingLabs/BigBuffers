@@ -49,7 +49,7 @@ namespace BigBuffers.Tests
       var ot = Generated.Test.EndTest(bb);
       ot.Value.Should().Be(0uL);
 
-      bb.Offset.Should().Be(8 + 32 + 3 * 2);
+      bb.Offset.Should().Be(8 + 32 + 3 * 2 + /*alignment*/2);
 
       var t = Generated.Test.GetRootAsTest(bb.ByteBuffer);
 

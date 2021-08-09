@@ -41,7 +41,6 @@ namespace BigBuffers
     public ulong Space => _bb.LongLength - Offset;
 
     private ByteBuffer _bb;
-    private ulong _minAlign = 1;
 
     public ulong Offset { get; set; }
 
@@ -79,6 +78,14 @@ namespace BigBuffers
       buffer.Reset();
     }
 
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void IsAtLeastMinimumAlignment(ulong offset, ulong alignment)
+    {
+      if ((offset & (alignment - 1)) != 0)
+        throw new("Offset is not at least minimally aligned.");
+    }
+
 
     internal void PushVectorStart(ulong start, ulong elemSize)
       => _vectorStarts.Push((start, elemSize));
@@ -97,7 +104,6 @@ namespace BigBuffers
     {
       Offset = 0;
       _bb.Reset();
-      _minAlign = 1;
       while (_vtableUsed > 0) _vtable[--_vtableUsed] = 0;
       _vtableUsed = 0;
       _tableStart = 0;
@@ -133,7 +139,9 @@ namespace BigBuffers
     };
 
     private bool _tableStarted;
-    private ulong _sizePrefixOffset;
+    private Placeholder _tableStartPlaceholder;
+    private Placeholder _rootPlaceholder;
+    private Placeholder _sizePrefixPlaceholder;
 
     void GrowBuffer(ulong needed)
     {
@@ -156,6 +164,10 @@ namespace BigBuffers
       _bb.Resize(size);
     }
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsPow2(ulong value) => (value & (value - 1uL)) == 0uL && value != 0uL;
+
     // Prepare to write an element of `align` after `size`
     // have been written, e.g. if you write a string, you need to align
     // such the int length field is aligned to SIZEOF_INT, and the string
@@ -164,27 +176,29 @@ namespace BigBuffers
     public void Prep(ulong align, ulong size)
     {
       Debug.Assert(align != 0);
-      // Track the biggest thing we've ever aligned to.
-      if (align > _minAlign)
-        _minAlign = align;
-      // Find the amount of alignment needed such that `size` is properly
-      // aligned after `additional_bytes`
-      var alignSize =
-        ((~(_bb.LongLength - Space + size)) + 1) &
-        (align - 1);
+      Debug.Assert(IsPow2(align));
+      var alignBits = align - 1;
+      var alignPaddingNeeded =
+        (align - (Offset & alignBits)) & alignBits;
       // Reallocate the buffer if needed.
-      var needed = alignSize + align + size;
+      var needed = alignPaddingNeeded + align + size;
       if (Space < needed)
         GrowBuffer(needed);
-      if (alignSize > 0)
-        Pad(alignSize);
+      if (alignPaddingNeeded > 0)
+        Pad(alignPaddingNeeded);
     }
 
     public ulong Put<T>(T x)
-      => Offset += _bb.Put(Offset, x);
+    {
+      IsAtLeastMinimumAlignment(Offset, (ulong)SizeOf<T>.Value);
+      return Offset += _bb.Put(Offset, x);
+    }
 
     public ulong Put<T>(in T x)
-      => Offset += _bb.Put(Offset, in x);
+    {
+      IsAtLeastMinimumAlignment(Offset, (ulong)SizeOf<T>.Value);
+      return Offset += _bb.Put(Offset, in x);
+    }
 
     /// <summary>
     /// Puts an array of type <typeparamref name="T"/> into this builder at the
@@ -194,7 +208,10 @@ namespace BigBuffers
     /// <param name="x">The array to copy data from</param>
     public ulong Put<T>(T[] x)
       where T : unmanaged
-      => Offset += _bb.Put(Offset, x);
+    {
+      IsAtLeastMinimumAlignment(Offset, (ulong)SizeOf<T>.Value);
+      return Offset += _bb.Put(Offset, x);
+    }
 
     /// <summary>
     /// Puts a span of type <typeparamref name="T"/> into this builder at the
@@ -204,7 +221,10 @@ namespace BigBuffers
     /// <param name="x">The span to copy data from</param>
     public ulong Put<T>(ReadOnlySpan<T> x)
       where T : unmanaged
-      => Offset += _bb.Put<T>(Offset, x);
+    {
+      IsAtLeastMinimumAlignment(Offset, (ulong)SizeOf<T>.Value);
+      return Offset += _bb.Put<T>(Offset, x);
+    }
 
     /// <summary>
     /// Puts a span of type <typeparamref name="T"/> into this builder at the
@@ -213,7 +233,10 @@ namespace BigBuffers
     /// <typeparam name="T">The type of the input data </typeparam>
     /// <param name="x">The span to copy data from</param>
     public ulong Put<T>(ReadOnlyBigSpan<T> x)
-      => Offset += _bb.Put(Offset, x);
+    {
+      IsAtLeastMinimumAlignment(Offset, (ulong)SizeOf<T>.Value);
+      return Offset += _bb.Put(Offset, x);
+    }
 
     public ulong Add<T>(T x) where T : unmanaged
     {
@@ -346,6 +369,7 @@ namespace BigBuffers
       // Write placeholder for vtable offset
       Add(PlaceholderOffset);
       _tableStart = Offset - sizeof(ulong);
+      _tableStartPlaceholder = new(this, _tableStart);
       _tableStarted = true;
     }
 
@@ -353,8 +377,10 @@ namespace BigBuffers
     /// Set the current vtable at <paramref name="vOffset"/> to the current location in the
     /// buffer.
     /// </summary>
-    public void Slot(ulong vOffset, ulong size = 0)
+    public void Slot<T>(ulong vOffset, ulong size = 0)
     {
+      Prep(ByteBuffer.AlignOf<T>(), 0);
+
       if (vOffset >= _vtableUsed)
         throw new ArgumentOutOfRangeException(nameof(vOffset));
 
@@ -378,7 +404,7 @@ namespace BigBuffers
         if (valueSpan.SequenceEqual(defaultSpan))
           return;
       }
-      Slot(o);
+      Slot<T>(o);
       Add(value);
     }
 
@@ -394,13 +420,13 @@ namespace BigBuffers
     {
       if (ForceDefaults)
       {
-        Slot(o);
+        Slot<T>(o);
         Add(x ?? default(T));
       }
       else
       {
         if (!x.HasValue) return;
-        Slot(o);
+        Slot<T>(o);
         Add(x.Value);
       }
     }
@@ -429,9 +455,9 @@ namespace BigBuffers
         return new(0);
       NotNested();
       var strLen = (ulong)Encoding.UTF8.GetByteCount(value);
-      NotNested();
       Prep(sizeof(ulong), strLen + 1);
       var start = Offset;
+      IsAtLeastMinimumAlignment(start, sizeof(ulong));
       Put(strLen);
       Offset += _bb.PutStringUtf8(Offset, strLen, value);
       Add<byte>(0);
@@ -446,12 +472,14 @@ namespace BigBuffers
 
     public StringOffset MarkStringPlaceholder(out Placeholder placeholder)
     {
+      IsAtLeastMinimumAlignment(Offset, sizeof(ulong));
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
 
     public VectorOffset MarkVectorPlaceholder(out Placeholder placeholder)
     {
+      IsAtLeastMinimumAlignment(Offset, sizeof(ulong));
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
@@ -459,33 +487,34 @@ namespace BigBuffers
     public Offset<T> MarkOffsetPlaceholder<T>(out Placeholder<T> placeholder)
       where T : struct, IBigBufferEntity
     {
+      IsAtLeastMinimumAlignment(Offset, sizeof(ulong));
       placeholder = new(this, Offset);
       return new(PlaceholderOffset);
     }
 
     public StringOffset AddStringPlaceholder(out Placeholder placeholder)
     {
-      placeholder = new(this, Offset);
       Prep(sizeof(ulong), sizeof(ulong));
+      var offset = MarkStringPlaceholder(out placeholder);
       Put(PlaceholderOffset);
-      return new(PlaceholderOffset);
+      return offset;
     }
 
     public VectorOffset AddVectorPlaceholder(out Placeholder placeholder)
     {
-      placeholder = new(this, Offset);
       Prep(sizeof(ulong), sizeof(ulong));
+      var offset = MarkVectorPlaceholder(out placeholder);
       Put(PlaceholderOffset);
-      return new(PlaceholderOffset);
+      return offset;
     }
 
     public Offset<T> AddOffsetPlaceholder<T>(out Placeholder<T> placeholder)
       where T : struct, IBigBufferEntity
     {
-      placeholder = new(this, Offset);
       Prep(sizeof(ulong), sizeof(ulong));
+      var offset = MarkOffsetPlaceholder(out placeholder);
       Put(PlaceholderOffset);
-      return new(PlaceholderOffset);
+      return offset;
     }
 
     /// <summary>
@@ -499,11 +528,12 @@ namespace BigBuffers
     public StringOffset WriteString(BigSpan<byte> chars)
     {
       NotNested();
-      Add<byte>(0);
       var utf8StringLen = (ulong)chars.Length;
       StartVector(1, utf8StringLen);
+      IsAtLeastMinimumAlignment(Offset, sizeof(ulong));
       Offset += _bb.Put<byte>(Offset, chars);
-      return new(EndVector(1).Value);
+      Add<byte>(0);
+      return new(EndVector().Value);
     }
 
     /// <summary>
@@ -525,7 +555,7 @@ namespace BigBuffers
       if (x == d) return;
 
       Nested(x + size);
-      Slot(vOffset, size);
+      Slot<ulong>(vOffset, size);
     }
 
     private void FinishVTable()
@@ -546,9 +576,7 @@ namespace BigBuffers
         throw new InvalidOperationException
           ("BigBuffers: calling EndTable without a StartTable");
 
-      var paddingBytes = sizeof(ulong) - (Offset & (sizeof(ulong) - 1));
-      if (paddingBytes < sizeof(ulong))
-        Pad(paddingBytes);
+      Prep(sizeof(ulong), 0);
 
       var vtableStart = Offset;
 
@@ -572,7 +600,8 @@ namespace BigBuffers
           // Remove the current vtable.
           Offset = vtableStart;
           // Point table to existing vtable.
-          _bb.Put(_tableStart, _tableStart - existingVtable);
+          //_bb.Put(_tableStart, _tableStart - existingVtable);
+          _tableStartPlaceholder.FillOffsetValue(_tableStart - existingVtable);
 
           FinishVTable();
 
@@ -607,7 +636,10 @@ namespace BigBuffers
 
       _writtenVTables.Add(vtableStart);
       // Point table to current vtable.
-      _bb.Put(_tableStart, _tableStart - vtableStart);
+      //_bb.Put(_tableStart, _tableStart - vtableStart);
+      _tableStartPlaceholder.FillOffsetValue(_tableStart - vtableStart);
+
+      Prep(sizeof(ulong), 0);
 
       FinishVTable();
 
@@ -759,11 +791,12 @@ namespace BigBuffers
       var sizePrefixSize = sizePrefix ? sizeof(ulong) : 0uL;
       var sizeOfHeader = sizeof(ulong) + sizePrefixSize + Constants.FileIdentifierLength;
 
+      _rootPlaceholder = new(this, Offset);
       Prep(sizeof(ulong), sizeOfHeader);
       Add(Offset + sizeOfHeader);
       if (sizePrefix)
       {
-        _sizePrefixOffset = Offset;
+        _sizePrefixPlaceholder = new(this,Offset);
         Add(PlaceholderOffset);
       }
       {
@@ -779,6 +812,9 @@ namespace BigBuffers
 
     protected void Begin(bool sizePrefix)
     {
+      if (_rootPlaceholder.IsUnfilled)
+        throw new InvalidOperationException("Buffer root has already been created.");
+
       var sizePrefixSize = sizePrefix ? sizeof(ulong) : 0uL;
       var sizeOfHeader = sizeof(ulong) + sizePrefixSize;
 
@@ -786,25 +822,29 @@ namespace BigBuffers
       Add(Offset + sizeOfHeader);
       if (sizePrefix)
       {
-        _sizePrefixOffset = Offset;
+        _sizePrefixPlaceholder = new(this, Offset);
         Add(PlaceholderOffset);
       }
       Prep(sizeof(ulong), 12);
     }
 
-    public void Finish()
+    public void Finish<T>(Offset<T> offset)
+      where T : struct, IBigBufferEntity
     {
-      if (_sizePrefixOffset != 0)
+      if (_sizePrefixPlaceholder.IsUnfilled)
         throw new InvalidOperationException
           ("A size prefix was requested and thus must be provided upon finishing a buffer.");
+      _rootPlaceholder.FillOffset(offset);
     }
-    public void FinishSizePrefixed()
+    public void FinishSizePrefixed<T>(Offset<T> offset)
+      where T : struct, IBigBufferEntity
     {
-      if (_sizePrefixOffset == 0)
+      if (_sizePrefixPlaceholder.IsUnfilled)
         throw new InvalidOperationException
           ("No size prefix was requested and thus must not be provided upon finishing a buffer.");
 
-      ByteBuffer.Put(_sizePrefixOffset, Offset - _sizePrefixOffset);
+      _rootPlaceholder.FillOffset(offset);
+      _sizePrefixPlaceholder.FillValue(Offset);
     }
 
     /// <summary>
@@ -829,7 +869,8 @@ namespace BigBuffers
     public void BeginSizePrefixed(string fileIdentifier)
       => Begin(fileIdentifier, true);
 
-    public void WriteOffset<T>(Offset<T> offset) where T : struct, IBigBufferEntity
+    public void WriteOffset<T>(Offset<T> offset)
+      where T : struct, IBigBufferEntity
     {
       Prep(sizeof(ulong), sizeof(ulong));
       Put(offset.Value - Offset);
