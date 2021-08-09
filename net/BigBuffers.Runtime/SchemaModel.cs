@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 
 namespace BigBuffers
@@ -10,9 +12,18 @@ namespace BigBuffers
       where TModel : struct, IBigBufferEntity
       => ref model.Model;
 
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void IsAtLeastMinimumAlignment(ulong offset, ulong alignment)
+    {
+      if ((offset & (alignment - 1)) != 0)
+        throw new("Offset is not at least minimally aligned.");
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref readonly Model __init(ref this Model bb, ulong table, in ByteBuffer buffer)
     {
+      IsAtLeastMinimumAlignment(table, sizeof(ulong));
       bb = new(buffer, table);
       return ref bb;
     }
@@ -32,7 +43,9 @@ namespace BigBuffers
     {
       ref readonly var bb = ref model.ByteBuffer;
       ref readonly var table = ref model.Offset;
+      IsAtLeastMinimumAlignment(table, sizeof(ulong));
       var vtable = table - bb.Get<ulong>(table);
+      IsAtLeastMinimumAlignment(vtable, sizeof(ushort));
       return vtable;
     }
 
@@ -42,6 +55,7 @@ namespace BigBuffers
       ref readonly var bb = ref model.ByteBuffer;
       var vtable = __vtable(ref model);
       if (FieldWasTrimmed(bb, vtable, vtableOffset)) return 0;
+      IsAtLeastMinimumAlignment(vtable + vtableOffset, sizeof(ushort));
       var offset = bb.Get<ushort>(vtable + vtableOffset);
       return offset;
     }
@@ -52,7 +66,11 @@ namespace BigBuffers
       // TODO: verify
       var vtable = bb.Get<ulong>(table);
       if (FieldWasTrimmed(bb, vtable, vtableOffset)) return 0;
-      return bb.Get<ushort>(table + vtableOffset - vtable) + table;
+      IsAtLeastMinimumAlignment(vtable + vtableOffset, sizeof(ushort));
+      var vtableField = table + vtableOffset - vtable;
+      IsAtLeastMinimumAlignment(vtableField, sizeof(ushort));
+      var offset = bb.Get<ushort>(vtableField) + table;
+      return offset;
     }
 
     private static bool FieldWasTrimmed(in ByteBuffer bb, ulong vtable, ulong offset)
@@ -65,7 +83,10 @@ namespace BigBuffers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong __indirect(in this ByteBuffer bb, ulong offset)
-      => offset + bb.Get<ulong>(offset);
+    {
+      IsAtLeastMinimumAlignment(offset, sizeof(ulong));
+      return offset + bb.Get<ulong>(offset);
+    }
 
     // Create a .NET String from UTF-8 data stored inside the flatbuffer.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -73,8 +94,9 @@ namespace BigBuffers
     {
       ref readonly var bb = ref model.ByteBuffer;
       //ref readonly var table = ref model.Offset;
-      var field = offset;
-      var indirection = field + bb.Get<ulong>(field);
+      IsAtLeastMinimumAlignment(offset, sizeof(ulong));
+      var indirection = offset + bb.Get<ulong>(offset);
+      IsAtLeastMinimumAlignment(indirection, sizeof(ulong));
       var strLen = bb.Get<ulong>(indirection);
       var strStart = indirection + sizeof(ulong);
       return bb.GetStringUtf8(strStart, (int)strLen);
@@ -87,7 +109,9 @@ namespace BigBuffers
       ref readonly var bb = ref model.ByteBuffer;
       ref readonly var table = ref model.Offset;
       var field = offset + table;
+      IsAtLeastMinimumAlignment(field, sizeof(ulong));
       var indirection = field + bb.Get<ulong>(field);
+      IsAtLeastMinimumAlignment(indirection, sizeof(ulong));
       return bb.Get<ulong>(indirection);
     }
 
@@ -98,9 +122,10 @@ namespace BigBuffers
       ref readonly var bb = ref model.ByteBuffer;
       ref readonly var table = ref model.Offset;
       var field = offset + table;
+      IsAtLeastMinimumAlignment(field, sizeof(ulong));
       var indirection = field + bb.Get<ulong>(field);
-      var startPos = indirection + sizeof(ulong);
-      return startPos;
+      IsAtLeastMinimumAlignment(indirection, sizeof(ulong));
+      return indirection + sizeof(ulong);
     }
 
     // Initialize any Table-derived type to point to the union at the given offset.

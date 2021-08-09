@@ -1500,7 +1500,7 @@ class CSharpGenerator : public BaseGenerator {
                   "  public static void Finish" + size_prefix[i] + struct_def.name;
 
           code += "Buffer(BigBufferBuilder builder, " + GenOffsetType(struct_def) + " offset) {"
-                  "  builder.Finish" + size_prefix[i] + "(); }\n";
+                  "  builder.Finish" + size_prefix[i] + "(offset); }\n";
         }
       }
     }
