@@ -1,4 +1,5 @@
 #nullable enable
+#define DEFERRED_IS_COMPLICATED
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -304,9 +305,9 @@ namespace BigBuffers.JsonParsing
 
     private readonly bool _hasParent;
 
-    internal ConcurrentQueue<Action> DeferredQueue { get; }
+    internal IProducerConsumerCollection<Action> DeferredActions { get; }
 
-    ConcurrentQueue<Action> IJsonParser.DeferredQueue => DeferredQueue;
+    IProducerConsumerCollection<Action> IJsonParser.DeferredActions => DeferredActions;
 
 #if DEBUG
     public List<Expression> ExpressionsTaken { get; }
@@ -325,7 +326,42 @@ namespace BigBuffers.JsonParsing
       Builder = builder;
       IsInline = typeof(IBigBufferStruct).IsAssignableFrom(typeof(T));
       _hasParent = false;
-      DeferredQueue = new();
+#if DEFERRED_IS_QUEUE
+      DeferredActions = new ConcurrentQueue<Action>();
+#elif DEFERRED_IS_STACK
+      DeferredActions = new ConcurrentStack<Action>();
+#elif DEFERRED_IS_BAG
+      DeferredActions = new ConcurrentBag<Action>();
+#elif DEFERRED_IS_COMPLICATED
+      // these get pulled into the closures, so lifetime is maintained properly
+      IProducerConsumerCollection<Action> elements = new ConcurrentQueue<Action>();
+      IProducerConsumerCollection<Action> strings = new ConcurrentQueue<Action>();
+      MethodInfo? parseAndFillStringLambda = null;
+      DeferredActions = DeferredProducerConsumerCollection.Create(
+        (in Action a) => {
+          var method = a.Method;
+
+          // diagnose strings
+          if (parseAndFillStringLambda is null)
+          {
+            if (method.Name.Contains("ParseAndFillString"))
+            {
+              parseAndFillStringLambda = method;
+              return strings.TryAdd(a);
+            }
+          }
+          else if (method == parseAndFillStringLambda)
+            return strings.TryAdd(a);
+
+          // all others
+          return elements.TryAdd(a);
+        },
+        (out Action a) =>
+          elements.TryTake(out a!)
+          || strings.TryTake(out a!),
+        false
+      );
+#endif
 #if DEBUG
       ExpressionsTaken = new();
 #endif
@@ -344,7 +380,7 @@ namespace BigBuffers.JsonParsing
       IsInline = parent.IsInline ||
         typeof(IBigBufferStruct).IsAssignableFrom(typeof(T));
       _hasParent = true;
-      DeferredQueue = parent.DeferredQueue;
+      DeferredActions = parent.DeferredActions;
 #if DEBUG
       Parent = parent;
       ExpressionsTaken = parent.ExpressionsTaken;
@@ -368,7 +404,7 @@ namespace BigBuffers.JsonParsing
       IsInline = parent.IsInline ||
         typeof(IBigBufferStruct).IsAssignableFrom(typeof(T));
       _hasParent = true;
-      DeferredQueue = parent.DeferredQueue;
+      DeferredActions = parent.DeferredActions;
 #if DEBUG
       Parent = parent;
       ExpressionsTaken = parent.ExpressionsTaken;
@@ -382,7 +418,7 @@ namespace BigBuffers.JsonParsing
 #endif
 
     internal void ParseAndFillString(JsonElement item, Placeholder placeholder)
-      => DeferredQueue.Enqueue(() => placeholder.Fill(item.GetString()));
+      => DeferredActions.TryAdd(() => placeholder.Fill(item.GetString()));
 
     internal static readonly MethodInfo ParseAndFillStringMethodInfo
       = typeof(JsonParser<T>).GetMethod(nameof(ParseAndFillString), AnyAccessBindingFlags | BindingFlags.Instance | BindingFlags.DeclaredOnly)!;
@@ -503,7 +539,7 @@ namespace BigBuffers.JsonParsing
 
         if (!_hasParent)
         {
-          while (DeferredQueue.TryDequeue(out var filler))
+          while (DeferredActions.TryTake(out var filler))
             filler();
 
           Placeholder.ValidateUnfilledCount(Builder, unfilledCount);
@@ -514,12 +550,19 @@ namespace BigBuffers.JsonParsing
         if (!_hasParent)
         {
 #if NETSTANDARD2_0
-          while (DeferredQueue.TryDequeue(out var filler))
-          {
-            /*clear; pop everything*/
-          }
+          // @formatter:off
+          while (DeferredActions.TryTake(out _)) { /* clearing */ }
+          // @formatter:on
 #else
-          DeferredQueue.Clear();
+          switch (DeferredActions)
+          {
+            // @formatter:off
+            case ConcurrentQueue<Action> cq: cq.Clear(); break;
+            case ConcurrentStack<Action> cs: cs.Clear(); break;
+            case ConcurrentBag<Action> cb: cb.Clear(); break;
+            default: while (DeferredActions.TryTake(out _)) { /* clearing */ } break;
+            // @formatter:on
+          }
 #endif
         }
       }
