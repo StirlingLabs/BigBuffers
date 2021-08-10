@@ -39,6 +39,7 @@ namespace BigBuffers.Tests
     [Theory]
     public static void WriteMonsterDataTest(bool validate)
     {
+      //BigBufferBuilder.EnableAlignmentPadding = false;
 
       var jsonRoot = MonsterDataTestJsonDoc.RootElement;
 

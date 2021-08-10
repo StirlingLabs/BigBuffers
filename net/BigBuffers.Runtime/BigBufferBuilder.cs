@@ -24,6 +24,8 @@ using System.Text;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 
+using static BigBuffers.Debug;
+
 namespace BigBuffers
 {
   /// <summary>
@@ -35,6 +37,7 @@ namespace BigBuffers
   public class BigBufferBuilder
   {
     public static bool UseExistingVTables = true;
+    public static bool EnableAlignmentPadding = true;
 
     internal const ulong PlaceholderOffset = unchecked((ulong)long.MinValue);
 
@@ -76,14 +79,6 @@ namespace BigBuffers
     {
       _bb = buffer;
       buffer.Reset();
-    }
-
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void IsAtLeastMinimumAlignment(ulong offset, ulong alignment)
-    {
-      if ((offset & (alignment - 1)) != 0)
-        throw new("Offset is not at least minimally aligned.");
     }
 
 
@@ -179,7 +174,9 @@ namespace BigBuffers
       Debug.Assert(IsPow2(align));
       var alignBits = align - 1;
       var alignPaddingNeeded =
-        (align - (Offset & alignBits)) & alignBits;
+        EnableAlignmentPadding ?
+        (align - (Offset & alignBits)) & alignBits
+        : 0;
       // Reallocate the buffer if needed.
       var needed = alignPaddingNeeded + align + size;
       if (Space < needed)

@@ -39,7 +39,7 @@ namespace BigBuffers.JsonParsing
       else if (IfType<TVector>.Is<float>()) ParseSingles(element, items);
       else if (IfType<TVector>.Is<double>()) ParseDoubles(element, items);
       else throw new NotImplementedException(typeof(TVector).ToString());
-      _parser.DeferredQueue.Enqueue(() => _filler(_placeholder, items));
+      Runtime.Assert(_parser.DeferredActions.TryAdd(() => _filler(_placeholder, items)));
     }
     private static void ParseBooleans(JsonElement element, TVector[] items)
     {

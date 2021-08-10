@@ -1,6 +1,7 @@
 #nullable enable
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
 namespace BigBuffers
@@ -24,6 +25,15 @@ namespace BigBuffers
     {
       if (condition) return;
       throw new(reason ?? "Assertion failed.");
+    }
+
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void IsAtLeastMinimumAlignment(ulong offset, ulong alignment)
+    {
+      if (!BigBufferBuilder.EnableAlignmentPadding) return;
+      if ((offset & (alignment - 1)) != 0)
+        throw new("Offset is not at least minimally aligned.");
     }
   }
 }

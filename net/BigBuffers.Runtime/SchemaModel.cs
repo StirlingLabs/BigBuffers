@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 
+using static BigBuffers.Debug;
+
 namespace BigBuffers
 {
   public static class SchemaModel
@@ -11,14 +13,6 @@ namespace BigBuffers
     internal static ref Model Model<TModel>(ref this TModel model)
       where TModel : struct, IBigBufferEntity
       => ref model.Model;
-
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void IsAtLeastMinimumAlignment(ulong offset, ulong alignment)
-    {
-      if ((offset & (alignment - 1)) != 0)
-        throw new("Offset is not at least minimally aligned.");
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref readonly Model __init(ref this Model bb, ulong table, in ByteBuffer buffer)

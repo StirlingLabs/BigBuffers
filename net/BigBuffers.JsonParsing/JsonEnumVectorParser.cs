@@ -19,7 +19,7 @@ namespace BigBuffers.JsonParsing
     }
 
     public void Parse(JsonElement element)
-      => _model.DeferredQueue.Enqueue(
+      => Runtime.Assert(_model.DeferredActions.TryAdd(
         () => {
 
           var items = new TEnum[element.GetArrayLength()];
@@ -49,6 +49,6 @@ namespace BigBuffers.JsonParsing
           }
 
           _placeholder.Fill(items);
-        });
+        }));
   }
 }
