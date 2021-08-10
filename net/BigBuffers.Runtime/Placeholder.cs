@@ -10,6 +10,8 @@ using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Magic;
 
+using static BigBuffers.Debug;
+
 namespace BigBuffers
 {
   [PublicAPI]
@@ -25,15 +27,6 @@ namespace BigBuffers
 
     internal BigBufferBuilder Builder;
     internal readonly ulong Offset;
-
-
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void IsAtLeastMinimumAlignment(ulong offset, ulong alignment)
-    {
-      if ((offset & (alignment - 1)) != 0)
-        throw new("Offset is not at least minimally aligned.");
-    }
 
     public Placeholder(BigBufferBuilder builder, ulong offset)
     {

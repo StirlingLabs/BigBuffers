@@ -11,7 +11,7 @@ namespace BigBuffers.JsonParsing
   {
     BigBufferBuilder Builder { get; }
 
-    ConcurrentQueue<Action> DeferredQueue { get; }
+    IProducerConsumerCollection<Action> DeferredActions { get; }
 
     bool IsInline { get; }
 

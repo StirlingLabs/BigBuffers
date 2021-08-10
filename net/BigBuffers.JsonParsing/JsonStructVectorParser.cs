@@ -17,7 +17,7 @@ namespace BigBuffers.JsonParsing
     }
 
     public void Parse(JsonElement element)
-      => _parser.DeferredQueue.Enqueue(() => {
+      => Runtime.Assert(_parser.DeferredActions.TryAdd(() => {
         _placeholder.FillInline(() => {
           var items = new Offset<TVector>[element.GetArrayLength()];
           var builder = _parser.Builder;
@@ -35,6 +35,6 @@ namespace BigBuffers.JsonParsing
 
           return items;
         });
-      });
+      }));
   }
 }
