@@ -13,6 +13,10 @@ table Test (fs_serializer:"Lazy", csharp_partial) {
   hash:Hash;
 }
 
+table KeyedTable {
+  x:Hash (required, key);
+}
+
 struct StructA {
 	x:ulong;
 }
@@ -110,3 +114,10 @@ table TableS {
   y:[string];
 }
 
+table ULongKeyedTable {
+  x:ulong (key);
+}
+
+table StringKeyedTable {
+  x:string (key);
+}
