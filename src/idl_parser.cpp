@@ -881,7 +881,7 @@ CheckedError Parser::ParseField(StructDef &struct_def) {
   // Nonscalars are kOptional unless required;
   field->key = field->attributes.Lookup("key") != nullptr;
   const bool required = field->attributes.Lookup("required") != nullptr ||
-                        (IsString(type) && field->key);
+                        ((IsString(type) || IsStruct(type)) && field->key);
   const bool default_str_or_vec =
       ((IsString(type) || IsVector(type)) && field->value.constant != "0");
   const bool optional = IsScalar(type.base_type)

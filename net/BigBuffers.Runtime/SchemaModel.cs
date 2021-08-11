@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
-
 using static BigBuffers.Debug;
 
 namespace BigBuffers
@@ -274,13 +273,19 @@ namespace BigBuffers
       if (c != 0) return c;
       return len1 < len2 ? -1 : len1 > len2 ? 1 : 0;
     }
-    
-    
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BigSpan<byte> GetByteSpan<T>(ref this T entity)
       where T : struct, IBigBufferStruct
-      => BigSpan.Create(ref entity.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize);
+      => entity.IsValid()
+        ? BigSpan.Create(ref entity.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize)
+        : default;
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsValid<T>(ref this T entity)
+      where T : struct, IBigBufferEntity
+      => entity.ByteBuffer.Buffer is not null;
   }
 }
