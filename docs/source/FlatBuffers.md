@@ -107,7 +107,7 @@ sections provide a more in-depth usage guide.
     Fields are optional and have defaults, so they don't need to be
     present for every object instance.
 
--   Use `flatc` (the FlatBuffer compiler) to generate a C++ header (or
+-   Use `bufc` (the FlatBuffer compiler) to generate a C++ header (or
     Java/Kotlin/C#/Go/Python.. classes) with helper classes to access and construct
     serialized data. This header (say `mydata_generated.h`) only depends on
     `flatbuffers.h`, which defines the core functionality.

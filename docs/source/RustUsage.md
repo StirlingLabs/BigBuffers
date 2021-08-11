@@ -18,7 +18,7 @@ and [Writing a schema](@ref flatbuffers_guide_writing_schema).
 
 Assuming you wrote a schema, say `mygame.fbs` (though the extension doesn't
 matter), you've generated a Rust file called `mygame_generated.rs` using the
-compiler (e.g. `flatc --rust mygame.fbs` or via helpers listed in "Useful
+compiler (e.g. `bufc --rust mygame.fbs` or via helpers listed in "Useful
 tools created by others" section bellow), you can now start using this in
 your program by including the file. As noted, this header relies on the crate
 `flatbuffers`, which should be in your include `Cargo.toml`.
@@ -35,7 +35,7 @@ The code to test the Rust library can be found at `flatbuffers/tests/rust_usage_
 The test code itself is located in
 [integration_test.rs](https://github.com/google/flatbuffers/blob/master/tests/rust_usage_test/tests/integration_test.rs)
 
-This test file requires `flatc` to be present. To review how to build the project,
+This test file requires `bufc` to be present. To review how to build the project,
 please read the [Building](@ref flatbuffers_guide_building) documenation.
 
 To run the tests, execute `RustTest.sh` from the `flatbuffers/tests` directory.
@@ -53,7 +53,7 @@ example of how to use FlatBuffers in Rust.*
 FlatBuffers supports both reading and writing FlatBuffers in Rust.
 
 To use FlatBuffers in your code, first generate the Rust modules from your
-schema with the `--rust` option to `flatc`. Then you can import both FlatBuffers
+schema with the `--rust` option to `bufc`. Then you can import both FlatBuffers
 and the generated code to read or write FlatBuffers.
 
 For example, here is how you would read a FlatBuffer binary file in Rust:
@@ -167,8 +167,8 @@ of a single buffer will be rare, and synchronisation overhead would be costly.
 
 ## Useful tools created by others
 
-* [flatc-rust](https://github.com/frol/flatc-rust) - FlatBuffers compiler
-(flatc) as API for transparent `.fbs` to `.rs` code-generation via Cargo
+* [bufc-rust](https://github.com/frol/bufc-rust) - FlatBuffers compiler
+(bufc) as API for transparent `.fbs` to `.rs` code-generation via Cargo
 build scripts integration.
 
 <br>

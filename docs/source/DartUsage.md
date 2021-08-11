@@ -10,7 +10,7 @@ This page is designed to cover the nuances of FlatBuffers usage, specific to
 Dart.
 
 You should also have read the [Building](@ref flatbuffers_guide_building)
-documentation to build `flatc` and should be familiar with
+documentation to build `bufc` and should be familiar with
 [Using the schema compiler](@ref flatbuffers_guide_using_schema_compiler) and
 [Writing a schema](@ref flatbuffers_guide_writing_schema).
 
@@ -40,7 +40,7 @@ example of how to use FlatBuffers in Dart.*
 FlatBuffers supports reading and writing binary FlatBuffers in Dart.
 
 To use FlatBuffers in your own code, first generate Dart classes from your
-schema with the `--dart` option to `flatc`. Then you can include both FlatBuffers
+schema with the `--dart` option to `bufc`. Then you can include both FlatBuffers
 and the generated code to read or write a FlatBuffer.
 
 For example, here is how you would read a FlatBuffer binary file in Dart: First,

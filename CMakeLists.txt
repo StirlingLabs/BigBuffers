@@ -23,7 +23,7 @@ option(FLATBUFFERS_BUILD_SHAREDLIB
 option(FLATBUFFERS_LIBCXX_WITH_CLANG "Force libc++ when using Clang" ON)
 # NOTE: Sanitizer check only works on Linux & OSX (gcc & llvm).
 option(FLATBUFFERS_CODE_SANITIZE
-      "Add '-fsanitize' flags to 'flattests' and 'flatc' targets."
+      "Add '-fsanitize' flags to 'flattests' and 'bufc' targets."
       OFF)
 option(FLATBUFFERS_PACKAGE_REDHAT
        "Build an rpm using the 'package' target."
@@ -39,7 +39,7 @@ option(FLATBUFFERS_BUILD_LEGACY
        "Run C++ code generator with '--cpp-std c++0x' switch."
        OFF)
 option(FLATBUFFERS_ENABLE_PCH
-       "Enable precompile headers support for 'flatbuffers' and 'flatc'. \"
+       "Enable precompile headers support for 'flatbuffers' and 'bufc'. \"
         Only work if CMake supports 'target_precompile_headers'. \"
         This can speed up compilation time."
        OFF)
@@ -348,23 +348,23 @@ if(FLATBUFFERS_BUILD_FLATLIB)
 endif()
 
 if(FLATBUFFERS_BUILD_FLATC)
-  add_executable(flatc ${FlatBuffers_Compiler_SRCS})
+  add_executable(bufc ${FlatBuffers_Compiler_SRCS})
   if(FLATBUFFERS_ENABLE_PCH)
-    add_pch_to_target(flatc include/flatbuffers/pch/flatc_pch.h)
+    add_pch_to_target(bufc include/flatbuffers/pch/flatc_pch.h)
   endif()
-  target_compile_options(flatc PRIVATE "${FLATBUFFERS_PRIVATE_CXX_FLAGS}")
+  target_compile_options(bufc PRIVATE "${FLATBUFFERS_PRIVATE_CXX_FLAGS}")
   if(FLATBUFFERS_CODE_SANITIZE AND NOT WIN32)
-    add_fsanitize_to_target(flatc ${FLATBUFFERS_CODE_SANITIZE})
+    add_fsanitize_to_target(bufc ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   if(NOT FLATBUFFERS_FLATC_EXECUTABLE)
-    set(FLATBUFFERS_FLATC_EXECUTABLE $<TARGET_FILE:flatc>)
+    set(FLATBUFFERS_FLATC_EXECUTABLE $<TARGET_FILE:bufc>)
   endif()
   if(MSVC)
-    # Make flatc.exe not depend on runtime dlls for easy distribution.
-    target_compile_options(flatc PUBLIC $<$<CONFIG:Release>:/MT>)
+    # Make bufc.exe not depend on runtime dlls for easy distribution.
+    target_compile_options(bufc PUBLIC $<$<CONFIG:Release>:/MT>)
   endif()
   if(FLATBUFFERS_STATIC_FLATC AND NOT MSVC)
-    target_link_libraries(flatc PRIVATE -static)
+    target_link_libraries(bufc PRIVATE -static)
   endif()
 endif()
 
@@ -408,7 +408,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   if(FLATBUFFERS_BUILD_LEGACY)
     set(OPT ${OPT};--cpp-std c++0x)
   else()
-    # --cpp-std is defined by flatc default settings.
+    # --cpp-std is defined by bufc default settings.
   endif()
   message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
@@ -422,7 +422,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
             -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
             -o "${SRC_FBS_DIR}"
             "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS flatc
+    DEPENDS bufc
     COMMENT "Run generation: '${GEN_HEADER}'")
   register_generated_output(${GEN_HEADER})
 endfunction()
@@ -444,7 +444,7 @@ function(compile_flatbuffers_schema_to_binary SRC_FBS)
             -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
             -o "${SRC_FBS_DIR}"
             "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS flatc
+    DEPENDS bufc
     COMMENT "Run generation: '${GEN_BINARY_SCHEMA}'")
   register_generated_output(${GEN_BINARY_SCHEMA})
 endfunction()
@@ -453,7 +453,7 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
   if(FLATBUFFERS_BUILD_LEGACY)
     set(OPT ${OPT};--cpp-std c++0x)
   else()
-    # --cpp-std is defined by flatc default settings.
+    # --cpp-std is defined by bufc default settings.
   endif()
   message(STATUS "`${SRC_FBS}`: add generation of C++ embedded binary schema code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
@@ -470,7 +470,7 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
           -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
           -o "${SRC_FBS_DIR}"
           "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-          DEPENDS flatc
+          DEPENDS bufc
           COMMENT "Run generation: '${GEN_BFBS_HEADER}'")
   register_generated_output(${GEN_BFBS_HEADER})
 endfunction()
@@ -594,7 +594,7 @@ if(FLATBUFFERS_INSTALL)
 
   if(FLATBUFFERS_BUILD_FLATC)
     install(
-      TARGETS flatc EXPORT FlatcTargets
+      TARGETS bufc EXPORT FlatcTargets
       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 

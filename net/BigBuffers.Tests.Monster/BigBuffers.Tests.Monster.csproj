@@ -61,16 +61,16 @@
     
     <Delete Files="@(FilesToDelete)" />
     
-    <!-- locate flatc and schema files -->
+    <!-- locate bufc and schema files -->
     <ItemGroup>
-      <LocOfFlatC Include="../../cmake-build-$(Configuration.ToLower())/flatc" />
-      <LocOfFlatC Include="../../cmake-build-$(Configuration.ToLower())/flatc.exe" />
-      <FlatC Include="@(LocOfFlatC)" Condition="Exists('%(Identity)')" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/flatc" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/flatc.exe" />
+      <BufC Include="@(LocOfBufC)" Condition="Exists('%(Identity)')" />
       <FbsFiles Include="**/*.fbs" />
     </ItemGroup>
 
     <!-- code generation -->
-    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated" Command="&quot;%(FlatC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated" Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
     
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>

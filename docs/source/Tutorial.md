@@ -8,7 +8,7 @@ This tutorial provides a basic example of how to work with
 application, which shows you how to:
 
    - Write a FlatBuffer `schema` file.
-   - Use the `flatc` FlatBuffer compiler.
+   - Use the `bufc` FlatBuffer compiler.
    - Parse [JSON](http://json.org) files that conform to a schema into
      FlatBuffer binary files.
    - Use the generated files in many of the supported languages (such as C++,
