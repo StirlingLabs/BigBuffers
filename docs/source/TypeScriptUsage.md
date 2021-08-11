@@ -10,7 +10,7 @@ general FlatBuffers usage in all of the supported languages
 of FlatBuffers usage in TypeScript.
 
 You should also have read the [Building](@ref flatbuffers_guide_building)
-documentation to build `flatc` and should be familiar with
+documentation to build `bufc` and should be familiar with
 [Using the schema compiler](@ref flatbuffers_guide_using_schema_compiler) and
 [Writing a schema](@ref flatbuffers_guide_writing_schema).
 
@@ -34,7 +34,7 @@ example of how to use FlatBuffers in TypeScript.*
 FlatBuffers supports both reading and writing FlatBuffers in TypeScript.
 
 To use FlatBuffers in your own code, first generate TypeScript classes from your
-schema with the `--ts` option to `flatc`. Then you can include both FlatBuffers
+schema with the `--ts` option to `bufc`. Then you can include both FlatBuffers
 and the generated code to read or write a FlatBuffer.
 
 For example, here is how you would read a FlatBuffer binary file in TypeScript:

@@ -3,7 +3,7 @@ Using the schema compiler    {#flatbuffers_guide_using_schema_compiler}
 
 Usage:
 
-    flatc [ GENERATOR OPTIONS ] [ -o PATH ] [ -I PATH ] FILES...
+    bufc [ GENERATOR OPTIONS ] [ -o PATH ] [ -I PATH ] FILES...
           [ -- FILES...]
 
 The files are read and parsed in order, and can contain either schemas
@@ -156,7 +156,7 @@ Additional options:
      (default is "github.com/google/flatbuffers/go").
 
 -   `--raw-binary` : Allow binaries without a file_indentifier to be read.
-    This may crash flatc given a mismatched schema.
+    This may crash bufc given a mismatched schema.
 
 -   `--size-prefixed` : Input binaries are size prefixed buffers.
 
