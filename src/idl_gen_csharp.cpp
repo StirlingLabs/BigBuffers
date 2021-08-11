@@ -671,10 +671,16 @@ class CSharpGenerator : public BaseGenerator {
     key_getter += "var tableOffset = bb.__indirect(vectorLocation"
         " + sizeof(ulong) * (start + middle));"
         "\n      ";
-    if (IsString(key_field->value.type)) {
+    auto& type = key_field->value.type;
+    if (IsString(type)) {
       key_getter += "var comp = SchemaModel.CompareStrings(";
       key_getter += GenOffsetGetter(key_field);
       key_getter += ", byteKey, bb);\n";
+    }
+    else if (IsStruct(type)) {
+      key_getter += "var comp = new "+ GenTypeGet(type) +"(";
+      key_getter += GenOffsetGetter(key_field);
+      key_getter += ", bb).CompareTo(byteKey);\n";
     } else {
       auto get_val = GenGetterForLookupByKey(key_field, "bb");
       key_getter += "var comp = " + get_val + ".CompareTo(key);\n";
@@ -682,14 +688,19 @@ class CSharpGenerator : public BaseGenerator {
     return key_getter;
   }
 
-  std::string GenKeyGetter(flatbuffers::FieldDef *key_field) const {
+  std::string GenKeyCompareBody(flatbuffers::FieldDef *key_field) const {
     std::string key_getter = "";
     auto data_buffer = "builder.ByteBuffer";
     if (IsString(key_field->value.type)) {
       key_getter += "SchemaModel.CompareStrings(";
       key_getter += GenOffsetGetter(key_field, "o1") + ", ";
       key_getter += GenOffsetGetter(key_field, "o2") + ", " + data_buffer + ")";
-    } else {
+    }
+    else if (IsStruct(key_field->value.type)) {
+      key_getter += "new " + GenTypeGet(key_field->value.type) + "(o1.Value, builder.ByteBuffer)"
+                    ".CompareTo(new " + GenTypeGet(key_field->value.type) + "(o2.Value, builder.ByteBuffer))";
+    }
+    else {
       auto field_getter = GenGetterForLookupByKey(key_field, data_buffer, "o1");
       key_getter += field_getter;
       field_getter = GenGetterForLookupByKey(key_field, data_buffer, "o2");
@@ -1281,9 +1292,14 @@ class CSharpGenerator : public BaseGenerator {
     code += "struct " + struct_def.name;
     code += " : ";
     code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
-    code += ", IEquatable<" + struct_def.name + ">"
-            "\n{\n"
+    code += ", IEquatable<" + struct_def.name + ">";
+    if (struct_def.fixed) {
+      code += ", IComparable<" + struct_def.name + ">";
+    }
+
+    code += "\n{\n"
             "  internal Model _model;\n";
+
 
     // constructor
     code += "  internal "+struct_def.name+"(ulong i, ByteBuffer buffer)\n"
@@ -1308,9 +1324,26 @@ class CSharpGenerator : public BaseGenerator {
     }
 
     // IEquatable<T>
-    code += "  public bool Equals("+struct_def.name+" other)\n"
-            "    => _model.Equals(other._model);\n"
-            "\n";
+
+
+    if (struct_def.fixed) {
+      code += "  public bool Equals(" + struct_def.name +
+              " other)\n"
+              "    => _model.Equals(other._model) || CompareTo(other) == 0;\n"
+              "\n"
+              "  public int CompareTo("+struct_def.name+" other)\n"
+              "    => CompareTo(other._model.ByteBuffer.GetSpan<byte>(other._model.Offset, ByteSize));\n"
+              "\n"
+              "  internal int CompareTo(StirlingLabs.Utilities.ReadOnlyBigSpan<byte> other)\n"
+              "    => _model.ByteBuffer.GetSpan<byte>(_model.Offset, ByteSize)\n"
+              "      .CompareMemory(other);\n"
+              "\n";
+    } else {
+      code += "  public bool Equals(" + struct_def.name +
+              " other)\n"
+              "    => _model.Equals(other._model);\n"
+              "\n";
+    }
 
     code += "  public override bool Equals(object obj)\n"
             "    => obj is "+struct_def.name+" other && Equals(other);\n"
@@ -1627,8 +1660,7 @@ class CSharpGenerator : public BaseGenerator {
               "Offset<@" + struct_def.name + ">"
               "[] offsets) {\n"
               "    Array.Sort(offsets, (Offset<" + struct_def.name +
-              "> o1, Offset<" + struct_def.name + "> o2) => " +
-              GenKeyGetter(key_field);
+              "> o1, Offset<" + struct_def.name + "> o2) => " + GenKeyCompareBody(key_field);
       code += ");\n"
               "    return builder.CreateVectorOfTables(offsets);\n  }\n"
 
@@ -1638,8 +1670,11 @@ class CSharpGenerator : public BaseGenerator {
       code += GenTypeGet(key_field->value.type);
       code += " key, ByteBuffer bb) {\n";
       if (IsString(key_field->value.type)) {
-        code += "    byte[] byteKey = "
+        code += "    var byteKey = "
                 "System.Text.Encoding.UTF8.GetBytes(key);\n";
+      }
+      else if (IsStruct(key_field->value.type)) {
+        code += "    var byteKey = key.GetByteSpan();\n";
       }
       code += "    var span = "
               "bb.Get<ulong>(vectorLocation - sizeof(ulong));\n"
@@ -1655,7 +1690,7 @@ class CSharpGenerator : public BaseGenerator {
               "        span -= middle;\n"
               "      } else {\n"
               "        return "
-              "new @" + struct_def.name + "(tableOffset, bb);\n"
+              "new " + struct_def.name + "(tableOffset, bb);\n"
               "      }\n    }\n"
               "    return null;\n"
               "  }\n";

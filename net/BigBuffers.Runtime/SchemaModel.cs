@@ -274,5 +274,13 @@ namespace BigBuffers
       if (c != 0) return c;
       return len1 < len2 ? -1 : len1 > len2 ? 1 : 0;
     }
+    
+    
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BigSpan<byte> GetByteSpan<T>(ref this T entity)
+      where T : struct, IBigBufferStruct
+      => BigSpan.Create(ref entity.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize);
   }
 }
