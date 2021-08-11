@@ -1143,10 +1143,6 @@ bool GenerateCppGRPC(const Parser &parser, const std::string &path,
 // See idl_gen_grpc.cpp.
 bool GenerateGoGRPC(const Parser &parser, const std::string &path,
                     const std::string &file_name, std::string &error);
-
-
-extern bool GenerateRustModuleRootFile(const Parser &parser,
-                                       const std::string &path);
 }  // namespace flatbuffers
 
 #endif  // FLATBUFFERS_IDL_H_
