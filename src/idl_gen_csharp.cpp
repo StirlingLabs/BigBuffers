@@ -600,7 +600,7 @@ class CSharpGenerator : public BaseGenerator {
     std::string type_name_dest = GenTypeGet(field.value.type);
     std::string conditional_cast = "";
     std::string optional = "";
-    if (!struct_def.fixed &&
+    if (!struct_def.fixed && !field.IsRequired() &&
         (field.value.type.base_type == BASE_TYPE_STRUCT ||
             field.value.type.base_type == BASE_TYPE_UNION ||
             (IsVector(field.value.type) &&
@@ -624,9 +624,17 @@ class CSharpGenerator : public BaseGenerator {
       method_start = "  [System.Obsolete(\"Deprecated\")]\n"
           + method_start;
 
-    if (hasRefField) method_start += "Get";
+    std::string method_name = field_name_camel;
+    if (hasRefField) method_name = "Get" + method_name;
     else method_start += "@";
-    method_start += field_name_camel;
+    method_start += method_name;
+
+    if (!struct_def.fixed && field.key) {
+      code += "  public int CompareTo(" + struct_def.name + " other)\n"
+              "    => @" + field_name_camel + ".CompareTo(other.@" + field_name_camel +");\n"
+              "\n";
+    }
+
     std::string obj = "(new @" + type_name + "())";
 
     // Most field accessors need to retrieve and test the field offset first,
@@ -703,7 +711,12 @@ class CSharpGenerator : public BaseGenerator {
             code += field.value.type.struct_def->fixed
                 ? "o + _model.Offset"
                 : "_model.__indirect(o + _model.Offset)";
-            code += ", _model.ByteBuffer) : null";
+            code += ", _model.ByteBuffer) : ";
+            if (field.IsRequired()) {
+              code += "default";
+            } else {
+              code += "null";
+            }
           }
           break;
         case BASE_TYPE_STRING:
@@ -1172,6 +1185,12 @@ class CSharpGenerator : public BaseGenerator {
       code += "public ";
     }
 
+    flatbuffers::FieldDef *key_field = nullptr;
+    for (auto it : struct_def.fields.vec ) {
+      auto &field = *it;
+      if (field.key) key_field = &field;
+    }
+
     // generate a partial class for this C# struct/table
     code += "partial ";
 
@@ -1180,7 +1199,7 @@ class CSharpGenerator : public BaseGenerator {
     code += " : ";
     code += struct_def.fixed ? "IBigBufferStruct" : "IBigBufferTable";
     code += ", IEquatable<" + struct_def.name + ">";
-    if (struct_def.fixed) {
+    if (struct_def.fixed || key_field != nullptr) {
       code += ", IComparable<" + struct_def.name + ">";
     }
 
@@ -1219,11 +1238,15 @@ class CSharpGenerator : public BaseGenerator {
               "    => _model.Equals(other._model) || CompareTo(other) == 0;\n"
               "\n"
               "  public int CompareTo("+struct_def.name+" other)\n"
-              "    => CompareTo(other._model.ByteBuffer.GetSpan<byte>(other._model.Offset, ByteSize));\n"
+              "    => CompareTo(other.GetByteSpan());\n"
               "\n"
               "  internal int CompareTo(StirlingLabs.Utilities.ReadOnlyBigSpan<byte> other)\n"
-              "    => _model.ByteBuffer.GetSpan<byte>(_model.Offset, ByteSize)\n"
-              "      .CompareMemory(other);\n"
+              "    => this.GetByteSpan().CompareMemory(other);\n"
+              "\n";
+    } else if (key_field != nullptr) {
+
+      code += "  public bool Equals(" + struct_def.name + " other)\n"
+              "    => _model.Equals(other._model) || CompareTo(other) == 0;\n"
               "\n";
     } else {
       code += "  public bool Equals(" + struct_def.name +
@@ -1313,10 +1336,8 @@ class CSharpGenerator : public BaseGenerator {
     code += "    };\n"
             "  }\n";
 
-
     auto struct_has_create = false;
     std::set<flatbuffers::FieldDef *> field_has_create_set;
-    flatbuffers::FieldDef *key_field = nullptr;
     if (struct_def.fixed) {
       struct_has_create = true;
       // create a struct constructor function
