@@ -898,8 +898,8 @@ CheckedError Parser::ParseField(StructDef &struct_def) {
   if (field->key) {
     if (struct_def.has_key) return Error("only one field may be set as 'key'");
     struct_def.has_key = true;
-    if (!IsScalar(type.base_type) && !IsString(type)) {
-      return Error("'key' field must be string or scalar type");
+    if (!IsScalar(type.base_type) && !IsString(type) && !IsStruct(type)) {
+      return Error("'key' field must be string, scalar or struct type");
     }
   }
 
