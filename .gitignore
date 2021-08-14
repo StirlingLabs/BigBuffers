@@ -139,3 +139,5 @@ yarn-error.log
 flatbuffers.pc
 **/FlatBuffers.Test.Swift.xcodeproj
 /cmake-build-*
+bufc
+bufc.exe
