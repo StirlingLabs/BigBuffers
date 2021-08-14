@@ -34,8 +34,4 @@
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="JsonParsing" />
-  </ItemGroup>
-
 </Project>
