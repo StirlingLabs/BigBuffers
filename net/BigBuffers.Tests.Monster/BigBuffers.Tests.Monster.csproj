@@ -9,14 +9,14 @@
   <ItemGroup>
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <None Remove="**/*.h" />
     <None Remove="**/*.c" />
     <None Remove="**/*.dll" />
     <None Remove="**/*.exe" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <None Remove="monsterdata_test.json" />
     <Content Include="monsterdata_test.json">
@@ -45,10 +45,10 @@
     </PropertyGroup>
     <Message Importance="normal" Condition="$(IsFirstBuild)" Text="This is the first build." />
   </Target>
-  
+
   <Target Name="GenerateModelsFromSchema" DependsOnTargets="DetectFirstBuild" Condition="$(IsFirstBuild)" BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
     <Message Importance="normal" Text="Generating models from schema..." />
-    
+
     <!-- make the generated dir if it doesn't exist -->
     <MakeDir Directories="Generated" />
 
@@ -56,22 +56,22 @@
     <ItemGroup>
       <FilesToDelete Include="Generated/**/*.cs" />
     </ItemGroup>
-    
+
     <!--<Message Text="Deleting: @(FilesToDelete, ', ')" Importance="high" />-->
-    
+
     <Delete Files="@(FilesToDelete)" />
-    
+
     <!-- locate bufc and schema files -->
     <ItemGroup>
-      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/flatc" />
-      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/flatc.exe" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc.exe" />
       <BufC Include="@(LocOfBufC)" Condition="Exists('%(Identity)')" />
       <FbsFiles Include="**/*.fbs" />
     </ItemGroup>
 
     <!-- code generation -->
     <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated" Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
-    
+
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>
       <Compile Remove="Generated/**/*.cs" />
