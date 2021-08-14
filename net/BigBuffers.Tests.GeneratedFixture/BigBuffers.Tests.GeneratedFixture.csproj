@@ -27,10 +27,10 @@
     </PropertyGroup>
     <Message Importance="normal" Condition="$(IsFirstBuild)" Text="This is the first build." />
   </Target>
-
+  
   <Target Name="GenerateModelsFromSchema" DependsOnTargets="DetectFirstBuild" Condition="$(IsFirstBuild)" BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
     <Message Importance="normal" Text="Generating models from schema..." />
-
+    
     <!-- make the generated dir if it doesn't exist -->
     <MakeDir Directories="Generated" />
 
@@ -39,7 +39,7 @@
       <FilesToDelete Include="Generated/**/*.cs" />
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
-
+    
     <!-- locate bufc and schema files -->
     <ItemGroup>
       <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc" />
@@ -49,8 +49,8 @@
     </ItemGroup>
 
     <!-- code generation -->
-    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles, ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
-
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" Command="&quot;@(BufC)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles, ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>
       <Compile Remove="Generated/**/*.cs" />
