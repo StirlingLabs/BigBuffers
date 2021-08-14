@@ -16,7 +16,6 @@ namespace BigBuffers
       var newBuffer = new byte[newSize];
       Buffer.CopyTo(new BigSpan<byte>(newBuffer)
         .Slice(0, (nuint)Buffer.LongLength));
-      //System.Buffer.BlockCopy(_buffer, 0, newBuffer, newSize - Length, Length);
       _buffer = newBuffer;
     }
 
