@@ -47,7 +47,11 @@ jobs:
           cp Release\bufc.exe cmake-build-release\bufc.exe
       - name: Create Sln file and add project sln
         run: |
-          dotnet sln add (Get-ChildItem -Path . -Filter *.csproj -Recurse -ErrorAction SilentlyContinue -Force | %{$_.FullName})
+          dotnet sln add BigBuffers.JsonParsing/
+          dotnet sln add BigBuffers.Runtime/
+          dotnet sln add BigBuffers.Tests/
+          dotnet sln add BigBuffers.Tests.GeneratedFixture/
+          dotnet sln add BigBuffers.Tests.Monster/
         working-directory: net
       - name: Update Nuget Source
         run: |
