@@ -56,11 +56,11 @@ jobs:
         working-directory: net
       - name: Build Net Project
         run: |
-          dotnet build -c Release --logger GitHubActions
+          dotnet build -c Release
         working-directory: net
       - name: Run Net Project Test
         run: |
-          dotnet test -c Release
+          dotnet test --no-build -c Release --logger GitHubActions
         working-directory: net
       - name: Save coverage to storage branch
         uses: StirlingLabs/BranchStorageAction@v21.07.3
