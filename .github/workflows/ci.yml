@@ -73,7 +73,7 @@ jobs:
         working-directory: net
       - name: Build Net Project
         run: |
-          dotnet build -c Release -v
+          dotnet build -c Release -v n
         working-directory: net
       - name: Run Net Project Test
         run: |
