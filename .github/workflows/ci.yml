@@ -105,7 +105,7 @@ jobs:
         with:
           name: Win64 bufc Binary
           path: |
-            Release\bufc.exe
+            Release/bufc.exe
       - name: Upload nupkg files
         uses: actions/upload-artifact@v1
         with:
