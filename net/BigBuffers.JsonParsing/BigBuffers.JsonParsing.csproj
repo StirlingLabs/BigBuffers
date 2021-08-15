@@ -10,9 +10,9 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>../artifacts</PackageOutputPath>
   </PropertyGroup>
-  <ImportGroup>
+  <!-- <ImportGroup>
     <Import Project="../../Version.Net/Version.proj" />
-  </ImportGroup>
+  </ImportGroup> -->
   <PropertyGroup Condition="'$(BYTEBUFFER_NO_BOUNDS_CHECK)' == 'true'">
     <DefineConstants>$(DefineConstants);BYTEBUFFER_NO_BOUNDS_CHECK</DefineConstants>
   </PropertyGroup>
