@@ -1,0 +1,43 @@
+name: Integration
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  build_and_upload_artifact_for_macos_and_linux:
+    strategy:
+      matrix:
+        config:
+        - { os: ubuntu-latest, name: 'Linux'}
+        - { os: macos-latest, name: 'MacOs'}
+    runs-on: ${{ matrix.config.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure cmake
+        run: |
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .
+      - name: Build bufc
+        run: |
+          make bufc
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: ${{ matrix.config.name }} Bufc binary
+          path: bufc
+  build_and_upload_artifact_for_windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Configure cmake
+        run: |
+          cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release
+      - name: Build Bufc
+        run: |
+          msbuild.exe bufc.vcxproj /p:Configuration=Release /p:Platform=x64
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Win64 Bufc binary
+          path: Release\bufc.exe

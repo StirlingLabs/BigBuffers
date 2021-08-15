@@ -1,0 +1,21 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure cmake
+        run: |
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .
+      - name: Build bufc
+        run: |
+          make bufc
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Linux bufc binary
+          path: bufc
