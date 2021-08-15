@@ -49,9 +49,11 @@ jobs:
           submodules: true
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
-      - uses: actions/setup-dotnet@v1
+      - name: Fetch tag git metadata
+        run: git fetch --force --update-shallow --depth 1 origin 'refs/tags/*:refs/tags/*'
+      - uses: actions/setup-dotnet@v1.8.1
         with:
-          dotnet-version: '5.0.x'
+          dotnet-version: 5.0.x
       - name: Configure cmake
         run: |
           cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release .
@@ -73,7 +75,7 @@ jobs:
         working-directory: net
       - name: Build Net Project
         run: |
-          dotnet build -c Release -v n
+          dotnet build -c Release
         working-directory: net
       - name: Run Net Project Test
         run: |
