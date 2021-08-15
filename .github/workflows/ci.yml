@@ -37,10 +37,18 @@ jobs:
         run: |
           dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
         working-directory: net
-      - name: Build Net Project
-        run: |
-          dotnet build -c Release
-        working-directory: net
+
+      - uses: nick-invision/retry@v2
+        with:
+          timeout_seconds: 1000
+          max_attempts: 3
+          retry_on: error
+          command: cd net && dotnet build -c Release
+
+      # - name: Build Net Project
+      #   run: |
+      #     dotnet build -c Release
+      #   working-directory: net
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
