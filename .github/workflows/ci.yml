@@ -100,17 +100,6 @@ jobs:
         run: |
           dotnet test --no-build -c Release --logger GitHubActions
         working-directory: net
-      - name: Save coverage to storage branch
-        uses: StirlingLabs/BranchStorageAction@v21.07.3
-        with:
-          comment: |
-            Coverage for ${{github.ref}}
-            Action: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-            Commit: https://github.com/${{github.repository}}/commit/${{github.sha}}
-          storage-branch: coverage
-          src: coverage
-          dst: coverage
-          prune: true
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v1
         with:
