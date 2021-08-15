@@ -34,11 +34,7 @@ jobs:
         working-directory: net
       - name: Build Net Project
         run: |
-          dotnet build BigBuffers.JsonParsing/ -c Release
-          dotnet build BigBuffers.Runtime/ -c Release
-          dotnet build BigBuffers.Tests/ -c Release
-          dotnet build BigBuffers.Tests.GeneratedFixture/ -c Release
-          dotnet build BigBuffers.Tests.Monster/ -c Release
+          dotnet build -c Release
         working-directory: net
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
@@ -77,7 +73,7 @@ jobs:
         working-directory: net
       - name: Build Net Project
         run: |
-          dotnet build -c Release
+          dotnet build -c Release -v
         working-directory: net
       - name: Run Net Project Test
         run: |
