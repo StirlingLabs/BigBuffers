@@ -22,7 +22,7 @@ jobs:
       - name: Create Cmake Release Directory And Copy bufc
         run: |
           mkdir cmake-build-release
-          cp bufc cmake-build-release\bufc
+          cp bufc cmake-build-release/bufc
       - name: Create Sln file and add project sln
         run: |
           dotnet new sln -n BigBuffers
