@@ -59,4 +59,6 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: Win64 Bufc Binary
-          path: Release\bufc.exe
+          path: |
+            Release\bufc.exe
+            net/articafts/*.nupkg
