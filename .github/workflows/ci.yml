@@ -37,7 +37,7 @@ jobs:
           dotnet-version: '5.0.x'
       - name: Configure cmake
         run: |
-          cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release
+          cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release .
       - name: Build bufc
         run: |
           msbuild.exe bufc.vcxproj /p:Configuration=Release /p:Platform=x64
