@@ -46,6 +46,7 @@ jobs:
       - name: Create Sln file and add project sln
         run: |
           dotnet new sln -n BigBuffers && dotnet sln add $(find . -name "*.csproj")
+        shell: bash
         working-directory: net
       - name: Build Net Project
         run: |
