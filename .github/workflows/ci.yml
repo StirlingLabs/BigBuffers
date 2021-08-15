@@ -56,7 +56,8 @@ jobs:
         working-directory: net
       - name: Build Net Project
         run: |
-          dotnet build -c Release
+          dotnet restore
+          dotnet build -c Release --no-restore
         working-directory: net
       - name: Run Net Project Test
         run: |
