@@ -19,6 +19,24 @@ jobs:
       - name: Build bufc
         run: |
           make bufc
+      - name: Create Cmake Release Directory And Copy bufc
+        run: |
+          mkdir cmake-build-release
+          cp bufc cmake-build-release\bufc
+      - name: Create Sln file and add project sln
+        run: |
+          dotnet new sln -n BigBuffers
+          dotnet sln add $(find . -name "*.csproj")
+        working-directory: net
+      - name: Update Nuget Source
+        run: |
+          dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
+        working-directory: net
+      - name: Build Net Project
+        run: |
+          dotnet restore
+          dotnet build -c Release --no-restore
+        working-directory: net
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
