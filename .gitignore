@@ -141,3 +141,4 @@ flatbuffers.pc
 /cmake-build-*
 bufc
 bufc.exe
+coverage/

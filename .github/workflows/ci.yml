@@ -22,7 +22,7 @@ jobs:
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: ${{ matrix.config.name }} Bufc binary
+          name: ${{ matrix.config.name }} Bufc Binary
           path: bufc
   build_and_upload_artifact_for_windows:
     runs-on: windows-latest
@@ -30,14 +30,33 @@ jobs:
       - uses: actions/checkout@v2
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.x'
       - name: Configure cmake
         run: |
           cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release
       - name: Build Bufc
         run: |
           msbuild.exe bufc.vcxproj /p:Configuration=Release /p:Platform=x64
+      - name: Create Cmake Release Directory And Copy bufc
+        shell: pwsh
+        run: |
+          mkdir cmake-build-release && cp Release\bufc.exe cmake-build-release\bufc.exe
+      - name: Create Sln file and add project sln
+        run: |
+          dotnet new sln -n BigBuffers && dotnet sln add $(find . -name "*.csproj")
+        working-directory: net
+      - name: Build Net Project
+        run: |
+          dotnet build -c Release
+        working-directory: net
+      - name: Run Net Project Test
+        run: |
+          dotnet test -c Release
+        working-directory: net
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: Win64 Bufc binary
+          name: Win64 Bufc Binary
           path: Release\bufc.exe
