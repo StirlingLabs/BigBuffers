@@ -95,7 +95,7 @@ jobs:
           timeout_seconds: 1000
           max_attempts: 3
           retry_on: error
-          command: dotnet build net\*.sln -c Release
+          command: dotnet build .\net\ -c Release
       - name: Run Net Project Test
         run: |
           dotnet test --no-build -c Release --logger GitHubActions
