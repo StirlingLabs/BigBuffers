@@ -42,9 +42,9 @@ jobs:
         run: |
           msbuild.exe bufc.vcxproj /p:Configuration=Release /p:Platform=x64
       - name: Create Cmake Release Directory And Copy bufc
-        shell: bash
         run: |
-          mkdir cmake-build-release && cp Release\bufc.exe cmake-build-release\bufc.exe
+          mkdir cmake-build-release
+          cp Release\bufc.exe cmake-build-release\bufc.exe
       - name: Create Sln file and add project sln
         run: |
           dotnet sln add (Get-ChildItem -Path . -Filter *.csproj -Recurse -ErrorAction SilentlyContinue -Force | %{$_.FullName})
