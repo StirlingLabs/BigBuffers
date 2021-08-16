@@ -22,7 +22,7 @@ jobs:
           dotnet-version: 5.0.x
       - name: Configure cmake
         run: |
-          mkdir cmake-build-release && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release release
+          mkdir cmake-build-release && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release cmake-build-release
       - name: Build bufc
         run: |
           make bufc
