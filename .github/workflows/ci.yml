@@ -100,6 +100,11 @@ jobs:
         run: |
           dotnet test --no-build -c Release --logger GitHubActions
         working-directory: net
+      - name: Dir
+        run: |
+          ls ${{ github.workspace }}\cmake-build-release\
+          ls ${{ github.workspace }}\Release\
+          ls ${{ github.workspace }}\net\articafts\
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v1
         with:
