@@ -1,0 +1,59 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    env:
+        DOTNET_NOLOGO: true
+        DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Fetch tag git metadata
+        run: git fetch --force --update-shallow --depth 1 origin 'refs/tags/*:refs/tags
+      - uses: actions/setup-dotnet@v1.8.1
+        with:
+          dotnet-version: 5.0.x
+      - name: Configure cmake
+        run: |
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .
+      - name: Build bufc
+        run: |
+          make bufc
+      - name: Create Cmake Release Directory And Copy bufc
+        run: |
+          mkdir cmake-build-release
+          cp bufc cmake-build-release/bufc
+      - name: Create Sln file and add project sln
+        run: |
+          dotnet new sln -n BigBuffers
+          dotnet sln add $(find . -name "*.csproj")
+        working-directory: net
+      - name: Update Nuget Source
+        run: |
+          dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
+        working-directory: net
+      - uses: nick-invision/retry@v2
+        with:
+          timeout_seconds: 1000
+          max_attempts: 2
+          retry_on: error
+          command: dotnet build net/BigBuffers.sln -c Release
+      - name: Run Net Project Test
+        run: |
+          dotnet test --no-build -c Release --logger GitHubActions
+        working-directory: net
+      - name: Push NuPkg
+        run: dotnet nuget push net/artifacts/*.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Utilities.Net
+          files: |
+            net/artifacts/*.*
+        env:
+          GITHUB_TOKEN: ${{github.token}}
