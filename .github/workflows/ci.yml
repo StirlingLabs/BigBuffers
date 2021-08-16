@@ -41,7 +41,7 @@ jobs:
       - uses: nick-invision/retry@v2
         with:
           timeout_seconds: 1000
-          max_attempts: 3
+          max_attempts: 2
           retry_on: error
           command: cd net && dotnet build -c Release
 
@@ -93,24 +93,19 @@ jobs:
       - uses: nick-invision/retry@v2
         with:
           timeout_seconds: 1000
-          max_attempts: 3
+          max_attempts: 2
           retry_on: error
           command: dotnet build .\net\ -c Release
       - name: Run Net Project Test
         run: |
           dotnet test --no-build -c Release --logger GitHubActions
         working-directory: net
-      - name: Dir
-        run: |
-          ls ${{ github.workspace }}\cmake-build-release\
-          ls ${{ github.workspace }}\Release\
-          ls ${{ github.workspace }}\net\articafts\
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v1
         with:
           name: Win64 bufc Binary
           path: |
-            ${{ github.workspace }}\cmake-build-release\bufc.exe
+            ${{ github.workspace }}\cmake-build-release\*.exe
       - name: Upload nupkg files
         uses: actions/upload-artifact@v1
         with:
