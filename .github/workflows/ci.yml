@@ -13,6 +13,8 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Fetch tag git metadata
         run: git fetch --force --update-shallow --depth 1 origin 'refs/tags/*:refs/tags/*'
       - uses: actions/setup-dotnet@v1.8.1
@@ -50,7 +52,7 @@ jobs:
       #     dotnet build -c Release
       #   working-directory: net
       - name: upload build artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.config.name }} bufc Binary
           path: bufc
@@ -111,4 +113,4 @@ jobs:
         with:
           name: Nuget files
           path: |
-            ${{ github.workspace }}\net\articafts\*.nupkg
+            ${{ github.workspace }}\net\artifacts\*.nupkg
