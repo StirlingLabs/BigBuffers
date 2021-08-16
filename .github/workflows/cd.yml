@@ -38,7 +38,7 @@ jobs:
       - name: upload build artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.name }} bufc Binary
+          name: bufc-${{ matrix.config.name }}
           path: cmake-build-release/bufc
   build_and_upload_artifact_for_windows:
     runs-on: windows-latest
@@ -72,18 +72,16 @@ jobs:
         run: |
           dotnet test --no-build -c Release --logger GitHubActions
         working-directory: net
+      - name: Push BigBuffers NuPkg
+        run: |
+          dotnet nuget push artifacts/*.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1
+        working-directory: net
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: Win64 bufc Binary
+          name: bufc-win
           path: |
             ${{ github.workspace }}\cmake-build-release\release\bufc.exe
-      - name: Upload nupkg files
-        uses: actions/upload-artifact@v2
-        with:
-          name: Nuget-Package
-          path: |
-            ${{ github.workspace }}\net\artifacts\*.nupkg
   create-release:
     runs-on: ubuntu-latest
     needs: [build_and_upload_artifact_for_macos_and_linux,build_and_upload_artifact_for_windows]
@@ -103,11 +101,6 @@ jobs:
         with:
           name: bufc-macos
           path: macos
-      - name: Download BigBuffers Nuget Packages
-        uses: actions/download-artifact@v2
-        with:
-          name: Nuget-Packages
-          path: nuget-packages
       - name: Zip file
         run: |
           mkdir artifacts
