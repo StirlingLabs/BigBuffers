@@ -77,7 +77,7 @@ jobs:
         with:
           name: Win64 bufc Binary
           path: |
-            ${{ github.workspace }}\cmake-build-release\*.exe
+            ${{ github.workspace }}\cmake-build-release\release\bufc.exe
       - name: Upload nupkg files
         uses: actions/upload-artifact@v2
         with:
