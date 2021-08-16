@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BigBuffers.Runtime.Xpc\BigBuffers.Runtime.Xpc.csproj" />
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
   </ItemGroup>
   
@@ -71,8 +72,8 @@
     
     <!-- locate bufc and schema files -->
     <ItemGroup>
-      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/flatc" />
-      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/flatc.exe" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc.exe" />
       <BufC Include="@(LocOfBufC)" Condition="Exists('%(Identity)')" />
       <FbsFiles Include="**/*.fbs" />
     </ItemGroup>

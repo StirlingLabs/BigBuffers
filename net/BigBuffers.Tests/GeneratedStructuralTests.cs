@@ -714,9 +714,9 @@ namespace BigBuffers.Tests
       var t = TableR.GetRootAsTableR(bb.ByteBuffer);
       t._model.Offset.Should().Be(ro.Value);
 
-      t.XType(0).Should().BeOfType<UnionM>().And.Be(UnionM.TableK);
+      t.XType(0).Should().Be(UnionM.TableK);
 
-      t.XType(1).Should().BeOfType<UnionM>().And.Be(UnionM.TableJ);
+      t.XType(1).Should().Be(UnionM.TableJ);
 
       var k = t.X<TableK>(0);
       k.Should().NotBeNull();

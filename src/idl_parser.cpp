@@ -97,9 +97,12 @@ static bool IsLowerSnakeCase(const std::string &str) {
 std::string MakeCamel(const std::string &in, bool first) {
   std::string s;
   for (size_t i = 0; i < in.length(); i++) {
-    if (!i && first)
-      s += CharToUpper(in[0]);
-    else if (in[i] == '_' && i + 1 < in.length())
+    if (!i) {
+      if (first)
+        s += CharToUpper(in[0]);
+      else
+        s += CharToLower(in[0]);
+    } else if (in[i] == '_' && i + 1 < in.length())
       s += CharToUpper(in[++i]);
     else
       s += in[i];
