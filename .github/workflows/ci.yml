@@ -29,7 +29,7 @@ jobs:
       - name: Create Cmake Release Directory And Copy bufc
         run: |
           mkdir cmake-build-release
-          cp Release/bufc cmake-build-release/bufc
+          cp bufc cmake-build-release/bufc
       - name: Update Nuget Source
         run: |
           dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
