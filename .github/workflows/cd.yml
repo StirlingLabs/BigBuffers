@@ -74,7 +74,7 @@ jobs:
         working-directory: net
       - name: Push BigBuffers NuPkg
         run: |
-          dotnet nuget push artifacts/*.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1
+          dotnet nuget push artifacts\*.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1
         working-directory: net
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
