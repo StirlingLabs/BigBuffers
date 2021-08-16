@@ -101,13 +101,13 @@ jobs:
           dotnet test --no-build -c Release --logger GitHubActions
         working-directory: net
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: Win64 bufc Binary
           path: |
-            ${{ github.workspace }}\cmake-build-release
+            ${{ github.workspace }}\cmake-build-release\*.exe
       - name: Upload nupkg files
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: Nuget files
           path: |
