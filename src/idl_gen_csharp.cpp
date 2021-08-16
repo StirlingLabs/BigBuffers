@@ -614,7 +614,13 @@ class CSharpGenerator : public BaseGenerator {
     std::string dest_cast = DestinationCast(field.value.type);
     std::string src_cast = SourceCast(field.value.type);
     std::string field_name_camel = MakeCamel(field.name, true);
-      if (field_name_camel == struct_def.name) { field_name_camel += "_"; }
+      if (field_name_camel == struct_def.name) {
+        Warning("an underscore was appended to the following field because"
+                " it has the same name as the enclosing model, see field "
+                + struct_def.name + "." + field.name + "\n");
+        field_name_camel += "_ /* TODO: don't use the same name as the enclosing model */";
+        field_name_camel += "_";
+    }
 
     std::string method_start = "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
                                "  public " + type_name_dest + optional + " ";
@@ -1025,13 +1031,13 @@ class CSharpGenerator : public BaseGenerator {
 
     if (!parser_.opts.mutable_buffer) method_start += "readonly ";
 
-    method_start += type_name_dest + " @" + field_name_camel;
     if (field_name_camel == struct_def.name) {
       Warning("an underscore was appended to the following field because"
           " it has the same name as the enclosing model, see field "
           + struct_def.name + "." + field.name + "\n");
-      method_start += "_ /* TODO: don't use the same name as the enclosing model */";
+      field_name_camel += "_ /* TODO: don't use the same name as the enclosing model */";
     }
+    method_start += type_name_dest + " @" + field_name_camel;
 
     // Most field accessors need to retrieve and test the field offset first,
     // this is the prefix code for that:
