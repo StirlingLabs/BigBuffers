@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.config.name }} bufc Binary
-          path: bufc
+          path: cmake-build-release/bufc
   build_and_upload_artifact_for_windows:
     runs-on: windows-latest
     steps:
