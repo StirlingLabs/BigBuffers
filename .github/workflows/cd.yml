@@ -20,24 +20,19 @@ jobs:
           dotnet-version: 5.0.x
       - name: Configure cmake
         run: |
-          mkdir cmake-build-release && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release cmake-build-release
+          mkdir cmake-build-release && cd cmake-build-release && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
       - name: Build bufc
         run: |
           make bufc
+        working-directory: cmake-build-release
       - name: Update Nuget Source
         run: |
           dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
         working-directory: net
-      # - uses: nick-invision/retry@v2
-      #   with:
-      #     timeout_seconds: 1000
-      #     max_attempts: 2
-      #     retry_on: error
-      #     command: dotnet build net/BigBuffers.sln -c Release
       - name: Build BigBuffers Net Projects
         run: |
-          dotnet build net/BigBuffers.sln -c Release
-
+          dotnet build BigBuffers.sln -c Release
+        working-directory: net
       - name: Run Net Project Test
         run: |
           dotnet test --no-build -c Release --logger GitHubActions

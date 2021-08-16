@@ -22,31 +22,19 @@ jobs:
           dotnet-version: 5.0.x
       - name: Configure cmake
         run: |
-          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .
+          mkdir cmake-build-release && cd cmake-build-release && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
       - name: Build bufc
         run: |
           make bufc
-      - name: Create Cmake Release Directory And Copy bufc
-        run: |
-          mkdir cmake-build-release
-          cp bufc cmake-build-release/bufc
+        working-directory: cmake-build-release
       - name: Update Nuget Source
         run: |
           dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
         working-directory: net
-
-      # - uses: nick-invision/retry@v2
-      #   with:
-      #     timeout_seconds: 1000
-      #     max_attempts: 2
-      #     retry_on: error
-      #     command: cd net && dotnet build -c Release
-
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
         working-directory: net
-
       - name: upload build artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -75,25 +63,14 @@ jobs:
         run: |
           mkdir cmake-build-release
           cp Release\bufc.exe cmake-build-release\bufc.exe
-      - name: Create Sln file and add project sln
-        run: |
-          dotnet new sln -n BigBuffers
-          dotnet sln add (Get-ChildItem -Path . -Filter *.csproj -Recurse -ErrorAction SilentlyContinue -Force | %{$_.FullName})
-        working-directory: net
       - name: Update Nuget Source
         run: |
           dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
         working-directory: net
-      # - name: Build Net Project
-      #   run: |
-      #     dotnet build -c Release
-      #  working-directory: net
-      - uses: nick-invision/retry@v2
-        with:
-          timeout_seconds: 1000
-          max_attempts: 3
-          retry_on: error
-          command: dotnet build .\net\ -c Release
+      - name: Build Net Project
+        run: |
+          dotnet build -c Release
+        working-directory: net
       - name: Run Net Project Test
         run: |
           dotnet test --no-build -c Release --logger GitHubActions
