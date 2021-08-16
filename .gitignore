@@ -17,7 +17,7 @@ build
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
-*.sln
+#*.sln
 *.suo
 *.opendb
 *.keystore
