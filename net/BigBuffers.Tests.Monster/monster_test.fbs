@@ -313,8 +313,10 @@ table TypeAliases {
 }
 
 rpc_service MonsterStorage {
-  Store(Monster):Stat (streaming: "none");
+  Store(Monster):Stat (streaming: "none", csharp_value_task);
   Retrieve(Stat):Monster (streaming: "server", idempotent);
+  GetMaxHitPoint(Monster):Stat (streaming: "client");
+  GetMinMaxHitPoints(Monster):Stat (streaming: "bidi");
 }
 
 // Demonstrates the ability to have vectors of unions, and also to

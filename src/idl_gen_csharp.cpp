@@ -150,10 +150,9 @@ class CSharpGenerator : public BaseGenerator {
     std::string one_file_code;
     cur_name_space_ = parser_.current_namespace_;
 
-    for (auto it = parser_.enums_.vec.begin(); it != parser_.enums_.vec.end();
-         ++it) {
+    for (auto it : parser_.enums_.vec) {
       std::string enumcode;
-      auto &enum_def = **it;
+      auto &enum_def = *it;
       if (!parser_.opts.one_file) cur_name_space_ = enum_def.defined_namespace;
       GenEnum(enum_def, &enumcode, parser_.opts);
       if (parser_.opts.one_file) {
@@ -165,10 +164,9 @@ class CSharpGenerator : public BaseGenerator {
       }
     }
 
-    for (auto it = parser_.structs_.vec.begin();
-         it != parser_.structs_.vec.end(); ++it) {
+    for (auto it : parser_.structs_.vec) {
       std::string declcode;
-      auto &struct_def = **it;
+      auto &struct_def = *it;
       if (!parser_.opts.one_file)
         cur_name_space_ = struct_def.defined_namespace;
       GenStruct(struct_def, &declcode, parser_.opts);
@@ -177,6 +175,22 @@ class CSharpGenerator : public BaseGenerator {
       } else {
         if (!SaveType(struct_def.name, *struct_def.defined_namespace, declcode,
                       true, parser_.opts))
+          return false;
+      }
+    }
+
+
+    for (auto it : parser_.services_.vec) {
+      auto &service_def = *it;
+      if (!parser_.opts.one_file)
+        cur_name_space_ = service_def.defined_namespace;
+      std::string declcode;
+      GenService(service_def, &declcode, parser_.opts);
+      if (parser_.opts.one_file) {
+        one_file_code += declcode;
+      } else {
+        if (!SaveType(service_def.name, *service_def.defined_namespace, declcode,
+            true, parser_.opts))
           return false;
       }
     }
@@ -231,6 +245,8 @@ class CSharpGenerator : public BaseGenerator {
     if (needs_includes) {
       code += "using global::System;\n"
               "using global::System.Collections.Generic;\n"
+              "using global::System.Threading;\n"
+              "using global::System.Threading.Tasks;\n"
               "using global::BigBuffers;\n\n";
     }
     code += classcode;
@@ -730,12 +746,13 @@ class CSharpGenerator : public BaseGenerator {
     std::string src_cast = SourceCast(field.value.type);
       std::string field_name_camel = Name(field);
       if (field_name_camel == struct_def.name) {
-        Warning("an underscore was appended to the following field because"
-                " it has the same name as the enclosing model, see field "
-                + struct_def.name + "." + field.name + "\n");
-        field_name_camel += "_ /* TODO: don't use the same name as the enclosing model */";
-        field_name_camel += "_";
-    }
+        if (!hasRefField) {
+          Warning( "an underscore was appended to the following field because"
+              " it has the same name as the enclosing model, see field " +
+              struct_def.name + "." + field.name + "\n");
+          field_name_camel += "_ /* TODO: don't use the same name as the enclosing model */";
+        }
+      }
 
     std::string method_start = "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
                                "  public " + type_name_dest + optional + " ";
@@ -1292,6 +1309,85 @@ class CSharpGenerator : public BaseGenerator {
       code += "\n";
     }
     return createdRefField;
+  }
+
+  void GenService(ServiceDef &service_def, std::string *code_ptr,
+      const IDLOptions &opts) const {
+    (void(opts));
+    if (service_def.generated) return;
+    std::string &code = *code_ptr;
+    GenComment(service_def.doc_comment, code_ptr, &comment_config);
+    if (service_def.attributes.Lookup("deprecated"))
+      code += "  [System.Obsolete(\"Deprecated\")]\n";
+
+    if (service_def.attributes.Lookup("private")) {
+      code += "internal ";
+    } else {
+      code += "public ";
+    }
+
+    code += "partial interface @";
+
+    code += MakeCamel(service_def.name);
+    code += " : IBigBuffersRpcService {\n";
+
+    Value *serviceIsValueTask = service_def.attributes.Lookup("csharp_value_task");
+
+    int index = 0;
+    for (auto &it : service_def.calls.vec) {
+
+      auto& call = *it;
+      const StructDef* req = call.request;
+      const StructDef* rsp = call.response;
+
+      service_def.index = index++;
+
+      if (service_def.attributes.Lookup("deprecated"))
+        code += "  [System.Obsolete(\"Deprecated\")]\n";
+
+      if (call.attributes.Lookup("idempotent"))
+        code += "  [BigBuffers.Idempotent]\n";
+
+      code += "  [BigBuffers.RpcIndex("+NumToString(service_def.index)+")]\n";
+
+      auto streaming = call.attributes.Lookup("streaming");
+
+      if (streaming && (streaming->constant == "server" || streaming->constant == "bidi")) {
+        if (serviceIsValueTask || call.attributes.Lookup("csharp_value_task"))
+          code += "  public ValueTask @";
+        else
+          code += "  public Task @";
+      } else {
+        if (serviceIsValueTask || call.attributes.Lookup("csharp_value_task"))
+          code += "  public ValueTask<";
+        else
+          code += "  public Task<";
+
+        code += WrapInNameSpace(*rsp);
+        code += "> @";
+      }
+
+      code += call.name;
+      code += "(";
+      if (streaming && (streaming->constant == "client" || streaming->constant == "bidi")) {
+        code += "System.Threading.Channels.ChannelReader<";
+        code += WrapInNameSpace(*req);
+        code += ">";
+      } else {
+        code += WrapInNameSpace(*req);
+      }
+      code += " @";
+      code += MakeCamel(req->name, false);
+      if (streaming && (streaming->constant == "server" || streaming->constant == "bidi")) {
+        code += ", System.Threading.Channels.ChannelWriter<";
+        code += WrapInNameSpace(*rsp);
+        code += "> @";
+        code += MakeCamel(rsp->name, false);
+      }
+      code += ", System.Threading.CancellationToken cancellationToken);\n";
+    }
+
+    code += "}\n";
   }
 
   void GenStruct(StructDef &struct_def, std::string *code_ptr,
