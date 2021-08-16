@@ -50,7 +50,7 @@ class CSharpGenerator : public BaseGenerator {
  public:
   CSharpGenerator(const Parser &parser, const std::string &path,
                   const std::string &file_name)
-      : BaseGenerator(parser, path, file_name, "", ".", "cs"),
+      : BaseGenerator(parser, path, file_name, "@", ".@", "cs"),
         cur_name_space_(nullptr) {
     // clang-format off
 
@@ -1037,7 +1037,7 @@ class CSharpGenerator : public BaseGenerator {
               "_model.ByteBuffer) : null; }\n";
     }
     // Generate mutators for scalar fields or vectors of scalars.
-    if (parser_.opts.mutable_buffer) {
+    {
       auto is_series = (IsSeries(field.value.type));
       const auto &underlying_type =
           is_series ? field.value.type.VectorType() : field.value.type;
@@ -1065,8 +1065,12 @@ class CSharpGenerator : public BaseGenerator {
         if (field.deprecated)
           code += "  [System.Obsolete(\"Deprecated\")]\n";
 
-        code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
-                "  public ";
+        code += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n";
+        if (parser_.opts.mutable_buffer) {
+          code += "  public ";
+        } else {
+          code += "  internal ";
+        }
         code += struct_def.fixed ? "void " : "bool ";
           code += mutator_prefix + Name(field);
         code += mutator_params;
@@ -1125,12 +1129,12 @@ class CSharpGenerator : public BaseGenerator {
     std::string src_cast = SourceCast(field.value.type);
     std::string field_name_camel = MakeCamel(field.name, true);
 
-    std::string method_start = "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
-                               "  public ref ";
-
+    std::string method_start = "";
     if (field.deprecated)
-      method_start = "  [System.Obsolete(\"Deprecated\")]\n"
-                     + method_start;
+      method_start += "  [System.Obsolete(\"Deprecated\")]\n";
+
+    method_start += "  [BigBuffers.MetadataIndex("+NumToString(index)+")]\n"
+                    "  public ref ";
 
     if (!parser_.opts.mutable_buffer) method_start += "readonly ";
 
@@ -1234,7 +1238,7 @@ class CSharpGenerator : public BaseGenerator {
     } else {
     }
     // Generate mutators for scalar fields or vectors of scalars.
-    if (parser_.opts.mutable_buffer) {
+    {
       auto is_series = (IsSeries(field.value.type));
       const auto &underlying_type =
           is_series ? field.value.type.VectorType() : field.value.type;
@@ -1254,8 +1258,12 @@ class CSharpGenerator : public BaseGenerator {
       auto span_size = field.value.type.fixed_length;
       if (IsScalar(underlying_type.base_type) && !IsUnion(field.value.type) && span_size > 1) {
         createdRefField = true;
-
-        code += "  public StirlingLabs.Utilities.BigSpan<"+GenTypeBasic(underlying_type)+"> ";
+        if (parser_.opts.mutable_buffer) {
+          code += "  public";
+        } else {
+          code += "  internal";
+        }
+        code += " StirlingLabs.Utilities.BigSpan<"+GenTypeBasic(underlying_type)+"> ";
         code += MakeCamel(field.name, true);
         code += spanner_params;
         if (struct_def.fixed ) {
