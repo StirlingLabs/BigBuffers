@@ -8,8 +8,8 @@ jobs:
     strategy:
       matrix:
         config:
-        - { os: ubuntu-latest, name: 'Linux'}
-        - { os: macos-latest, name: 'MacOs'}
+        - { os: ubuntu-latest, name: 'linux'}
+        - { os: macos-latest, name: 'macos'}
     runs-on: ${{ matrix.config.os }}
     steps:
       - uses: actions/checkout@v2
@@ -38,7 +38,7 @@ jobs:
       - name: upload build artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.name }} bufc Binary
+          name: bufc-${{ matrix.config.name }}
           path: cmake-build-release/bufc
   build_and_upload_artifact_for_windows:
     runs-on: windows-latest
@@ -75,12 +75,12 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: Win64 bufc Binary
+          name: bufc-win
           path: |
             ${{ github.workspace }}\cmake-build-release\release\bufc.exe
       - name: Upload nupkg files
         uses: actions/upload-artifact@v2
         with:
-          name: Nuget files
+          name: Nuget-Packages
           path: |
             ${{ github.workspace }}\net\artifacts\*.nupkg
