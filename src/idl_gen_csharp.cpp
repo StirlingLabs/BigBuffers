@@ -750,7 +750,7 @@ class CSharpGenerator : public BaseGenerator {
               "\n";
     }
 
-    std::string obj = "(new @" + type_name + "())";
+    std::string obj = "(new " + type_name + "())";
 
     // Most field accessors need to retrieve and test the field offset first,
     // this is the prefix code for that:
@@ -1003,7 +1003,7 @@ class CSharpGenerator : public BaseGenerator {
                 "_model.__vector(o); var l = "
                 "_model.__vector_len(o); ";
         code += GenTypeBasic(field.value.type.VectorType());
-        code += "[] a = new @";
+        code += "[] a = new ";
         code += GenTypeBasic(field.value.type.VectorType());
         code += "[l]; for (var i = 0uL; i < l; i++) { a[i] = " + getter;
         code += "(p + i * ";
@@ -1027,7 +1027,7 @@ class CSharpGenerator : public BaseGenerator {
       auto get_nested_method_name = nested_method_name;
       get_nested_method_name = "Get" + nested_method_name;
       conditional_cast = "(" + nested_type_name + "?)";
-      obj = "(new @" + nested_type_name + "())";
+      obj = "(new " + nested_type_name + "())";
       code += "  public " + nested_type_name + "? ";
       code += get_nested_method_name + "("
               ") { var o = _model.__offset(";
@@ -1404,7 +1404,7 @@ class CSharpGenerator : public BaseGenerator {
 
       // create convenience method that doesn't require an existing object
       code += method_signature + "(ByteBuffer _bb) "
-              "{ return " + method_name + "(_bb, new @" + struct_def.name +
+              "{ return " + method_name + "(_bb, new " + struct_def.name +
               "()); }\n";
 
       // create method that allows object reuse
@@ -1686,7 +1686,7 @@ class CSharpGenerator : public BaseGenerator {
       code += "\n  public static VectorOffset "
               "CreateSortedVectorOf" + struct_def.name;
       code += "(BigBufferBuilder builder, "
-              "Offset<@" + struct_def.name + ">"
+              "Offset<" + struct_def.name + ">"
               "[] offsets) {\n"
               "    Array.Sort(offsets, (Offset<" + struct_def.name +
               "> o1, Offset<" + struct_def.name + "> o2) => " + GenKeyCompareBody(key_field);
@@ -1756,7 +1756,7 @@ class CSharpGenerator : public BaseGenerator {
     auto method_start = method_indent + "public " + type_name + " Get";
     // Generate the accessors that don't do object reuse.
     code += method_start + "(ulong _j) { return Get"
-            "(new @" + type_name + "(), _j); }\n";
+            "(new " + type_name + "(), _j); }\n";
     code += method_start + "(" + type_name + " obj, ulong _j) { "
             " return obj.__assign(";
     code += struct_def.fixed ? "_model.__element(_j)"
@@ -1963,9 +1963,9 @@ class CSharpGenerator : public BaseGenerator {
       indent = "      ";
     }
     if (is_vector) {
-      code += indent + "var " + varialbe_name + " = new @";
+      code += indent + "var " + varialbe_name + " = new ";
     } else {
-      code += indent + varialbe_name + " = new @";
+      code += indent + varialbe_name + " = new ";
     }
     code += NamespacedName(enum_def) + "Union();\n";
     code += indent + varialbe_name + ".Type = this." + camel_name + "Type" +
