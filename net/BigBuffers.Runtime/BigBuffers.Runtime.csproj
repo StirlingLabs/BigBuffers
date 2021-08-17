@@ -11,7 +11,7 @@
     <PackageOutputPath>../artifacts</PackageOutputPath>
   </PropertyGroup>
   <ImportGroup>
-    <Import Project="../../Version.Net/Version.proj" />
+    <Import Project="../Version.Net/Version.proj" />
   </ImportGroup>
   <PropertyGroup Condition="'$(BYTEBUFFER_NO_BOUNDS_CHECK)' == 'true'">
     <DefineConstants>$(DefineConstants);BYTEBUFFER_NO_BOUNDS_CHECK</DefineConstants>

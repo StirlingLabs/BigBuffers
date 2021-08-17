@@ -25,7 +25,7 @@ jobs:
           mkdir cmake-build-release && cd cmake-build-release && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
       - name: Build bufc
         run: |
-          make bufc
+          make --build
         working-directory: cmake-build-release
       - name: Update Nuget Source
         run: |
@@ -58,12 +58,12 @@ jobs:
           mkdir cmake-build-release && cd cmake-build-release && cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release ..
       - name: Build bufc
         run: |
-          msbuild.exe bufc.vcxproj /p:Configuration=Release /p:Platform=x64
+          cmake --build .
         working-directory: cmake-build-release
-      - name: Update Nuget Source
-        run: |
-          dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
-        working-directory: net
+      - name: NuGet Auth
+        uses: StirlingLabs/GithubNugetAuthAction@main
+        with:
+          token: ${{secrets.DAEMON_NUGET}}
       - name: Build Net Project
         run: |
           dotnet build -c Release
