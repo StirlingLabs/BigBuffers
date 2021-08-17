@@ -543,7 +543,7 @@ namespace BigBuffers.JsonParsing
             filler();
 #if DEBUG
           Placeholder.ValidateUnfilledCount(Builder, unfilledCount);
-#endif
+
         }
       }
       finally
