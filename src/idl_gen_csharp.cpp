@@ -206,20 +206,34 @@ class CSharpGenerator : public BaseGenerator {
   std::unordered_set<std::string> keywords_;
 
   std::string EscapeKeyword(const std::string &name) const {
-    return keywords_.find(name) == keywords_.end() ? name : name + "_";
+    return keywords_.find(name) == keywords_.end() ? name : "@" + name;
   }
 
-  std::string Name(const FieldDef &field) const {
-    std::string name = MakeCamel(field.name, true);
+  // Ensure that a type is prefixed with its namespace.
+  std::string WrapInNameSpace(const Namespace *ns,
+      const std::string &name) const override {
+    std::string qualified_name = qualifying_start_;
+    for (auto it = ns->components.begin(); it != ns->components.end(); ++it)
+      qualified_name += EscapeKeyword(*it) + qualifying_separator_;
+    return qualified_name + name;
+  }
+
+  std::string WrapInNameSpace(const Definition &def) const override {
+    return WrapInNameSpace(def.defined_namespace, EscapeKeyword(def.name));
+  }
+
+  std::string Name(const FieldDef &field, bool firstUppercase = true) const {
+    std::string name = MakeCamel(field.name, firstUppercase);
     return EscapeKeyword(name);
   }
 
-  std::string Name(const Definition &def) const {
+  std::string Name(const Definition &def, bool firstUppercase = true) const {
+    std::string name = MakeCamel(def.name, firstUppercase);
     return EscapeKeyword(def.name);
   }
 
-  std::string NamespacedName(const Definition &def) const {
-    return WrapInNameSpace(def.defined_namespace, Name(def));
+  std::string NamespacedName(const Definition &def, bool firstUppercase = true) const {
+    return WrapInNameSpace(def.defined_namespace, Name(def, firstUppercase));
   }
 
   std::string Name(const EnumVal &ev) const { return EscapeKeyword(ev.name); }
@@ -580,17 +594,17 @@ class CSharpGenerator : public BaseGenerator {
         if (IsStruct(vecType)) {
           for ( auto i = 0; i < fieldType.fixed_length; ++i ) {
             GenStructValueTuple(*vecType.struct_def, code);
-            code += " @" + MakeCamel(field.name, false) + ", ";
+            code += " " + Name(field, false) + ", ";
           }
           return;
         }
         for ( auto i = 0; i < fieldType.fixed_length; ++i ) {
           code += GenTypeGet(fieldType);
-          code += " @" + MakeCamel(field.name, false) + "_" + NumToString(i)+", ";
+          code += " " + Name(field, false) + "_" + NumToString(i)+", ";
         }
       } else {
         code += GenTypeGet(fieldType);
-        code += " @" + MakeCamel(field.name, false) + ", ";
+        code += " " + Name(field, false) + ", ";
       }
     }
     code.erase(code.end() - 2, code.end());
@@ -615,7 +629,11 @@ class CSharpGenerator : public BaseGenerator {
         } else {
           const auto &elemType = fieldType.VectorType();
           code += "StirlingLabs.Utilities.ReadOnlyBigSpan<";
-          code += GenTypeBasic(elemType);
+          if (struct_def.fixed && IsStruct(elemType)) {
+            GenStructValueTuple(*fieldType.struct_def, *code_ptr);
+          } else {
+            code += GenTypeBasic(elemType);
+          }
           code += ">";
         }
       } else {
@@ -631,9 +649,64 @@ class CSharpGenerator : public BaseGenerator {
       }
       if (field.IsScalarOptional())
         code += "?";
-      code += " @";
-      code += MakeCamel(field.name, false);
+      code += " ";
+      code += Name(field, false);
     }
+  }
+
+  void GenStructFieldBody(FieldDef &field, std::string &code,
+                           std::string &argPath, std::string &fieldPath,
+                           std::string &indent) const {
+
+    if (IsStruct(field.value.type)) {
+      std::string newFieldPath = fieldPath + "." + Name(field);
+      for (auto it : field.value.type.struct_def->fields.vec) {
+        auto nestedField = *it;
+        std::string newArgPath = argPath + "." + Name(nestedField, false);
+        GenStructFieldBody(
+            nestedField,
+            code,
+            newArgPath,
+            newFieldPath,
+            indent
+          );
+      }
+    }
+    else if (IsArray(field.value.type)) {
+      if (field.value.type.element == BASE_TYPE_STRUCT) {
+        for (auto i = 0; i < field.value.type.fixed_length; ++i) {
+          const std::string &strI = NumToString(i);
+          std::string newFieldPath = fieldPath + "." + Name(field) + "("+strI+")";
+          for (auto it : field.value.type.struct_def->fields.vec) {
+            auto nestedField = *it;
+            std::string newArgPath = argPath + "["+strI+"u]" + ".@" + MakeCamel(nestedField.name, false);
+            GenStructFieldBody(
+                nestedField,
+                code,
+                newArgPath,
+                newFieldPath,
+                indent
+                );
+          }
+        }
+      } else {
+        for (auto i = 0; i < field.value.type.fixed_length; ++i) {
+          code += indent + fieldPath + ".Set" + Name(field) + "(";
+          code += NumToString(i);
+          code += ", ";
+          code += argPath;
+          code += "[";
+          code += NumToString(i);
+          code += "u]";
+          code += ");\n";
+        }
+      }
+    } else {
+      code += indent + fieldPath + ".Set" + Name(field) + "(";
+      code += argPath;
+      code += ");\n";
+    }
+
   }
 
   // Recusively generate struct construction statements of the form:
@@ -644,44 +717,26 @@ class CSharpGenerator : public BaseGenerator {
     code += "    builder.Prep(";
     code += NumToString(struct_def.minalign) + ", ";
     code += NumToString(struct_def.bytesize) + ");\n"
-            "    var start = builder.Offset;\n";
-    /*
-            "    var entity = new @"+ struct_def.name + "(builder.Offset, builder.ByteBuffer);\n";
-     */
-    for (auto it = struct_def.fields.vec.begin();
-         it != struct_def.fields.vec.end(); ++it) {
-      auto &field = **it;
+            "    var entity = new @"+ struct_def.name + "(builder.Offset, builder.ByteBuffer);\n"
+            "    builder.Offset += ByteSize;\n";
+
+    std::string indent = "    ";
+    for (auto it : struct_def.fields.vec) {
+      auto &field = *it;
       const auto &field_type = field.value.type;
-      auto argname = "@" + MakeCamel(field.name, false);
+      auto argName = Name(field, false);
 
       if (IsArray(field_type) && field_type.fixed_length > 0) {
         auto lenStr = NumToString(field_type.fixed_length);
-        code += "    if(" + lenStr + " != "+argname+".LongLength)\n"
-                "      throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+argname+"));\n";
+        code += "    if(" + lenStr + " != "+ argName +".LongLength)\n"
+                "      throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+ argName +"));\n";
       }
 
-      /*
-
-      if (IsStruct(field_type)) {
-        code += "  entity."+MakeCamel(field.name)+";\n";
-        GenNestedStructBody( field_type.struct_def )
-      }
-
-      code += "    entity.Set" + MakeCamel(field.name) + "(";
-
-       */
-
-      code += "    builder.Put(";
-          auto argname = nameprefix + Name(field);
-      code += argname;
-      code += ");\n";
-
-      if (field.padding) {
-        code += "    builder.Pad(";
-        code += NumToString(field.padding) + ");\n";
-      }
+      std::string entityPath = "entity";
+      GenStructFieldBody(field, *code_ptr, argName, entityPath, indent);
     }
   }
+
   std::string GenOffsetGetter(flatbuffers::FieldDef *key_field,
                               const char *num = nullptr) const {
     std::string key_offset =
@@ -927,7 +982,7 @@ class CSharpGenerator : public BaseGenerator {
               HasUnionStringValue(*vectortype.enum_def)) {
             code += member_suffix;
             code += "}\n";
-              code += "  public string " + Name(field) + "AsString(int _j)";
+              code += "  public string " + Name(field) + "AsString(ulong _j)";
             code += offset_prefix + GenGetter(Type(BASE_TYPE_STRING));
             code += "(" + indexer + ") : null";
           }
@@ -975,7 +1030,7 @@ class CSharpGenerator : public BaseGenerator {
     code += member_suffix;
     code += "}\n";
     if (IsVector(field.value.type)) {
-        code += "  public int " + Name(field);
+      code += "  public ulong " + Name(field);
       code += "Length"
               " { get";
       code += offset_prefix;
@@ -1584,9 +1639,7 @@ class CSharpGenerator : public BaseGenerator {
       GenStructArgs(struct_def, code_ptr);
       code += ") {\n";
       GenStructBody(struct_def, code_ptr);
-      code += "    return ";
-      code += GenOffsetConstruct(struct_def, "start");
-      code += ";\n  }\n";
+      code += "    return entity;\n  }\n";
     } else {
       // Generate a method that creates a table in one go. This is only possible
       // when the table has no struct fields, since those have to be created
@@ -1621,14 +1674,14 @@ class CSharpGenerator : public BaseGenerator {
             code += WrapInNameSpace(
                 field.value.type.struct_def->defined_namespace,
                 GenTypeName_ObjectAPI(field.value.type.struct_def->name, opts));
-            code += " @";
-            code += EscapeKeyword(field.name);
+            code += " ";
+            code += Name(field, false);
             code += " = null";
           } else {
             code += GenTypeBasic(field.value.type);
             if (field.IsScalarOptional()) { code += "?"; }
-            code += " @";
-            code += EscapeKeyword(field.name);
+            code += " ";
+            code += Name(field, false);
             if (!IsScalar(field.value.type.base_type)) code += "Offset";
 
             code += " = ";
@@ -1651,9 +1704,9 @@ class CSharpGenerator : public BaseGenerator {
               if (IsStruct(field.value.type) &&
                   opts.generate_object_based_api) {
                 code += GenTypePointer(field.value.type) + ".Pack(builder, @" +
-                        EscapeKeyword(field.name) + ")";
+                        Name(field, false) + ")";
               } else {
-                code += EscapeKeyword(field.name);
+                code += Name(field, false);
                 if (!IsScalar(field.value.type.base_type)) code += "Offset";
               }
 
@@ -1685,7 +1738,7 @@ class CSharpGenerator : public BaseGenerator {
         code += Name(field);
         code += "(BigBufferBuilder builder, ";
         code += GenTypeBasic(field.value.type);
-        auto argname = "@" + MakeCamel(field.name, false);
+        auto argname = Name(field, false);
         if (!IsScalar(field.value.type.base_type)) argname += "Offset";
         if (field.IsScalarOptional()) { code += "?"; }
         code += " " + EscapeKeyword(argname) + ") { builder.Add";
