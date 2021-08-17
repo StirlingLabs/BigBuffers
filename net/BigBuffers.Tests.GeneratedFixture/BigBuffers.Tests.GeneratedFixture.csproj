@@ -59,6 +59,7 @@
     </ItemGroup>
 
     <!-- code generation -->
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
           EchoOff="false"
           Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;%(Identity)&quot;', ' ')"
           StandardOutputImportance="high" StandardErrorImportance="high"
