@@ -58,7 +58,7 @@ jobs:
           mkdir cmake-build-release && cd cmake-build-release && cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{github.workspace}}/cmake-build-release ..
       - name: Build bufc
         run: |
-          msbuild.exe bufc.vcxproj /p:Configuration=Release /p:Platform=x64
+          cmake --build .
         working-directory: cmake-build-release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main

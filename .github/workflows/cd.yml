@@ -27,10 +27,10 @@ jobs:
         run: |
           make --build
         working-directory: cmake-build-release
-      - name: Update Nuget Source
-        run: |
-          dotnet nuget update source GitHub-StirlingLabs --source https://nuget.pkg.github.com/StirlingLabs/index.json --username ${{github.repository_owner}}  --password ${{github.token}} --store-password-in-clear-text
-        working-directory: net
+      - name: NuGet Auth
+        uses: StirlingLabs/GithubNugetAuthAction@main
+        with:
+          token: ${{github.token}}
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
