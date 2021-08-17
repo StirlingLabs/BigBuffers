@@ -644,7 +644,7 @@ class CSharpGenerator : public BaseGenerator {
     code += "    builder.Prep(";
     code += NumToString(struct_def.minalign) + ", ";
     code += NumToString(struct_def.bytesize) + ");\n"
-            "    var start = builder.Offset;\n";
+            "    var entity = new @"+ struct_def.name + "(builder.Offset, builder.ByteBuffer);\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       auto &field = **it;
@@ -2674,7 +2674,7 @@ class CSharpGenerator : public BaseGenerator {
               "  }\n"
               "  public string SerializeToJson() {\n"
               "    return Newtonsoft.Json.JsonConvert.SerializeObject(this, "
-              "Newtonsoft.Json.Formatting.Indented);\n";
+              "Newtonsoft.Json.Formatting.Indented);\n"
               "  }\n";
     }
     if (parser_.root_struct_def_ == &struct_def) {
