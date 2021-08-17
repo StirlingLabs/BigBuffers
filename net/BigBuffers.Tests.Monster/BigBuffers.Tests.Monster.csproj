@@ -74,12 +74,17 @@
     <ItemGroup>
       <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc" />
       <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/bufc.exe" />
+      <LocOfBufC Include="../../cmake-build-$(Configuration.ToLower())/$(Configuration.ToLower())/bufc.exe" />
       <BufC Include="@(LocOfBufC)" Condition="Exists('%(Identity)')" />
       <FbsFiles Include="**/*.fbs" />
     </ItemGroup>
 
     <!-- code generation -->
-    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated" Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated"
+          EchoOff="false"
+          Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')"
+          StandardOutputImportance="high" StandardErrorImportance="high"
+          Outputs="Generated/**/*.cs" ContinueOnError="false" />
     
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>
