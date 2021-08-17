@@ -93,12 +93,12 @@ static bool IsLowerSnakeCase(const std::string &str) {
 }
 
 // Convert an underscore_based_identifier in to camelCase.
-// Also uppercases the first character if first is true.
-std::string MakeCamel(const std::string &in, bool first) {
+// Also uppercases the firstUppercase character if firstUppercase is true.
+std::string MakeCamel(const std::string &in, bool firstUppercase) {
   std::string s;
   for (size_t i = 0; i < in.length(); i++) {
     if (!i) {
-      if (first)
+      if (firstUppercase)
         s += CharToUpper(in[0]);
       else
         s += CharToLower(in[0]);
