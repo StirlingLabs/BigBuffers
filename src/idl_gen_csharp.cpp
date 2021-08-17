@@ -644,7 +644,10 @@ class CSharpGenerator : public BaseGenerator {
     code += "    builder.Prep(";
     code += NumToString(struct_def.minalign) + ", ";
     code += NumToString(struct_def.bytesize) + ");\n"
+            "    var start = builder.Offset;\n";
+    /*
             "    var entity = new @"+ struct_def.name + "(builder.Offset, builder.ByteBuffer);\n";
+     */
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       auto &field = **it;
@@ -656,6 +659,17 @@ class CSharpGenerator : public BaseGenerator {
         code += "    if(" + lenStr + " != "+argname+".LongLength)\n"
                 "      throw new System.ArgumentException(\"Must be of length "+lenStr+"\", nameof("+argname+"));\n";
       }
+
+      /*
+
+      if (IsStruct(field_type)) {
+        code += "  entity."+MakeCamel(field.name)+";\n";
+        GenNestedStructBody( field_type.struct_def )
+      }
+
+      code += "    entity.Set" + MakeCamel(field.name) + "(";
+
+       */
 
       code += "    builder.Put(";
           auto argname = nameprefix + Name(field);
