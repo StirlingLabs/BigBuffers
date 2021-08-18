@@ -1,0 +1,122 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  build_and_upload:
+    strategy:
+      matrix:
+        config:
+        - { os: ubuntu-latest, name: 'linux'}
+        - { os: macos-latest, name: 'macos'}
+    runs-on: ${{ matrix.config.os }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Fetch tag git metadata
+        run: git fetch --force --update-shallow --depth 1 origin 'refs/tags/*:refs/tags/*'
+      - uses: actions/setup-dotnet@v1.8.1
+        with:
+          dotnet-version: 5.0.x
+      - name: Build bufc
+        shell: bash
+        run: |
+          mkdir cmake-build-release
+          cd cmake-build-release
+          cmake -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            ..
+          cmake --build . --target bufc --config Release
+      - name: NuGet Auth
+        uses: StirlingLabs/GithubNugetAuthAction@main
+      - name: Build BigBuffers Net Projects
+        run: |
+          dotnet build BigBuffers.sln -c Release
+      - name: Run Net Project Test
+        run: |
+          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
+        working-directory: net
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: bufc-${{ matrix.config.name }}
+          path: cmake-build-release/bufc
+  build_and_upload_win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Fetch tag git metadata
+        run: git fetch --force --update-shallow --depth 1 origin 'refs/tags/*:refs/tags/*'
+      - uses: actions/setup-dotnet@v1.8.1
+        env:
+          DOTNET_NOLOGO: true
+          DOTNET_CLI_TELEMETRY_OPTOUT: true
+        with:
+          dotnet-version: 5.0.x
+      - name: Build bufc
+        shell: bash
+        run: |
+          mkdir cmake-build-release
+          cd cmake-build-release
+          cmake -G "Visual Studio 16 2019" -A x64 ..
+          cmake --build . --target bufc --config Release
+      - name: NuGet Auth
+        uses: StirlingLabs/GithubNugetAuthAction@main
+      - name: Build Net Project
+        run: |
+          dotnet build BigBuffers.sln -c Release
+        working-directory: net
+      - name: Run Net Project Test
+        run: |
+          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
+        working-directory: net
+      - name: Push BigBuffers NuPkg
+        run: |
+          dotnet nuget push artifacts\*.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json -n 1
+        working-directory: net
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: bufc-win
+          path: |
+            ${{ github.workspace }}\cmake-build-release\release\bufc.exe
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build_and_upload_artifact_for_macos_and_linux,build_and_upload_artifact_for_windows]
+    steps:
+      - name: Download bufc windows
+        uses: actions/download-artifact@v2
+        with:
+          name: bufc-win
+          path: win64
+      - name: Download bufc linux
+        uses: actions/download-artifact@v2
+        with:
+          name: bufc-linux
+          path: linux
+      - name: Download bufc macos
+        uses: actions/download-artifact@v2
+        with:
+          name: bufc-macos
+          path: macos
+      - name: Zip file
+        run: |
+          mkdir artifacts
+          tar -cvf artifacts/bufc-win.zip win64
+          tar -cvf artifacts/bufc-linux.tar.gz linux
+          tar -cvf artifacts/bufc-macos.tar.gz macos
+      - name: Release
+        uses: softprops/action-gh-release@v0.1.12
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: bufc
+          files: |
+            artifacts/*.*
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
