@@ -14,10 +14,7 @@ build
 *.a
 *.swp
 *~
-*.vcxproj
-*.vcxproj.filters
 *.vcxproj.user
-*.sln
 *.suo
 *.opendb
 *.keystore
@@ -138,4 +135,4 @@ yarn-error.log
 **/go.sum
 flatbuffers.pc
 **/FlatBuffers.Test.Swift.xcodeproj
-/cmake-build-*
+cmake-build-*/

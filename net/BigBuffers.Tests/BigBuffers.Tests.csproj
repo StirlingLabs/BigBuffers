@@ -6,6 +6,12 @@
     <IsPackable>false</IsPackable>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Authors>Stirling Labs Team &amp; Contributors</Authors>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>../coverage/</CoverletOutput>
+    <DeterministicReport>true</DeterministicReport>
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,5 +34,8 @@
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
     <ProjectReference Include="..\BigBuffers.Tests.Monster\BigBuffers.Tests.Monster.csproj" />
   </ItemGroup>
-
+  <Target Name="GenerateHtmlCoverageReport" AfterTargets="GenerateCoverageResultAfterTest">
+    <!-- generate markdown coverage report and badges -->
+    <ReportGenerator ReportFiles="@(CoverletReport)" ReportTypes="MarkdownSummary;Badges" SourceDirectories="../BigBuffers.Runtime" TargetDirectory="../coverage/" />
+  </Target>
 </Project>
