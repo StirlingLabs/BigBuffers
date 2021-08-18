@@ -31,6 +31,11 @@ jobs:
           cmake --build . --target bufc --config Release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main
+        if: ${{ github.repository_owner == 'StirlingLabs'}}
+      - name: NuGet Auth (External)
+        uses: StirlingLabs/GithubNugetAuthAction@main
+        if: ${{ github.repository_owner != 'StirlingLabs'}}
+          token: ${{ secrets.DAEMON_NUGET_PUBLIC }}
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
@@ -88,7 +93,7 @@ jobs:
             ${{ github.workspace }}\cmake-build-release\release\bufc.exe
   create-release:
     runs-on: ubuntu-latest
-    needs: [build_and_upload_artifact_for_macos_and_linux,build_and_upload_artifact_for_windows]
+    needs: [build_and_upload,build_and_upload_win]
     steps:
       - name: Download bufc windows
         uses: actions/download-artifact@v2

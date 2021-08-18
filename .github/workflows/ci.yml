@@ -33,6 +33,12 @@ jobs:
           cmake --build . --target bufc --config Release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: NuGet Auth (External)
+        uses: StirlingLabs/GithubNugetAuthAction@main
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          token: ${{ secrets.DAEMON_NUGET_PUBLIC }}
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
@@ -68,6 +74,12 @@ jobs:
           cmake --build . --target bufc --config Release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main
+        if: github.event.pull_request.head.repo.full_name == github.repository
+      - name: NuGet Auth (External)
+        uses: StirlingLabs/GithubNugetAuthAction@main
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          token: ${{ secrets.DAEMON_NUGET_PUBLIC }}
       - name: Build Net Project
         run: |
           dotnet build BigBuffers.sln -c Release
