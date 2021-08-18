@@ -23,10 +23,8 @@ jobs:
       - name: Build bufc
         shell: bash
         run: |
-          pwd
           mkdir cmake-build-release
           cd cmake-build-release
-          pwd
           cmake -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=Release \
             ..
@@ -36,6 +34,9 @@ jobs:
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
+      - name: Run Net Project Test
+        run: |
+          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
         working-directory: net
       - name: upload build artifacts
         uses: actions/upload-artifact@v2
@@ -61,21 +62,19 @@ jobs:
       - name: Build bufc
         shell: bash
         run: |
-          pwd
           mkdir cmake-build-release
           cd cmake-build-release
-          pwd
           cmake -G "Visual Studio 16 2019" -A x64 ..
           cmake --build . --target bufc --config Release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main
       - name: Build Net Project
         run: |
-          dotnet build -c Release
+          dotnet build BigBuffers.sln -c Release
         working-directory: net
       - name: Run Net Project Test
         run: |
-          dotnet test --no-build -c Release --logger GitHubActions
+          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
         working-directory: net
       - name: Push BigBuffers NuPkg
         run: |
