@@ -6,11 +6,18 @@
     <IsPackable>false</IsPackable>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Authors>Stirling Labs Team &amp; Contributors</Authors>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>../coverage/</CoverletOutput>
+    <DeterministicReport>true</DeterministicReport>
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.0.0" />
     <PackageReference Include="FluentAssertions.Analyzers" Version="0.11.4" />
+    <PackageReference Include="GitHubActionsTestLogger" Version="1.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
@@ -28,5 +35,8 @@
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
     <ProjectReference Include="..\BigBuffers.Tests.Monster\BigBuffers.Tests.Monster.csproj" />
   </ItemGroup>
-
+  <Target Name="GenerateHtmlCoverageReport" AfterTargets="GenerateCoverageResultAfterTest">
+    <!-- generate markdown coverage report and badges -->
+    <ReportGenerator ReportFiles="@(CoverletReport)" ReportTypes="MarkdownSummary;Badges" SourceDirectories="../BigBuffers.Runtime" TargetDirectory="../coverage/" />
+  </Target>
 </Project>

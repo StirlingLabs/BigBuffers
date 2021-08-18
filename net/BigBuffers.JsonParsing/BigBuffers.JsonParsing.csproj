@@ -7,8 +7,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningsAsErrors>8656</WarningsAsErrors>
     <RootNamespace>BigBuffers</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>../artifacts</PackageOutputPath>
   </PropertyGroup>
-
+  
   <PropertyGroup Condition="'$(BYTEBUFFER_NO_BOUNDS_CHECK)' == 'true'">
     <DefineConstants>$(DefineConstants);BYTEBUFFER_NO_BOUNDS_CHECK</DefineConstants>
   </PropertyGroup>
@@ -37,5 +39,9 @@
     <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" PrivateAssets="all" />
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
   </ItemGroup>
+
+  <ImportGroup>
+    <Import Project="../Version.proj" />
+  </ImportGroup>
 
 </Project>

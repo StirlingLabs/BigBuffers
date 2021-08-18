@@ -1,0 +1,4 @@
+[submodule "net/StirlingLabs.Version"]
+	path = net/StirlingLabs.Version
+	url = git@github.com:StirlingLabs/Version.Net.git
+	branch = master
