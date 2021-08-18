@@ -15,6 +15,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Runtime.Xpc", "B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Tests", "BigBuffers.Tests\BigBuffers.Tests.csproj", "{28092F9F-A4D8-4DD4-A9C9-A533963EA401}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration", "Configuration", "{5611A3DF-2E00-40B5-811B-718BAD640DE5}"
+ProjectSection(SolutionItems) = preProject
+	nuget.config = nuget.config
+	Version.proj = Version.proj
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
