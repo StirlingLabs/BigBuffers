@@ -29,8 +29,6 @@ jobs:
         working-directory: cmake-build-release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main
-        with:
-          token: ${{ secrets.DAEMON_NUGET_PUBLIC }}
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
@@ -65,8 +63,6 @@ jobs:
         working-directory: cmake-build-release
       - name: NuGet Auth
         uses: StirlingLabs/GithubNugetAuthAction@main
-        with:
-          token: ${{ secrets.DAEMON_NUGET_PUBLIC }}
       - name: Build Net Project
         run: |
           dotnet build -c Release
