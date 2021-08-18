@@ -146,7 +146,7 @@ class CSharpGenerator : public BaseGenerator {
 
   CSharpGenerator &operator=(const CSharpGenerator &);
 
-  bool generate() {
+  bool generate() override {
     std::string one_file_code;
     cur_name_space_ = parser_.current_namespace_;
 
@@ -272,7 +272,7 @@ class CSharpGenerator : public BaseGenerator {
     return SaveFile(filename.c_str(), code, false);
   }
 
-  const Namespace *CurrentNameSpace() const { return cur_name_space_; }
+  const Namespace *CurrentNameSpace() const override { return cur_name_space_; }
 
   std::string GenTypeBasic(const Type &type, bool enableLangOverrides) const {
     // clang-format off
