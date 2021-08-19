@@ -30,7 +30,7 @@ jobs:
             ..
           cmake --build . --target bufc --config Release
       - name: NuGet Auth
-        uses: StirlingLabs/GithubNugetAuthAction@main
+        uses: StirlingLabs/GithubNugetAuthAction@v21.08.1
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
@@ -67,7 +67,7 @@ jobs:
           cmake -G "Visual Studio 16 2019" -A x64 ..
           cmake --build . --target bufc --config Release
       - name: NuGet Auth
-        uses: StirlingLabs/GithubNugetAuthAction@main
+        uses: StirlingLabs/GithubNugetAuthAction@v21.08.1
       - name: Build Net Project
         run: |
           dotnet build BigBuffers.sln -c Release
