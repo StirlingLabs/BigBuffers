@@ -1609,8 +1609,9 @@ class CSharpGenerator : public BaseGenerator {
     }
     code += "\n";
 
-    code += "  public static class Metadata {\n"
-            "    public static (string Name, bool Deprecated, ushort Offset, ushort Size, ushort Align, object Default)[] Fields = {\n";
+    code +=
+        "  public static class Metadata\\u20f0 {\n"
+        "    public static (string Name, bool Deprecated, ushort Offset, ushort Size, ushort Align, object Default)[] Fields = {\n";
     for (auto & it : struct_def.fields.vec) {
       auto &field = *it;
       code += "      (@\"" + field.name + "\",";

@@ -147,7 +147,7 @@ namespace BigBuffers.JsonParsing
     Type IJsonParser.Type => Type;
 
     // ReSharper disable once StaticMemberInGenericType
-    private static readonly Type MetadataType = Type.GetNestedType("Metadata")!;
+    private static readonly Type MetadataType = Type.GetNestedType("Metadata\u20f0")!;
     Type IJsonParser.MetadataType => MetadataType;
 
     // ReSharper disable once StaticMemberInGenericType
