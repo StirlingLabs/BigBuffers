@@ -34,6 +34,7 @@ jobs:
       - name: Build BigBuffers Net Projects
         run: |
           dotnet build BigBuffers.sln -c Release
+        working-directory: net
       - name: Run Net Project Test
         run: |
           dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
