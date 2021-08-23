@@ -646,8 +646,9 @@ void JsonDefaultTest() {
   color_monster.add_name(name);
   FinishMonsterBuffer(builder, color_monster.Finish());
   std::string jsongen;
-  auto result = GenerateText(parser, builder.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+  std::string error;
+  auto result = GenerateText(parser, builder.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   // default value of the "color" field is Blue
   TEST_EQ(std::string::npos != jsongen.find("color: \"Blue\""), true);
   // default value of the "testf" field is 3.14159
@@ -675,8 +676,9 @@ void JsonEnumsTest() {
   color_monster.add_color(Color(Color_Blue | Color_Red));
   FinishMonsterBuffer(builder, color_monster.Finish());
   std::string jsongen;
-  auto result = GenerateText(parser, builder.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+  std::string error;
+  auto result = GenerateText(parser, builder.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ(std::string::npos != jsongen.find("color: \"Red Blue\""), true);
   // Test forward compatibility with 'output_enum_identifiers = true'.
   // Current Color doesn't have '(1u << 2)' field, let's add it.
@@ -688,8 +690,9 @@ void JsonEnumsTest() {
   future_color.add_color(
       static_cast<Color>((1u << 2) | Color_Blue | Color_Red));
   FinishMonsterBuffer(builder, future_color.Finish());
-  result = GenerateText(parser, builder.GetBufferPointer(), &future_json);
-  TEST_EQ(result, true);
+  error.clear();
+  result = GenerateText(parser, builder.GetBufferPointer(), &future_json, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ(std::string::npos != future_json.find("color: 13"), true);
 }
 
@@ -761,8 +764,9 @@ void TestMonsterExtraFloats() {
   TEST_EQ(def_extra->d2(), +infinity_d);
   TEST_EQ(def_extra->d3(), -infinity_d);
   std::string jsongen;
-  auto result = GenerateText(parser, def_obj, &jsongen);
-  TEST_EQ(result, true);
+  std::string error;
+  auto result = GenerateText(parser, def_obj, &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   // Check expected default values.
   TEST_EQ(std::string::npos != jsongen.find("f0: nan"), true);
   TEST_EQ(std::string::npos != jsongen.find("f1: nan"), true);
@@ -858,9 +862,10 @@ void ParseAndGenerateTextTest(bool binary) {
   // to ensure it is correct, we now generate text back from the binary,
   // and compare the two:
   std::string jsongen;
+  std::string error;
   auto result =
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(jsongen.c_str(), jsonfile.c_str());
 
   // We can also do the above using the convenient Registry that knows about
@@ -898,10 +903,11 @@ void ParseAndGenerateTextTest(bool binary) {
   // request natural printing for utf-8 strings
   parser.opts.natural_utf8 = true;
   parser.opts.strict_json = true;
-  TEST_EQ(
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen_utf8),
-      true);
-  TEST_EQ_STR(jsongen_utf8.c_str(), jsonfile_utf8.c_str());
+  error.clear();
+  TEST_EQ_MSG(
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen_utf8, error),
+      true, error);
+  TEST_EQ_STR_MSG(jsongen_utf8.c_str(), jsonfile_utf8.c_str(), error.c_str());
 }
 
 void ReflectionTest(uint8_t *flatbuf, size_t length) {
@@ -1239,7 +1245,8 @@ void ParseProtoTest() {
   TEST_EQ(parser.Parse(protofile.c_str(), include_directories), true);
 
   // Generate fbs.
-  auto fbs = flatbuffers::GenerateFBS(parser, "test");
+  std::string error;
+  auto fbs = flatbuffers::GenerateFBS(parser, "test", error);
 
   // Ensure generated file is parsable.
   flatbuffers::Parser parser2;
@@ -1252,7 +1259,7 @@ void ParseProtoTest() {
   TEST_EQ(parser3.Parse(protofile.c_str(), include_directories), true);
 
   // Generate fbs.
-  auto fbs_union = flatbuffers::GenerateFBS(parser3, "test");
+  auto fbs_union = flatbuffers::GenerateFBS(parser3, "test", error);
 
   // Ensure generated file is parsable.
   flatbuffers::Parser parser4;
@@ -1291,7 +1298,8 @@ void ParseProtoTestWithSuffix() {
   TEST_EQ(parser.Parse(protofile.c_str(), include_directories), true);
 
   // Generate fbs.
-  auto fbs = flatbuffers::GenerateFBS(parser, "test");
+  std::string error;
+  auto fbs = flatbuffers::GenerateFBS(parser, "test", error);
 
   // Ensure generated file is parsable.
   flatbuffers::Parser parser2;
@@ -1304,7 +1312,7 @@ void ParseProtoTestWithSuffix() {
   TEST_EQ(parser3.Parse(protofile.c_str(), include_directories), true);
 
   // Generate fbs.
-  auto fbs_union = flatbuffers::GenerateFBS(parser3, "test");
+  auto fbs_union = flatbuffers::GenerateFBS(parser3, "test", error);
 
   // Ensure generated file is parsable.
   flatbuffers::Parser parser4;
@@ -1347,13 +1355,14 @@ void ParseProtoTestWithIncludes() {
   TEST_EQ(parser.Parse(protofile.c_str(), include_directories), true);
 
   // Generate fbs.
-  auto fbs = flatbuffers::GenerateFBS(parser, "test");
+  std::string error;
+  auto fbs = flatbuffers::GenerateFBS(parser, "test", error);
 
   // Generate fbs from import.proto
   flatbuffers::Parser import_parser(opts);
   TEST_EQ(import_parser.Parse(importprotofile.c_str(), include_directories),
           true);
-  auto import_fbs = flatbuffers::GenerateFBS(import_parser, "test");
+  auto import_fbs = flatbuffers::GenerateFBS(import_parser, "test", error);
 
   // Ensure generated file is parsable.
   flatbuffers::Parser parser2;
@@ -1373,7 +1382,8 @@ void ParseProtoTestWithIncludes() {
   TEST_EQ(parser3.Parse(protofile.c_str(), include_directories), true);
 
   // Generate fbs.
-  auto fbs_union = flatbuffers::GenerateFBS(parser3, "test");
+  error.clear();
+  auto fbs_union = flatbuffers::GenerateFBS(parser3, "test", error);
 
   // Ensure generated file is parsable.
   flatbuffers::Parser parser4;
@@ -1631,10 +1641,11 @@ void FuzzTest2() {
   TEST_EQ(parser.Parse(json.c_str()), true);
 
   std::string jsongen;
+  std::string error;
   parser.opts.indent_step = 0;
   auto result =
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
 
   if (jsongen != json) {
     // These strings are larger than a megabyte, so we show the bytes around
@@ -1789,9 +1800,10 @@ T TestValue(const char *json, const char *type_name,
 
   // Check with print.
   std::string print_back;
+  std::string error;
   parser.opts.indent_step = -1;
-  TEST_EQ(GenerateText(parser, parser.builder_.GetBufferPointer(), &print_back),
-          true);
+  TEST_EQ_MSG(GenerateText(parser, parser.builder_.GetBufferPointer(), &print_back, error),
+      true, error);
   // restore value from its default
   if (check_default) { TEST_EQ(parser.Parse(print_back.c_str()), true); }
 
@@ -2244,28 +2256,32 @@ void GenerateTableTextTest() {
   TEST_EQ(abilities->Get(2)->distance(), 12);
 
   std::string jsongen;
+  std::string error;
   auto result = GenerateTextFromTable(parser, monster, "MyGame.Example.Monster",
-                                      &jsongen);
-  TEST_EQ(result, true);
+                                      &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   // Test sub table
   const Vec3 *pos = monster->pos();
   jsongen.clear();
-  result = GenerateTextFromTable(parser, pos, "MyGame.Example.Vec3", &jsongen);
-  TEST_EQ(result, true);
+  error.clear();
+  result = GenerateTextFromTable(parser, pos, "MyGame.Example.Vec3", &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(
       jsongen.c_str(),
       "{x: 1.0,y: 2.0,z: 3.0,test1: 3.0,test2: \"Green\",test3: {a: 5,b: 6}}");
   const Test &test3 = pos->test3();
   jsongen.clear();
+  error.clear();
   result =
-      GenerateTextFromTable(parser, &test3, "MyGame.Example.Test", &jsongen);
-  TEST_EQ(result, true);
+      GenerateTextFromTable(parser, &test3, "MyGame.Example.Test", &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(jsongen.c_str(), "{a: 5,b: 6}");
   const Test *test4 = monster->test4()->Get(0);
   jsongen.clear();
+  error.clear();
   result =
-      GenerateTextFromTable(parser, test4, "MyGame.Example.Test", &jsongen);
-  TEST_EQ(result, true);
+      GenerateTextFromTable(parser, test4, "MyGame.Example.Test", &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(jsongen.c_str(), "{a: 10,b: 20}");
 }
 
@@ -2330,10 +2346,11 @@ void UnicodeTest() {
                        "3D\\uDE0E\" }"),
           true);
   std::string jsongen;
+  std::string error;
   parser.opts.indent_step = -1;
   auto result =
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(jsongen.c_str(),
               "{F: \"\\u20AC\\u00A2\\u30E6\\u30FC\\u30B6\\u30FC"
               "\\u5225\\u30B5\\u30A4\\u30C8\\u20AC\\u0080\\uD83D\\uDE0E\"}");
@@ -2350,10 +2367,11 @@ void UnicodeTestAllowNonUTF8() {
           "\\u5225\\u30B5\\u30A4\\u30C8\\x01\\x80\\u0080\\uD83D\\uDE0E\" }"),
       true);
   std::string jsongen;
+  std::string error;
   parser.opts.indent_step = -1;
   auto result =
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(
       jsongen.c_str(),
       "{F: \"\\u20AC\\u00A2\\u30E6\\u30FC\\u30B6\\u30FC"
@@ -2373,13 +2391,14 @@ void UnicodeTestGenerateTextFailsOnNonUTF8() {
           "\\u5225\\u30B5\\u30A4\\u30C8\\x01\\x80\\u0080\\uD83D\\uDE0E\" }"),
       true);
   std::string jsongen;
+  std::string error;
   parser.opts.indent_step = -1;
   // Now, disallow non-UTF-8 (the default behavior) so GenerateText indicates
   // failure.
   parser.opts.allow_non_utf8 = false;
   auto result =
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, false);
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, false, error);
 }
 
 void UnicodeSurrogatesTest() {
@@ -2560,10 +2579,11 @@ void UnknownFieldsTest() {
           true);
 
   std::string jsongen;
+  std::string error;
   parser.opts.indent_step = -1;
   auto result =
-      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+      GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(jsongen.c_str(), "{str: \"test\",i: 10}");
 }
 
@@ -2898,8 +2918,9 @@ void UnionVectorTest() {
 
   // Generate text using parsed schema.
   std::string jsongen;
-  auto result = GenerateText(parser, fbb.GetBufferPointer(), &jsongen);
-  TEST_EQ(result, true);
+  std::string error;
+  auto result = GenerateText(parser, fbb.GetBufferPointer(), &jsongen, error);
+  TEST_EQ_MSG(result, true, error);
   TEST_EQ_STR(jsongen.c_str(),
               "{\n"
               "  main_character_type: \"Rapunzel\",\n"
@@ -2977,9 +2998,10 @@ void ParseProtoBufAsciiTest() {
   TEST_EQ(parser.Parse("{ A [1 2] C { B:2 }}"), true);
   // Similarly, in text output, it should omit these.
   std::string text;
+  std::string error;
   auto ok = flatbuffers::GenerateText(
-      parser, parser.builder_.GetBufferPointer(), &text);
-  TEST_EQ(ok, true);
+      parser, parser.builder_.GetBufferPointer(), &text, error);
+  TEST_EQ_MSG(ok, true, error);
   TEST_EQ_STR(text.c_str(),
               "{\n  A [\n    1\n    2\n  ]\n  C {\n    B: 2\n  }\n}\n");
 }
@@ -3732,9 +3754,10 @@ void FixedLengthArrayJsonTest(bool binary) {
 
   // Export to JSON
   std::string jsonGen;
-  TEST_EQ(
-      GenerateText(parserOrg, parserOrg.builder_.GetBufferPointer(), &jsonGen),
-      true);
+  std::string error;
+  TEST_EQ_MSG(
+      GenerateText(parserOrg, parserOrg.builder_.GetBufferPointer(), &jsonGen, error),
+      true, error);
 
   // Import from JSON
   TEST_EQ(parserGen.Parse(jsonGen.c_str()), true);
@@ -3858,9 +3881,10 @@ void TestEmbeddedBinarySchema() {
 
   // Export to JSON
   std::string jsonGen;
-  TEST_EQ(
-      GenerateText(parserOrg, parserOrg.builder_.GetBufferPointer(), &jsonGen),
-      true);
+  std::string error;
+  TEST_EQ_MSG(
+      GenerateText(parserOrg, parserOrg.builder_.GetBufferPointer(), &jsonGen, error),
+      true, error);
 
   // Import from JSON
   TEST_EQ(parserGen.Parse(jsonGen.c_str()), true);

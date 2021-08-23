@@ -229,6 +229,10 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -std=c++0x")
   endif(CYGWIN)
+  if(MINGW)
+    set(CMAKE_EXE_LINKER_FLAGS
+      "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static -lpthread -dynamic")
+  endif(MINGW)
   set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wextra -Werror=shadow")
   set(FLATBUFFERS_PRIVATE_CXX_FLAGS "-Wold-style-cast")
@@ -379,8 +383,8 @@ if(FLATBUFFERS_BUILD_SHAREDLIB)
   # - micro updated every release when there is no API/ABI changes
   # - minor updated when there are additions in API/ABI
   # - major (ABI number) updated when there are changes in ABI (or removals)
-  set(FlatBuffers_Library_SONAME_MAJOR "2")
-  set(FlatBuffers_Library_SONAME_FULL "${FlatBuffers_Library_SONAME_MAJOR}.0.0")
+  set(FlatBuffers_Library_SONAME_MAJOR "21")
+  set(FlatBuffers_Library_SONAME_FULL "${FlatBuffers_Library_SONAME_MAJOR}.08.0")
   set_target_properties(flatbuffers_shared PROPERTIES OUTPUT_NAME flatbuffers
                         SOVERSION "${FlatBuffers_Library_SONAME_MAJOR}"
                         VERSION "${FlatBuffers_Library_SONAME_FULL}")

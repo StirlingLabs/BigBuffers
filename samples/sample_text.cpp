@@ -45,8 +45,10 @@ int main(int /*argc*/, const char * /*argv*/[]) {
   // to ensure it is correct, we now generate text back from the binary,
   // and compare the two:
   std::string jsongen;
-  if (!GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen)) {
+  std::string error;
+  if (!GenerateText(parser, parser.builder_.GetBufferPointer(), &jsongen, error)) {
     printf("Couldn't serialize parsed data to JSON!\n");
+    printf(error.c_str());
     return 1;
   }
 
