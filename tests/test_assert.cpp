@@ -24,6 +24,22 @@ void TestFail(const char *expval, const char *val, const char *exp,
   assert(0);  // ignored in Release if NDEBUG defined
 }
 
+
+void TestFail(const char *expval, const char *val, std::string &exp,
+    const char *file, int line, const char *func) {
+  TEST_OUTPUT_LINE("EXPECTED: \"%s\"", expval);
+  TEST_OUTPUT_LINE("VALUE: \"%s\"", val);
+  auto expC = exp.c_str();
+  TEST_OUTPUT_LINE("TEST FAILED: %s:%d, %s in %s", file, line, expC,
+      func ? func : "");
+  testing_fails++;
+
+  // Notify, emulate 'gtest::OnTestPartResult' event handler.
+  if (fail_listener_) (*fail_listener_)(expval, val, expC, file, line, func);
+
+  assert(0);  // ignored in Release if NDEBUG defined
+}
+
 void TestEqStr(const char *expval, const char *val, const char *exp,
                const char *file, int line, const char *func) {
   if (strcmp(expval, val) != 0) {

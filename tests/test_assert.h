@@ -17,9 +17,11 @@
 #endif
 
 #define TEST_EQ(exp, val) TestEq(exp, val, "'" #exp "' != '" #val "'", __FILE__, __LINE__, "")
+#define TEST_EQ_MSG(exp, val, message) TestEq(exp, val, message, __FILE__, __LINE__, "")
 #define TEST_ASSERT(val)  TestEq(true, !!(val), "'" "true" "' != '" #val "'", __FILE__, __LINE__, "")
 #define TEST_NOTNULL(val) TestEq(true, (val) != nullptr, "'" "nullptr" "' == '" #val "'", __FILE__, __LINE__, "")
 #define TEST_EQ_STR(exp, val) TestEqStr(exp, val, "'" #exp "' != '" #val "'", __FILE__, __LINE__, "")
+#define TEST_EQ_STR_MSG(exp, val, message) TestEqStr(exp, val, message, __FILE__, __LINE__, "")
 
 #ifdef _WIN32
   #define TEST_ASSERT_FUNC(val) TestEq(true, !!(val), "'" "true" "' != '" #val "'", __FILE__, __LINE__, __FUNCTION__)
@@ -51,7 +53,10 @@ int CloseTestEngine(bool force_report = false);
 
 // Write captured state to a log and terminate test run.
 void TestFail(const char *expval, const char *val, const char *exp,
-              const char *file, int line, const char *func = 0);
+    const char *file, int line, const char *func = 0);
+
+void TestFail(const char *expval, const char *val, std::string &exp,
+    const char *file, int line, const char *func = 0);
 
 void TestEqStr(const char *expval, const char *val, const char *exp,
                const char *file, int line, const char *func = 0);
@@ -106,4 +111,24 @@ inline void TestEq<std::string, std::string>(std::string expval,
   }
 }
 
+
+template<typename T, typename U>
+void TestEq(T expval, U val, std::string &exp, const char *file, int line,
+    const char *func) {
+  if (static_cast<U>(expval) != val) {
+    TestFail(flatbuffers::NumToString(scalar_as_underlying(expval)).c_str(),
+        flatbuffers::NumToString(scalar_as_underlying(val)).c_str(), exp,
+        file, line, func);
+  }
+}
+
+template<>
+inline void TestEq<std::string, std::string>(std::string expval,
+    std::string val, std::string &exp,
+    const char *file, int line,
+    const char *func) {
+  if (expval != val) {
+    TestFail(expval.c_str(), val.c_str(), exp, file, line, func);
+  }
+}
 #endif  // !TEST_ASSERT_H
