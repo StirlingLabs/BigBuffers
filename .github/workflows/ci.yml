@@ -4,6 +4,8 @@ name: Integration
 on:
   pull_request:
   push:
+    tags-ignore:
+      - '**'
     branches: [ main ]
 jobs:
   build_and_upload_artifact_for_macos_and_linux:
