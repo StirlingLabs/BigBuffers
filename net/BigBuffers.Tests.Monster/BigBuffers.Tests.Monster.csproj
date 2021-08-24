@@ -37,7 +37,7 @@
     <IsMultiTarget Condition="'$(TargetFrameworks)'!='' And $(TargetFrameworks.Contains(';'))">true</IsMultiTarget>
   </PropertyGroup>
 
-  <Target Name="DetectFirstBuild" BeforeTargets="DispatchToInnerBuilds">
+  <Target Name="DetectFirstBuild" BeforeTargets="GenerateModelsFromSchema;DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
     <Message Importance="low" Text="Checking if this is the first build..." />
     <PropertyGroup>
       <IsFirstBuild>true</IsFirstBuild>
@@ -55,7 +55,7 @@
     </PropertyGroup>
   </Target>
   
-  <Target Name="GenerateModelsFromSchema" DependsOnTargets="DetectFirstBuild" Condition="$(IsFirstBuild)" BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
+  <Target Name="GenerateModelsFromSchema" AfterTargets="DetectFirstBuild" Condition="$(IsFirstBuild)" BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
     <Message Importance="normal" Text="Generating models from schema..." />
     
     <!-- make the generated dir if it doesn't exist -->

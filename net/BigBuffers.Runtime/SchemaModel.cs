@@ -132,22 +132,6 @@ namespace BigBuffers
       return t;
     }
 
-
-    // Get the data of a vector whoses offset is stored at "offset" in this object as an
-    // ArraySegment&lt;byte&gt;. If the vector is not present in the ByteBuffer,
-    // then a null value will be returned.
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ArraySegment<byte>? __vector_as_arraysegment(ref this Model model, ulong offset)
-    {
-      ref readonly var bb = ref model.ByteBuffer;
-      var o = model.__offset(offset);
-      if (0 == o) return null;
-
-      var pos = model.__vector(o);
-      var len = model.__vector_len(o);
-      return bb.ToArraySegment(checked((int)pos), checked((int)len));
-    }
-
     // Get the data of a vector whoses offset is stored at "offset" in this object as an
     // T[]. If the vector is not present in the ByteBuffer, then a null value will be
     // returned.

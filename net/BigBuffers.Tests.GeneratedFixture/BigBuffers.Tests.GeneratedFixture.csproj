@@ -12,10 +12,10 @@
 
   <PropertyGroup>
     <BuildInParallel Condition="'$(BuildInParallel)'==''">true</BuildInParallel>
-    <IsFirstBuild>false</IsFirstBuild>
-    <IsFirstBuild Condition="!$(BuildInParallel)">true</IsFirstBuild>
     <IsMultiTarget>false</IsMultiTarget>
     <IsMultiTarget Condition="'$(TargetFrameworks)'!='' And $(TargetFrameworks.Contains(';'))">true</IsMultiTarget>
+    <IsFirstBuild>false</IsFirstBuild>
+    <IsFirstBuild Condition="!$(BuildInParallel) And !$(IsMultiTarget)">true</IsFirstBuild>
   </PropertyGroup>
 
   <Target Name="DetectFirstBuild" BeforeTargets="DispatchToInnerBuilds">
@@ -36,7 +36,7 @@
     </PropertyGroup>
   </Target>
   
-  <Target Name="GenerateModelsFromSchema" DependsOnTargets="DetectFirstBuild" Condition="$(IsFirstBuild)"
+  <Target Name="GenerateModelsFromSchema" AfterTargets="DetectFirstBuild" Condition="$(IsFirstBuild)"
           BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
     <Message Importance="normal" Text="Generating models from schema..." />
     

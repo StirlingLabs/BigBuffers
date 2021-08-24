@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Magic;
-
 using static BigBuffers.Debug;
 
 namespace BigBuffers
@@ -17,13 +16,29 @@ namespace BigBuffers
   [PublicAPI]
   public struct Placeholder
   {
-#if DEBUG
     [StructLayout(LayoutKind.Explicit, Pack = 1)]
     private readonly struct EmptyType { }
 
     private static readonly ConcurrentDictionary<(BigBufferBuilder Buffer, ulong Offset), EmptyType> Tracker
       = new();
+
+    private static bool _enableValidation
+#if DEBUG
+      = true;
+#else
+      = false;
 #endif
+
+    public static bool EnableValidation
+    {
+      get => _enableValidation;
+      set {
+        if (value == _enableValidation) return;
+
+        Tracker.Clear();
+        _enableValidation = value;
+      }
+    }
 
     internal BigBufferBuilder Builder;
     internal readonly ulong Offset;
@@ -34,10 +49,12 @@ namespace BigBuffers
       Debug.Assert(builder != null);
       Builder = builder;
       Offset = offset;
-#if DEBUG
+
+      if (!EnableValidation)
+        return;
+
       if (!Tracker.TryAdd((Builder, Offset), default))
         throw new InvalidOperationException("Don't create multiple placeholders for the same data.");
-#endif
     }
 
 
@@ -53,23 +70,30 @@ namespace BigBuffers
       get => Builder is not null;
     }
 
-#if DEBUG
     public static Placeholder? GetPlaceholder(BigBufferBuilder bb, ulong offset)
-      => Tracker.TryGetValue((bb, offset), out _)
+    {
+      if (!EnableValidation)
+        throw new InvalidOperationException("EnableValidation must be set to true in order to use validation.");
+
+      return Tracker.TryGetValue((bb, offset), out _)
         ? new(bb, offset)
         : default;
+    }
 
 
     public static bool IsPlaceholder(BigBufferBuilder bb, ulong offset)
-      => Tracker.ContainsKey((bb, offset));
-#endif
+    {
+      if (!EnableValidation)
+        throw new InvalidOperationException("EnableValidation must be set to true in order to use validation.");
+
+      return Tracker.ContainsKey((bb, offset));
+    }
 
     private void Done()
     {
       if (Builder is null) return;
-#if DEBUG
-      Tracker.TryRemove((Builder, Offset), out _);
-#endif
+      if (EnableValidation)
+        Tracker.TryRemove((Builder, Offset), out _);
       Builder = null;
     }
 
@@ -371,10 +395,11 @@ namespace BigBuffers
       Done();
     }
 
-    [Conditional("DEBUG")]
     public static void ValidateAllFilled(BigBufferBuilder bb)
     {
-#if DEBUG
+      if (!EnableValidation)
+        throw new InvalidOperationException("EnableValidation must be set to true in order to use validation.");
+
       var placeholders = Tracker.Keys
         .Where(k => k.Buffer == bb)
         .Select(k => k.Offset)
@@ -384,21 +409,22 @@ namespace BigBuffers
         return;
 
       throw new PlaceholdersUnfilledException(placeholders);
-#else
-      throw new NotImplementedException("This should not exist under release conditions.");
-#endif
     }
 
-#if DEBUG
     public static void GetUnfilledCount(BigBufferBuilder bb, out int count)
-      => count = Tracker.Keys
-        .Count(k => k.Buffer == bb);
-#endif
+    {
+      if (!EnableValidation)
+        throw new InvalidOperationException("EnableValidation must be set to true in order to use validation.");
 
-    [Conditional("DEBUG")]
+      count = Tracker.Keys
+        .Count(k => k.Buffer == bb);
+    }
+
     public static void ValidateUnfilledCount(BigBufferBuilder bb, int count)
     {
-#if DEBUG
+      if (!EnableValidation)
+        throw new InvalidOperationException("EnableValidation must be set to true in order to use validation.");
+
       var placeholders = Tracker.Keys
         .Where(k => k.Buffer == bb)
         .Select(k => k.Offset)
@@ -406,9 +432,6 @@ namespace BigBuffers
 
       if (placeholders.Count != count)
         throw new PlaceholdersUnfilledException(placeholders, $"Expected {count}, but there were {placeholders.Count} unfilled placeholders.");
-#else
-      throw new NotImplementedException("This should not exist under release conditions.");
-#endif
     }
   }
 

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Text;
 using System.Text.Json;
 using BigBuffers.JsonParsing;
@@ -18,9 +19,17 @@ namespace BigBuffers.Tests
     [Theory]
     public static void ReadMonsterDataTest(bool validate)
     {
-      var bytes = File.ReadAllBytes("monsterdata_test.mon");
+      //var bytes = File.ReadAllBytes("monsterdata_test.mon");
 
-      var buffer = new ByteBuffer(bytes);
+      //var buffer = new ByteBuffer(bytes);
+
+      var mmf = MemoryMappedFile.CreateFromFile
+      ("monsterdata_test.mon", FileMode.Open,
+        null, 0, MemoryMappedFileAccess.Read);
+
+      var view = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+
+      var buffer = new ByteBuffer(view.SafeMemoryMappedViewHandle);
 
       var root = buffer.__indirect(0);
 
@@ -50,7 +59,7 @@ namespace BigBuffers.Tests
       MyGame.Example.Monster.FinishMonsterBuffer(builder, monster);
 
       if (!validate) return;
-      
+
       Placeholder.ValidateAllFilled(builder);
       ValidateMonsterJson(monster);
 
