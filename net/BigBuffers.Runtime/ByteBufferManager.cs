@@ -6,7 +6,7 @@ using StirlingLabs.Utilities;
 namespace BigBuffers
 {
   [PublicAPI]
-  public abstract class ByteBufferAllocator : IEquatable<ByteBufferAllocator>
+  public abstract class ByteBufferManager : IEquatable<ByteBufferManager>
   {
     public abstract BigSpan<byte> Span
     {
@@ -20,36 +20,32 @@ namespace BigBuffers
       get;
     }
 
-    public abstract byte[] Buffer
-    {
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      get;
-    }
+    public uint Length => (uint)Span.Length;
 
-    public uint Length => (uint)Buffer.Length;
+    public ulong LongLength => Span.LongLength;
 
-    public ulong LongLength => (ulong)Buffer.LongLength;
+    public abstract bool Growable { get; set; }
 
     public abstract void GrowFront(ulong newSize);
 
-    public bool Equals(ByteBufferAllocator other)
+    public bool Equals(ByteBufferManager other)
       => !ReferenceEquals(null, other)
         && (ReferenceEquals(this, other)
-          || Equals(Buffer, other.Buffer));
+          || Span == other.Span);
 
     public override bool Equals(object obj)
       => !ReferenceEquals(null, obj)
         && (ReferenceEquals(this, obj)
           || this.TypeEquals(obj)
-          && Equals((ByteBufferAllocator)obj));
+          && Equals((ByteBufferManager)obj));
 
-    public override int GetHashCode()
-      => Buffer is null ? 0 : Buffer.GetHashCode();
+    public override unsafe int GetHashCode()
+      => Span.IsEmpty ? 0 : ((IntPtr)Span.GetUnsafePointer()).GetHashCode();
 
-    public static bool operator ==(ByteBufferAllocator left, ByteBufferAllocator right)
+    public static bool operator ==(ByteBufferManager left, ByteBufferManager right)
       => left?.Equals(right) ?? right is null;
 
-    public static bool operator !=(ByteBufferAllocator left, ByteBufferAllocator right)
+    public static bool operator !=(ByteBufferManager left, ByteBufferManager right)
       => !left?.Equals(right) ?? right is not null;
   }
 }

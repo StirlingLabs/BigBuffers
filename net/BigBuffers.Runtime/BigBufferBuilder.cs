@@ -740,16 +740,6 @@ namespace BigBuffers
 
     /// <summary>
     /// A utility function to copy and return the ByteBuffer data as a
-    /// `byte[]`.
-    /// </summary>
-    /// <returns>
-    /// A full copy of the BigBuffer data.
-    /// </returns>
-    public ArraySegment<byte> SizedByteArraySegment()
-      => _bb.ToArraySegment(0, checked((int)Offset));
-
-    /// <summary>
-    /// A utility function to copy and return the ByteBuffer data as a
     /// <see cref="BigSpan{Byte}"/>.
     /// </summary>
     /// <returns>

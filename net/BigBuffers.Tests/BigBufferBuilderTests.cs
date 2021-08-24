@@ -43,7 +43,7 @@ namespace BigBuffers.Tests
       {
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -83,7 +83,7 @@ namespace BigBuffers.Tests
       {
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -91,7 +91,7 @@ namespace BigBuffers.Tests
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, // one byte boolean field: true
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(1,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -99,7 +99,7 @@ namespace BigBuffers.Tests
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, // 2 one byte boolean fields: true, true
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.EndTable();
       CollectionAssert.AreEqual(new byte[]
         {
@@ -119,7 +119,7 @@ namespace BigBuffers.Tests
           8, 0, // offset to bool field (1)
           9, 0, // offset to bool field (2)
         },
-        builder.SizedByteArraySegment());
+        builder.SizedByteArray());
     }
 
     [Test]
@@ -131,7 +131,7 @@ namespace BigBuffers.Tests
       {
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(0,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -139,7 +139,7 @@ namespace BigBuffers.Tests
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, // one byte boolean field: true
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(1,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
@@ -147,43 +147,43 @@ namespace BigBuffers.Tests
         // placeholder for signed offset to vtable
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, // 2 one byte boolean fields: true, true
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(2,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1,
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(3,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1,
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(4,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1,
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(5,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1, 1,
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(6,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1, 1, 1,
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.Add(7,true, false);
       CollectionAssert.AreEqual(new byte[]
       {
         0, 0, 0, 0, 0, 0, 0, 0x80,
         1, 1, 1, 1, 1, 1, 1, 1
-      }, builder.SizedByteArraySegment());
+      }, builder.SizedByteArray());
       builder.EndTable();
       CollectionAssert.AreEqual(new byte[]
         {
@@ -210,7 +210,7 @@ namespace BigBuffers.Tests
           // alignment
           0,0,0,0
         },
-        builder.SizedByteArraySegment());
+        builder.SizedByteArray());
     }
   }
 }

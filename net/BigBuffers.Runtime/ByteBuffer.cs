@@ -28,10 +28,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using JetBrains.Annotations;
+using Microsoft.Win32.SafeHandles;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Magic;
 
@@ -40,13 +41,13 @@ namespace BigBuffers
   [DebuggerTypeProxy(typeof(ByteBufferDebugger))]
   public struct ByteBuffer : IEquatable<ByteBuffer>
   {
-    internal readonly ByteBufferAllocator Buffer;
+    internal readonly ByteBufferManager Buffer;
 
     private ulong _pos; // Must track start of the buffer.
 
-    public ByteBuffer(ByteBufferAllocator allocator, ulong position)
+    public ByteBuffer(ByteBufferManager manager, ulong position)
     {
-      Buffer = allocator;
+      Buffer = manager;
       _pos = position;
     }
 
@@ -54,9 +55,31 @@ namespace BigBuffers
 
     public ByteBuffer(byte[] buffer) : this(buffer, 0) { }
 
+    public ByteBuffer(SafeBuffer buffer) : this(buffer, 0) { }
+
+    /// <summary>
+    /// WARNING: This implementation expects you to have
+    /// pinned the span for the duration of use.
+    /// </summary>
+    public ByteBuffer(BigSpan<byte> buffer) : this(buffer, 0) { }
+
     public ByteBuffer(byte[] buffer, ulong pos)
     {
-      Buffer = new ByteArrayAllocator(buffer);
+      Buffer = new ByteArrayManager(buffer);
+      _pos = pos;
+    }
+    public ByteBuffer(SafeBuffer buffer, ulong pos, bool growable = false)
+    {
+      Buffer = new SafeBufferManager(buffer, growable);
+      _pos = pos;
+    }
+    /// <summary>
+    /// WARNING: This implementation expects you to have
+    /// pinned the span for the duration of use.
+    /// </summary>
+    public ByteBuffer(BigSpan<byte> buffer, ulong pos, bool growable = false)
+    {
+      Buffer = new UnsafeByteSpanManager(buffer, growable);
       _pos = pos;
     }
 
@@ -161,12 +184,6 @@ namespace BigBuffers
       => Buffer.Span.Slice((nuint)pos, (nuint)len);
     public ReadOnlyBigSpan<byte> ToReadOnlySpan(ulong pos, ulong len)
       => Buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)len);
-
-    public readonly ArraySegment<byte> ToArraySegment(int pos, int len)
-      => new ArraySegment<byte>(Buffer.Buffer, pos, len);
-
-    public MemoryStream ToMemoryStream(int pos, int len)
-      => new MemoryStream(Buffer.Buffer, pos, len);
     // Helper functions for the unsafe version.
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -217,7 +234,7 @@ namespace BigBuffers
     {
       var itemSize = SizeOf<T>();
       AssertOffsetAndLength(index, itemSize);
-      ref var item = ref Buffer.Buffer[index];
+      ref var item = ref Buffer.Span[(nuint)index];
       if (BitConverter.IsLittleEndian)
         return Unsafe.As<byte, T>(ref item);
       switch (itemSize)
@@ -248,7 +265,7 @@ namespace BigBuffers
     {
       var itemSize = SizeOf<T>();
       AssertOffsetAndLength(index, itemSize);
-      ref var item = ref Buffer.Buffer[index];
+      ref var item = ref Buffer.Span[(nuint)index];
       if (!BitConverter.IsLittleEndian)
         throw new NotImplementedException($"Ref<{typeof(T).FullName}>");
 
@@ -259,19 +276,19 @@ namespace BigBuffers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly byte GetByte(ulong index)
-      => Buffer.Buffer[index];
+      => Buffer.Span[(nuint)index];
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref byte RefByte(ulong index)
-      => ref Buffer.Buffer[index];
+      => ref Buffer.Span[(nuint)index];
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BigSpan<T> GetSpan<T>(ulong index, ulong size)
-      => BigSpan.Create(ref Unsafe.As<byte, T>(ref Buffer.Buffer[index]), (nuint)size);
+      => BigSpan.Create(ref Unsafe.As<byte, T>(ref Buffer.Span[(nuint)index]), (nuint)size);
 
-    public static readonly ConditionalWeakTable<ByteBufferAllocator, ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>>>
+    public static readonly ConditionalWeakTable<ByteBufferManager, ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>>>
       PerByteBufferStringCache =
         new();
 
@@ -368,7 +385,7 @@ namespace BigBuffers
       var numBytes = SizeOf<T>();
       var longNumBytes = (int)numBytes;
       AssertOffsetAndLength(offset, numBytes);
-      ref var target = ref Buffer.Buffer[offset];
+      ref var target = ref Buffer.Span[(nuint)offset];
 
       if (BitConverter.IsLittleEndian)
         Unsafe.As<byte, T>(ref target) = x;
@@ -408,7 +425,7 @@ namespace BigBuffers
       var numBytes = SizeOf<T>();
       var longNumBytes = (int)numBytes;
       AssertOffsetAndLength(offset, numBytes);
-      ref var target = ref Buffer.Buffer[offset];
+      ref var target = ref Buffer.Span[(nuint)offset];
 
       if (BitConverter.IsLittleEndian)
         Unsafe.As<byte, T>(ref target) = x;

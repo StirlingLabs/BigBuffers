@@ -1071,13 +1071,6 @@ class CSharpGenerator : public BaseGenerator {
           GenTypeBasic(field.value.type.VectorType()) + ">(";
       code += NumToString(field.value.offset);
       code += ", " + NumToString(SizeOf(field.value.type.VectorType().base_type));
-      code += "); }\n"
-
-              "  public ArraySegment<byte>? Get";
-        code += Name(field);
-      code += "ByteArraySegment() { return "
-              "_model.__vector_as_arraysegment(";
-      code += NumToString(field.value.offset);
       code += "); }\n";
 
       // For direct blockcopying the data into a typed array
