@@ -975,7 +975,10 @@ class CSharpGenerator : public BaseGenerator {
             code +=
                 field.value.type.element == BASE_TYPE_BOOL
                     ? "false"
-                    : (IsScalar(field.value.type.element) ? default_cast + "0"
+                    : (IsScalar(field.value.type.element)
+                    ? default_cast + "0"
+                    : field.IsRequired()
+                    ? "throw new NullReferenceException()"
                     : "null");
           }
           if (vectortype.base_type == BASE_TYPE_UNION &&
@@ -1473,6 +1476,16 @@ class CSharpGenerator : public BaseGenerator {
     flatbuffers::FieldDef *key_field = nullptr;
     for (auto it : struct_def.fields.vec ) {
       auto &field = *it;
+      if (!field.key) {
+        if (field.attributes.Lookup("csharp_key")) {
+          struct_def.has_key = true;
+          field.key = true;
+          if (!field.IsRequired())
+            this->error_ += "warning: (csharp_key) " + field.name + " in " + struct_def.name
+                         + " should also have the required attribute\n";
+          field.presence = FieldDef::kRequired;
+        }
+      }
       if (field.key) key_field = &field;
     }
 
