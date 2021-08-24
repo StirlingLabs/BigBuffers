@@ -19,6 +19,8 @@ namespace BigBuffers.Tests
     [Theory]
     public static void ReadMonsterDataTest(bool validate)
     {
+      Placeholder.EnableValidation = true;
+      
       //var bytes = File.ReadAllBytes("monsterdata_test.mon");
 
       //var buffer = new ByteBuffer(bytes);
@@ -48,6 +50,7 @@ namespace BigBuffers.Tests
     [Theory]
     public static void WriteMonsterDataTest(bool validate)
     {
+      Placeholder.EnableValidation = true;
       //BigBufferBuilder.EnableAlignmentPadding = false;
 
       var jsonRoot = MonsterDataTestJsonDoc.RootElement;
