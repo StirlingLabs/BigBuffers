@@ -16,6 +16,10 @@ namespace BigBuffers.Tests
 {
   public static class GeneratedStructuralTests
   {
+    [SetUp]
+    public static void SetUp()
+      => Placeholder.EnableValidation = true;
+
     [Test]
     public static void HashStructTest()
     {
