@@ -1393,8 +1393,10 @@ class CSharpGenerator : public BaseGenerator {
 
     code += "partial interface @";
 
-    code += MakeCamel(service_def.name);
-    code += " : IBigBuffersRpcService {\n";
+    auto interface_name = "I" + MakeCamel(service_def.name);
+
+    code += interface_name;
+    code += " : IBigBuffersService {\n";
 
     Value *serviceIsValueTask = service_def.attributes.Lookup("csharp_value_task");
 
@@ -1510,9 +1512,7 @@ class CSharpGenerator : public BaseGenerator {
             "    => _model = new(buffer, i);\n";
 
     // interface implementation
-    code += "  ref Model IBigBufferEntity.Model => ref _model.UnsafeSelfReference();\n"
-
-            "  public ref readonly ByteBuffer ByteBuffer => ref _model.ByteBuffer.UnsafeSelfReference();\n";
+    code += "  ref Model IBigBufferEntity.Model => ref _model.UnsafeSelfReference();\n";
 
     if (struct_def.fixed) {
       // static members

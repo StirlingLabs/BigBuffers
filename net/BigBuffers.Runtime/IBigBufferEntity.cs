@@ -21,7 +21,6 @@ namespace BigBuffers
   /// </summary>
   public interface IBigBufferEntity
   {
-    ref readonly ByteBuffer ByteBuffer { get; }
     ref Model Model { get; }
   }
 }

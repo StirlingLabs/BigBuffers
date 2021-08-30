@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BigBuffers.Runtime.Xpc\BigBuffers.Runtime.Xpc.csproj" />
+    <ProjectReference Include="..\BigBuffers.Xpc\BigBuffers.Xpc.csproj" />
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
   </ItemGroup>
   

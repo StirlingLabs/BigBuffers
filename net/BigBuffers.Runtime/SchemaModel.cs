@@ -263,7 +263,7 @@ namespace BigBuffers
     public static BigSpan<byte> GetByteSpan<T>(ref this T entity)
       where T : struct, IBigBufferStruct
       => EntityIsValid(entity)
-        ? BigSpan.Create(ref entity.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize)
+        ? BigSpan.Create(ref entity.Model.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize)
         : default;
 
     [Pure]
@@ -271,7 +271,7 @@ namespace BigBuffers
     public static ReadOnlyBigSpan<byte> GetReadOnlyByteSpan<T>(this T entity)
       where T : struct, IBigBufferStruct
       => EntityIsValid(entity)
-        ? ReadOnlyBigSpan.Create(ref entity.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize)
+        ? ReadOnlyBigSpan.Create(ref entity.Model.ByteBuffer.RefByte(entity.Model.Offset), (nuint)Unsafe.NullRef<T>().ByteSize)
         : default;
 
     [Pure]
@@ -284,6 +284,6 @@ namespace BigBuffers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool EntityIsValid<T>(in T entity)
       where T : struct, IBigBufferEntity
-      => entity.ByteBuffer.Buffer is not null;
+      => entity.Model.ByteBuffer.Buffer is not null;
   }
 }

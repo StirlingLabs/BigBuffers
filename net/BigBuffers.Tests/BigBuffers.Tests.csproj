@@ -27,6 +27,8 @@
     </PackageReference>
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
     <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="21.8.1" />
+    <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
+    <PackageReference Include="StirlingLabs.Utilities" Version="21.8.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,6 +36,7 @@
     <ProjectReference Include="..\BigBuffers.Tests.GeneratedFixture\BigBuffers.Tests.GeneratedFixture.csproj" />
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
     <ProjectReference Include="..\BigBuffers.Tests.Monster\BigBuffers.Tests.Monster.csproj" />
+    <ProjectReference Include="..\BigBuffers.Xpc.Nng\BigBuffers.Xpc.Nng.csproj" />
   </ItemGroup>
   <Target Name="GenerateHtmlCoverageReport" AfterTargets="GenerateCoverageResultAfterTest">
     <!-- generate markdown coverage report and badges -->

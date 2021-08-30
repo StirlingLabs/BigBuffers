@@ -8,7 +8,10 @@ namespace BigBuffers
     private byte[] _buffer;
 
     public ByteArrayManager(byte[] buffer)
-      => _buffer = buffer;
+    {
+      Debug.Assert(buffer != null);
+      _buffer = buffer;
+    }
 
     public override bool Growable { get => true; set { } }
 
