@@ -4,7 +4,9 @@ BigBuffers
 
 **BigBuffers** is a fork of **FlatBuffers**, a cross platform serialization library architected for maximum memory efficiency. **BigBuffers** supports buffers >2Gb by using a 64-bit index instead of 32-bit.  Both projects allow you to directly access serialized data without parsing/unpacking it first, while still having great forwards/backwards compatibility but they are not wire-compatible.
 
-**Go to Google's [FlatBuffer landing page](https://google.github.io/flatbuffers) to browse documentation.**
+**Go to Google's [FlatBuffers landing page](https://google.github.io/flatbuffers) to browse documentation.**
+
+You can also check out our [docs directory](docs) for comparison.
 
 ## Supported operating systems
 * Windows
@@ -14,35 +16,37 @@ BigBuffers
 * And any others with a recent C++ compiler.
 
 ## Supported programming languages
-* C++
 * C#
-* C
-* Dart
-* Go
-* Java
-* JavaScript
-* Lobster
-* Lua
-* PHP
-* Python
-* Rust
-* TypeScript
+* ~~C~~ out of date; try our fork of flatcc in 64-bit mode
+* ~~C++~~ out of date; will bring up next
+* ~~Go~~ out of date; will bring up with or after C++
+* ~~Rust~~
+* ~~JavaScript~~
+* ~~TypeScript~~
+* ~~Dart~~
+* ~~Python~~
+* ~~Java~~
+* ~~Lobster~~
+* ~~Lua~~
+* ~~PHP~~
 
 *and more in progress...*
 
 ## Contributing to BigBuffers
-
-* Submit an issue or PR you might also want to see Google's [CONTRIBUTING](http://github.com/google/flatbuffers/blob/master/CONTRIBUTING.md) page.
+Submit an issue or PR you might also want to see Google's [CONTRIBUTING](http://github.com/google/flatbuffers/blob/master/CONTRIBUTING.md) page.
 
 ## Security
-
 Please see the [Security Policy](SECURITY.md) for reporting vulnerabilities.
 
-## Licensing
-*BigBuffers*, like *Flatbuffers*, is licensed under the Apache License, Version 2.0. See [LICENSE][] for the full license text.
+## Differences from FlatBuffers
 
-<br>
-FlatBuffers Links:
+See the documentation [here](docs/source/DifferencesFromFlat.md).
+
+## Licensing
+*BigBuffers*, like *FlatBuffers*, is licensed under the Apache License, Version 2.0.
+See [LICENSE.txt](LICENSE.txt) for the full license text.
+
+## FlatBuffers Links
 
 * [CONTRIBUTING](http://github.com/google/flatbuffers/blob/master/CONTRIBUTING.md)
 * [`flatbuffers` tag](https://stackoverflow.com/questions/tagged/flatbuffers)
@@ -50,4 +54,4 @@ FlatBuffers Links:
 * [FlatBuffers Issues Tracker](http://github.com/google/flatbuffers/issues)
 * [stackoverflow.com](http://stackoverflow.com/search?q=flatbuffers)
 * [landing page](https://google.github.io/flatbuffers)
-* [LICENSE](https://github.com/google/flatbuffers/blob/master/LICENSE.txt)
+* [LICENSE.txt](https://github.com/google/flatbuffers/blob/master/LICENSE.txt)
