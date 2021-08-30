@@ -1188,6 +1188,10 @@ class CSharpGenerator : public BaseGenerator {
 
 
   bool GenRefField(uint64_t index, std::string &code, FieldDef &field, StructDef &struct_def) const {
+    // ref scalar fields can throw if defaulted
+    if (IsScalar(field.value.type.base_type) && !field.attributes.Lookup("csharp_scalar_ref"))
+      return false;
+
     if (IsUnion(field.value.type) || IsStruct(field.value.type))
       return false;
 

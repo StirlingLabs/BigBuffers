@@ -819,8 +819,6 @@ class Parser : public ParserState {
     known_attributes_["original_order"] = true;
     known_attributes_["nested_flatbuffer"] = true;
     known_attributes_["csharp_partial"] = true;
-    known_attributes_["csharp_value_task"] = true;
-    known_attributes_["csharp_key"] = true;
     known_attributes_["streaming"] = true;
     known_attributes_["idempotent"] = true;
     known_attributes_["cpp_type"] = true;
@@ -835,6 +833,14 @@ class Parser : public ParserState {
     known_attributes_["native_default"] = true;
     known_attributes_["flexbuffer"] = true;
     known_attributes_["private"] = true;
+
+    // BigBuffers specific extensions
+    known_attributes_["nv"] = true;
+    known_attributes_["force_write"] = true;
+    known_attributes_["rpc_nng"] = true;
+    known_attributes_["csharp_key"] = true;
+    known_attributes_["csharp_value_task"] = true;
+    known_attributes_["csharp_scalar_ref"] = true;
   }
 
   ~Parser() {

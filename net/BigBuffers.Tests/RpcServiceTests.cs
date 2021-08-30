@@ -103,8 +103,9 @@ namespace BigBuffers.Tests
               //msg.BodyAsTextMessage().Content.Should().Be("Succeed");
 
               var result = await client.Send(msg, cts.Token);
-              result.GetCode().Should().Be(StatusCode.Success);
+              result.Code.Should().Be(StatusCode.Success);
             }
+            
             {
               var bb = new BigBufferBuilder();
               Message.StartMessage(bb);
@@ -113,7 +114,7 @@ namespace BigBuffers.Tests
               Message.AddBodyType(bb, MessageBody.TextMessage);
               var msg = Message.EndMessage(bb).Resolve(bb);
               TextMessage.StartTextMessage(bb);
-              TextMessage.AddContent(bb, bb.MarkStringPlaceholder(out var content));
+              TextMessage.AddContent(bb, bb.MarkStringPlaceholder(out var content));  
               var textContent = TextMessage.EndTextMessage(bb);
               body.Fill(textContent);
               subject.Fill("Hello World");
@@ -122,7 +123,7 @@ namespace BigBuffers.Tests
               //msg.BodyAsTextMessage().Content.Should().Be("Fail");
 
               var result = await client.Send(msg, cts.Token);
-              result.GetCode().Should().Be(StatusCode.Failure);
+              result.Code.Should().Be(StatusCode.Failure);
             }
             completed = true;
             cts.Cancel();

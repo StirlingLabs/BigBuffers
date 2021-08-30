@@ -2,14 +2,14 @@
 
 Struct type keys are supported on tables.
 
-Each generated entity has a Metadata static class that describes it's fields.
+Each generated entity has a Metadata static class that describes its fields.
 
 Tables with key fields have `IComparable<T>` implemented based on the key fields raw binary value.
 
 Structs have `IEquatable<T>` based on it's position in the buffer and `IComparable<T>` implemented based on it's raw binary value.
 
 Note that `IComparable<T>` implementations will incorrectly order negative integers and floating point value types.
-  - This is acceptable if the use case is to provide separation for sorted collection resolution.
+- This is acceptable if the use case is to provide separation for sorted collection resolution.
 
 See `BigBuffer.Tests/GeneratedStructuralTests.cs` for examples of construction (including the use of placeholders).
 ```csharp
@@ -79,15 +79,47 @@ There is a `JsonParser` implementation that constructs a buffer from a `JsonDocu
 ```
 
 The placeholder mechanism provides some debug-config-only validation;
-  - `Placeholder.IsPlaceholder(builder, offset)`
-  - `Placeholder.ValidateAllFilled(builder)`
-  - `Placeholder.GetUnfilledCount(builder, out var count)`
-  - `Placeholder.ValidateUnfilledCount(builder, out var count)`
+- `Placeholder.IsPlaceholder(builder, offset)`
+- `Placeholder.ValidateAllFilled(builder)`
+- `Placeholder.GetUnfilledCount(builder, out var count)`
+- `Placeholder.ValidateUnfilledCount(builder, out var count)`
 
 Runtime configuration for `BigBufferBuilder` is provided by some static members;
-  - `BigBufferBuilder.UseExistingVTables`, default true.
-    - Should not be necessary to disable. Can be turned off to work
-      around potential encoding problems.
-  - `BigBufferBuilder.EnableAlignmentPadding`, default true.
-    - Can be turned off to reduce size while maintaining compatibility.
+- `BigBufferBuilder.UseExistingVTables`, default true.
+  - Should not be necessary to disable. Can be turned off to work
+    around potential encoding problems.
+- `BigBufferBuilder.EnableAlignmentPadding`, default true.
+  - Can be turned off to reduce size while maintaining compatibility.
 
+Structs can be used as keys, this is an incompatible extension.
+
+By default, RPC generation will create abstracts or interfaces instead
+of explicit gRPC implementations.
+
+New attributes:
+- `csharp_key` makes a field act as a key under C# code generation.
+  This makes the behavior of the generated structs compare and equate
+  with each other differently by using keyed field semantics.
+
+- `csharp_value_task` applies to `rpc_service` definitions, causes
+   the generated interface and implementations to.
+
+- `csharp_scalar_ref` causes fields to generate ref accessors even
+  though when it's defaulted its usage could throw an exception. 
+
+- `rpc_nng` causes the generation of an RPC client and RPC server
+  stub utilizing nanomsg-next-generation (nng).
+
+- `rpc_grpc` causes the generation of an RPC client and RPC server
+  stub utilizing gRPC.
+
+Planned new attributes:
+- `nv` is an incompatible extension that marks a field
+  as being inline and implied; it will be absent from the vtable
+  but present in the table in it's sorted order before any
+  (normal) virtual fields. It will have `force_write` semantics.
+  It applies only to fields on a table, as structs have no vtable.
+  (`nv` is short for non-virtual.)
+
+- `force_write` forces the field to be written even though
+  it is defaulted. `nv` is the advanced version of this.
