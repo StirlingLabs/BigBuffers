@@ -121,3 +121,41 @@ table ULongKeyedTable {
 table StringKeyedTable {
   x:string (key);
 }
+
+union MessageBody {
+  DataMessage,
+  TextMessage,
+  Empty
+}
+
+table Message {
+  subject: string;
+  body: MessageBody;
+}
+
+
+
+table DataMessage {
+  content:[ubyte];
+}
+
+table TextMessage {
+  content:string;
+}
+
+table Empty {
+}
+
+enum StatusCode:int {
+  Success,
+  Failure
+}
+
+table Status {
+  code:StatusCode;
+}
+
+rpc_service RpcService {
+  Send(Message):Status;
+  Receive(Empty):Message;
+}

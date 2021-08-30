@@ -41,12 +41,13 @@ namespace BigBuffers
   [DebuggerTypeProxy(typeof(ByteBufferDebugger))]
   public struct ByteBuffer : IEquatable<ByteBuffer>
   {
-    internal readonly ByteBufferManager Buffer;
+    internal ByteBufferManager Buffer { get; }
 
     private ulong _pos; // Must track start of the buffer.
 
     public ByteBuffer(ByteBufferManager manager, ulong position)
     {
+      Debug.Assert(manager is not null);
       Buffer = manager;
       _pos = position;
     }
@@ -63,22 +64,43 @@ namespace BigBuffers
     /// </summary>
     public ByteBuffer(BigSpan<byte> buffer) : this(buffer, 0) { }
 
+    /// <summary>
+    /// WARNING: This implementation expects you to have
+    /// pinned the span for the duration of use.
+    /// </summary>
+    public ByteBuffer(ReadOnlyBigSpan<byte> buffer) : this(buffer, 0) { }
+
     public ByteBuffer(byte[] buffer, ulong pos)
     {
+      Debug.Assert(buffer is not null);
       Buffer = new ByteArrayManager(buffer);
       _pos = pos;
     }
     public ByteBuffer(SafeBuffer buffer, ulong pos, bool growable = false)
     {
+      Debug.Assert(buffer is not null);
       Buffer = new SafeBufferManager(buffer, growable);
       _pos = pos;
     }
+
     /// <summary>
     /// WARNING: This implementation expects you to have
     /// pinned the span for the duration of use.
     /// </summary>
     public ByteBuffer(BigSpan<byte> buffer, ulong pos, bool growable = false)
     {
+      Debug.Assert(!Unsafe.IsNullRef(ref buffer.GetReference()));
+      Buffer = new UnsafeByteSpanManager(buffer, growable);
+      _pos = pos;
+    }
+
+    /// <summary>
+    /// WARNING: This implementation expects you to have
+    /// pinned the span for the duration of use.
+    /// </summary>
+    public ByteBuffer(ReadOnlyBigSpan<byte> buffer, ulong pos, bool growable = false)
+    {
+      Debug.Assert(!Unsafe.IsNullRef(ref buffer.GetReference()));
       Buffer = new UnsafeByteSpanManager(buffer, growable);
       _pos = pos;
     }
@@ -86,20 +108,20 @@ namespace BigBuffers
     public ulong Position
     {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      get => _pos;
+      readonly get => _pos;
       set => _pos = value;
     }
 
-    public uint Length => Buffer.Length;
+    public readonly uint Length => Buffer.Length;
 
-    public ulong LongLength => Buffer.LongLength;
+    public readonly ulong LongLength => Buffer.LongLength;
 
     public void Reset()
       => _pos = 0;
 
     // Create a new ByteBuffer on the same underlying data.
     // The new ByteBuffer's position will be same as this buffer's.
-    public ByteBuffer Duplicate()
+    public readonly ByteBuffer Duplicate()
       => new(Buffer, Position);
 
     // Increases the size of the ByteBuffer, and copies the old data towards
@@ -107,7 +129,7 @@ namespace BigBuffers
     public void Resize(ulong newSize)
       => Buffer.GrowFront(newSize);
 
-    public byte[] ToArray(ulong pos, ulong len)
+    public readonly byte[] ToArray(ulong pos, ulong len)
       => ToArray<byte>(pos, len);
 
     /// <summary>
@@ -174,15 +196,15 @@ namespace BigBuffers
       return array;
     }
 
-    public byte[] ToSizedArray()
+    public readonly byte[] ToSizedArray()
       => ToArray<byte>(Position, LongLength - Position);
 
-    public byte[] ToFullArray()
+    public readonly byte[] ToFullArray()
       => ToArray<byte>(0, LongLength);
 
     public readonly BigSpan<byte> ToSpan(ulong pos, ulong len)
       => Buffer.Span.Slice((nuint)pos, (nuint)len);
-    public ReadOnlyBigSpan<byte> ToReadOnlySpan(ulong pos, ulong len)
+    public readonly ReadOnlyBigSpan<byte> ToReadOnlySpan(ulong pos, ulong len)
       => Buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)len);
     // Helper functions for the unsafe version.
 
@@ -285,7 +307,7 @@ namespace BigBuffers
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BigSpan<T> GetSpan<T>(ulong index, ulong size)
+    public readonly BigSpan<T> GetSpan<T>(ulong index, ulong size)
       => BigSpan.Create(ref Unsafe.As<byte, T>(ref Buffer.Span[(nuint)index]), (nuint)size);
 
     public static readonly ConditionalWeakTable<ByteBufferManager, ConcurrentDictionary<(ulong startPos, int len), WeakReference<string>>>
@@ -458,13 +480,13 @@ namespace BigBuffers
       }
       return numBytes;
     }
-    public bool Equals(ByteBuffer other)
+    public readonly bool Equals(ByteBuffer other)
       => Equals(Buffer, other.Buffer) && _pos == other._pos;
 
-    public override bool Equals(object obj)
+    public override readonly bool Equals(object obj)
       => obj is ByteBuffer other && Equals(other);
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
       unchecked
       {
@@ -495,7 +517,7 @@ namespace BigBuffers
 
     private static readonly ConcurrentDictionary<Type, ulong> TypeAlignments = new();
 
-    private ulong GetAlignment<T>()
+    private static ulong GetAlignment<T>()
       where T : struct, IBigBufferStruct
       => Unsafe.NullRef<T>().Alignment;
   }

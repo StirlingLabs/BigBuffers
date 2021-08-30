@@ -2,7 +2,7 @@ using System;
 using FluentAssertions;
 using NUnit.Framework;
 
-namespace BigBuffers.Test
+namespace BigBuffers.Tests
 {
   public class ByteBufferTests
   {

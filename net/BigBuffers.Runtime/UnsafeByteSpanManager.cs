@@ -18,6 +18,13 @@ namespace BigBuffers
       _isFixedSize = !growable;
     }
 
+    internal unsafe UnsafeByteSpanManager(ReadOnlyBigSpan<byte> buffer, bool growable = false)
+    {
+      _spanPtr = buffer.GetUnsafePointer();
+      _spanSize = buffer.Length;
+      _isFixedSize = !growable;
+    }
+
     public override bool Growable
     {
       get => _buffer is not null || !_isFixedSize;
