@@ -886,7 +886,7 @@ class CSharpGenerator : public BaseGenerator {
         code += "()";
       } else {
         code += " { get";
-        member_suffix += "} ";
+        member_suffix += "} set => Set"+field_name_camel+"(value); ";
       }
       if (struct_def.fixed) {
         code += " { return " + getter;
@@ -1148,7 +1148,7 @@ class CSharpGenerator : public BaseGenerator {
               : (struct_def.fixed
               ? "_model.Offset + " + NumToString(field.value.offset)
               : "o + _model.Offset");
-      if (IsScalar(underlying_type.base_type) && !IsUnion(field.value.type)) {
+      if (IsScalar(underlying_type.base_type)) {
 
         if (field.deprecated)
           code += "  [System.Obsolete(\"Deprecated\")]\n";
