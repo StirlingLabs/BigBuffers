@@ -107,15 +107,17 @@ namespace BigBuffers.Tests
 
       t.X.Should().NotBeNull();
 
-      t.X!.Value.GetX().Should().Be(0x0102030405060708uL);
+      t.X!.Value.X.Should().Be(0x0102030405060708uL);
 
-      t.X.Value.X = 0x0807060504030201uL;
+      var structA = t.X.Value;
 
-      t.X.Value.X.Should().Be(0x0807060504030201uL);
+      structA.X = 0x0807060504030201uL;
 
-      t.X.Value.SetX(0x0102030405060708uL);
+      structA.X.Should().Be(0x0807060504030201uL);
 
-      t.X.Value.X.Should().Be(0x0102030405060708uL);
+      structA.SetX(0x0102030405060708uL);
+
+      structA.X.Should().Be(0x0102030405060708uL);
     }
 
     [Test]
@@ -138,8 +140,8 @@ namespace BigBuffers.Tests
       t1.X.Should().NotBeNull();
       t2.X.Should().NotBeNull();
 
-      t1.X!.Value.GetX().Should().Be(0x0102030405060708uL);
-      t2.X!.Value.GetX().Should().Be(0x0102030405060708uL);
+      t1.X!.Value.X.Should().Be(0x0102030405060708uL);
+      t2.X!.Value.X.Should().Be(0x0102030405060708uL);
 
       var vt1 = t1._model.Offset - bb.ByteBuffer.Get<ulong>(t1._model.Offset);
       var vt2 = t2._model.Offset - bb.ByteBuffer.Get<ulong>(t2._model.Offset);

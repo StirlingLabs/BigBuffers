@@ -133,7 +133,13 @@ table Message {
   body: MessageBody;
 }
 
+table MultipartMessageHeader {
+  subject: string;
+}
 
+table MultipartMessagePart {
+  body: MessageBody;
+}
 
 table DataMessage {
   content:[ubyte];
@@ -158,4 +164,12 @@ table Status {
 rpc_service RpcService {
   Send(Message):Status;
   Receive(Empty):Message;
+}
+
+rpc_service RpcService2 {
+  Send(Message):Status;
+  SendManyAtomic(Message):Status (streaming:"client");
+  SendMany(Message):Status (streaming:"bidi");
+  Receive(Empty):Message;
+  ReceiveMany(Empty):Message (streaming:"server");
 }
