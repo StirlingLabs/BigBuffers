@@ -886,7 +886,7 @@ class CSharpGenerator : public BaseGenerator {
         code += "()";
       } else {
         code += " { get";
-        member_suffix += "} set => Set"+field_name_camel+"(value); ";
+        member_suffix += "} set => Set"+Name(field)+"(value); ";
       }
       if (struct_def.fixed) {
         code += " { return " + getter;
