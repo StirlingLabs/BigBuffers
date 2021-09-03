@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="6.0.0" />
+    <PackageReference Include="FluentAssertions" Version="6.1.0" />
     <PackageReference Include="FluentAssertions.Analyzers" Version="0.11.4" />
     <PackageReference Include="GitHubActionsTestLogger" Version="1.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
@@ -28,7 +28,7 @@
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
     <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="21.8.1" />
     <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
-    <PackageReference Include="StirlingLabs.Utilities" Version="21.8.2" />
+    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="21.9.2" />
   </ItemGroup>
 
   <ItemGroup>

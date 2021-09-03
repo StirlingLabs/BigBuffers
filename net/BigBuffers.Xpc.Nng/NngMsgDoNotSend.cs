@@ -2,13 +2,13 @@ using System;
 using nng;
 using nng.Native;
 
-namespace BigBuffers.Tests
+namespace BigBuffers.Xpc.Nng
 {
-  public sealed class DoNotSendNngMsg : INngMsg
+  public sealed class NngMsgDoNotSend : INngMsg
   {
-    public static readonly DoNotSendNngMsg Instance = new();
+    public static readonly NngMsgDoNotSend Instance = new();
 
-    private DoNotSendNngMsg() { }
+    private NngMsgDoNotSend() { }
 
     int INngMsgPart.Append(IntPtr data, int size)
       => throw new NotSupportedException();

@@ -456,7 +456,7 @@ namespace BigBuffers.JsonParsing
       var sizeDiff = (long)(currentOffset - (fieldSize + offset));
       if (sizeDiff != 0)
         throw new(
-          $"Parsing {typeof(T).FullName}.{fieldName}: Started at {offset}, expected +{fieldSize} bytes, at {currentOffset} (off by {sizeDiff}).");
+          $"Parsing {typeof(T).Name}.{fieldName}: Started at {offset}, expected +{fieldSize} bytes, at {currentOffset} (off by {sizeDiff}).");
     }
 
 #if DEBUG

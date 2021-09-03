@@ -1,5 +1,7 @@
+#nullable enable
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Generated;
@@ -10,7 +12,8 @@ namespace BigBuffers.Tests
 {
   public class RpcServiceNngServerImpl : RpcServiceNng.Server
   {
-    public RpcServiceNngServerImpl(IPairSocket ctx, IAPIFactory<INngMsg> factory) : base(ctx, factory) { }
+    public RpcServiceNngServerImpl(IPairSocket ctx, IAPIFactory<INngMsg> factory, TextWriter? logger = null)
+      : base(ctx, factory, logger) { }
 
     private readonly AsyncProducerConsumerCollection<Message> _messages = new(new ConcurrentQueue<Message>());
 
@@ -20,7 +23,7 @@ namespace BigBuffers.Tests
       static Status Succeed()
       {
         var bb = new BigBufferBuilder();
-        return new(Status.CreateStatus(bb, StatusCode.Success).Value, bb.ByteBuffer);
+        return new(Status.CreateStatus(bb).Value, bb.ByteBuffer);
       }
 
       static Status Fail()

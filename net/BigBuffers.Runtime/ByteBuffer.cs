@@ -199,6 +199,12 @@ namespace BigBuffers
     public readonly byte[] ToSizedArray()
       => ToArray<byte>(Position, LongLength - Position);
 
+    public readonly BigSpan<byte> ToSizedSpan()
+      => ToSpan(Position, LongLength - Position);
+
+    public readonly ReadOnlyBigSpan<byte> ToSizedReadOnlySpan()
+      => ToReadOnlySpan(Position, LongLength - Position);
+
     public readonly byte[] ToFullArray()
       => ToArray<byte>(0, LongLength);
 
