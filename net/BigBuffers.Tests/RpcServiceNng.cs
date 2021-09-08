@@ -39,7 +39,7 @@ namespace BigBuffers.Tests
       public Client(IPairSocket pair, IAPIFactory<INngMsg> factory, TextWriter logger)
         : base(pair, factory, logger) { }
 
-      public override ReadOnlySpan<byte> ServiceId => Utf8ServiceId;
+      protected override ReadOnlySpan<byte> Utf8ServiceId => RpcServiceNng.Utf8ServiceId;
 
       protected override ReadOnlySpan<byte> ResolveMethodSignature<TMethodEnum>(TMethodEnum method)
         => method is Method m ? StaticResolveMethodSignature(m) : throw new InvalidOperationException();
@@ -57,7 +57,7 @@ namespace BigBuffers.Tests
       protected Server(IPairSocket pair, IAPIFactory<INngMsg> factory, TextWriter? logger = null)
         : base(pair, factory, logger) { }
 
-      public override ReadOnlySpan<byte> ServiceId => Utf8ServiceId;
+      protected override ReadOnlySpan<byte> Utf8ServiceId => RpcServiceNng.Utf8ServiceId;
 
       protected override ReadOnlySpan<byte> ResolveMethodSignature<TMethodEnum>(TMethodEnum method)
         => method is Method m ? StaticResolveMethodSignature(m) : throw new InvalidOperationException();

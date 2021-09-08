@@ -25,7 +25,7 @@ namespace BigBuffers.Xpc.Nng
     protected readonly TextWriter? _logger;
     protected IPairSocket Pair { get; }
     protected IAPIFactory<INngMsg> Factory { get; }
-    public abstract ReadOnlySpan<byte> ServiceId { get; }
+    protected abstract ReadOnlySpan<byte> Utf8ServiceId { get; }
 
     private ConcurrentDictionary<(int, long), AsyncProducerConsumerCollection<(INngMsg, ByteBuffer)>> _clientMsgStreams = new();
     private ConcurrentDictionary<(int, long), IAsyncDisposable> _serverMsgStreams = new();
@@ -70,7 +70,7 @@ namespace BigBuffers.Xpc.Nng
     {
       var serviceName = req.ServiceId();
 
-      if (!serviceName.SequenceEqual(ServiceId))
+      if (!serviceName.SequenceEqual(Utf8ServiceId))
         return default;
 
       var procName = req.ProcedureName();

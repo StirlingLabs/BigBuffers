@@ -166,7 +166,7 @@ rpc_service RpcService {
   Receive(Empty):Message;
 }
 
-rpc_service RpcService2 {
+rpc_service RpcService2 (rpc_provider: "nng") {
   Send(Message):Status;
   SendManyAtomic(Message):Status (streaming:"client");
   SendMany(Message):Status (streaming:"bidi");

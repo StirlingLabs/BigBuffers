@@ -8,7 +8,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
+    <ProjectReference Include="..\BigBuffers.Xpc.Nng\BigBuffers.Xpc.Nng.csproj" />
     <ProjectReference Include="..\BigBuffers.Xpc\BigBuffers.Xpc.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -37,8 +42,7 @@
     </PropertyGroup>
   </Target>
   
-  <Target Name="GenerateModelsFromSchema" AfterTargets="DetectFirstBuild" Condition="$(IsFirstBuild)"
-          BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
+  <Target Name="GenerateModelsFromSchema" AfterTargets="DetectFirstBuild" Condition="$(IsFirstBuild)" BeforeTargets="DispatchToInnerBuilds;PrepareForBuild;BeforeCompile;Compile;CoreCompile;BeforeBuild;Build;BeforeRebuild;Rebuild">
     <Message Importance="normal" Text="Generating models from schema..." />
     
     <!-- make the generated dir if it doesn't exist -->
@@ -60,11 +64,7 @@
     </ItemGroup>
 
     <!-- code generation -->
-    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)"
-          EchoOff="false"
-          Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;%(Identity)&quot;', ' ')"
-          StandardOutputImportance="high" StandardErrorImportance="high"
-          Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)" EchoOff="false" Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;%(Identity)&quot;', ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
     
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>

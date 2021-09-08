@@ -107,8 +107,10 @@ New attributes:
 - `csharp_scalar_ref` causes fields to generate ref accessors even
   though when it's defaulted its usage could throw an exception. 
 
-- `rpc_nng` causes the generation of an RPC client and RPC server
-  stub utilizing nanomsg-next-generation (nng).
+- `rpc_provider` causes the generation of an RPC client and RPC server
+  stub utilizing one or more providers. e.g. `(rpc_provider: "nng")`
+  - `nng`: nanomsg Next Generation
+  - `grpc`: Google's gRPC Remote Procedure Call
 
 - `rpc_grpc` causes the generation of an RPC client and RPC server
   stub utilizing gRPC.

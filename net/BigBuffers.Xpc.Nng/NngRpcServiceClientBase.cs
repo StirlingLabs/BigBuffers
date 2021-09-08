@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using nng;
@@ -20,7 +21,7 @@ namespace BigBuffers.Xpc.Nng
     private readonly TextWriter _logger;
     protected IPairSocket Pair { get; }
     protected IAPIFactory<INngMsg> Factory { get; }
-    public abstract ReadOnlySpan<byte> ServiceId { get; }
+    protected abstract ReadOnlySpan<byte> Utf8ServiceId { get; }
 
     private readonly ConcurrentDictionary<long, AsyncProducerConsumerCollection<INngMsg>> _outstanding = new();
 
@@ -154,7 +155,7 @@ namespace BigBuffers.Xpc.Nng
       IAsyncEnumerable<INngMsg> replies;
       using (var ctx = Pair.CreateAsyncContext(Factory).Unwrap())
       {
-        var request = Factory.CreateRequest(ServiceId, ResolveMethodSignature(method), item, out msgId);
+        var request = Factory.CreateRequest(Utf8ServiceId, ResolveMethodSignature(method), item, out msgId);
 
 #if NET5_0_OR_GREATER
         _logger?.WriteLine(
@@ -185,7 +186,7 @@ namespace BigBuffers.Xpc.Nng
       throw new("The request completed with no reply.");
     }
 
-    protected async Task<TReply> ClientStreamingRequest<TMethodEnum, TReply, TRequest>(TMethodEnum method, IAsyncEnumerable<TRequest> items,
+    protected async Task<TReply> ClientStreamingRequest<TMethodEnum, TReply, TRequest>(TMethodEnum method, ChannelReader<TRequest> itemsReader,
       CancellationToken cancellationToken)
       where TMethodEnum : struct, Enum
       where TRequest : struct, IBigBufferTable
@@ -200,9 +201,10 @@ namespace BigBuffers.Xpc.Nng
         var part = 1;
 #endif
         INngMsg request;
+        var items = itemsReader.AsConsumingAsyncEnumerable(cancellationToken);
         await foreach (var item in items.WithCancellation(cancellationToken))
         {
-          request = Factory.CreateStreamingRequest(ServiceId, ResolveMethodSignature(method), item, msgId);
+          request = Factory.CreateStreamingRequest(Utf8ServiceId, ResolveMethodSignature(method), item, msgId);
 
 #if DEBUG && NET5_0_OR_GREATER
           _logger?.WriteLine(
@@ -220,7 +222,7 @@ namespace BigBuffers.Xpc.Nng
 #endif
         }
 
-        request = Factory.CreateNoMoreFollowsControlRequest(ServiceId, ResolveMethodSignature(method), msgId);
+        request = Factory.CreateNoMoreFollowsControlRequest(Utf8ServiceId, ResolveMethodSignature(method), msgId);
 
 #if NET5_0_OR_GREATER
         _logger?.WriteLine(
@@ -263,7 +265,7 @@ namespace BigBuffers.Xpc.Nng
       IAsyncEnumerable<INngMsg> replies;
       using (var ctx = Pair.CreateAsyncContext(Factory).Unwrap())
       {
-        var request = Factory.CreateRequest(ServiceId, ResolveMethodSignature(method), item, out msgId);
+        var request = Factory.CreateRequest(Utf8ServiceId, ResolveMethodSignature(method), item, out msgId);
 
 #if NET5_0_OR_GREATER
         _logger?.WriteLine(
@@ -293,7 +295,7 @@ namespace BigBuffers.Xpc.Nng
 
     [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
     protected async IAsyncEnumerable<TReply> StreamingRequest<TMethodEnum, TReply, TRequest>(TMethodEnum method,
-      IAsyncEnumerable<TRequest> items,
+      ChannelReader<TRequest> itemsReader,
       [EnumeratorCancellation] CancellationToken cancellationToken)
       where TMethodEnum : struct, Enum
       where TRequest : struct, IBigBufferTable
@@ -312,10 +314,11 @@ namespace BigBuffers.Xpc.Nng
 #if DEBUG
         var part = 1;
 #endif
+        var items = itemsReader.AsConsumingAsyncEnumerable(cancellationToken);
         await foreach (var item in items.WithCancellation(cancellationToken))
         {
 
-          request = Factory.CreateStreamingRequest(ServiceId, ResolveMethodSignature(method), item, msgId);
+          request = Factory.CreateStreamingRequest(Utf8ServiceId, ResolveMethodSignature(method), item, msgId);
 
 #if DEBUG && NET5_0_OR_GREATER
           _logger?.WriteLine(
@@ -329,7 +332,7 @@ namespace BigBuffers.Xpc.Nng
           ++part;
 #endif
         }
-        request = Factory.CreateNoMoreFollowsControlRequest(ServiceId, ResolveMethodSignature(method), msgId);
+        request = Factory.CreateNoMoreFollowsControlRequest(Utf8ServiceId, ResolveMethodSignature(method), msgId);
 
 #if NET5_0_OR_GREATER
         _logger?.WriteLine(

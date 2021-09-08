@@ -29,6 +29,8 @@
 
 #if !defined(FLATBUFFERS_CPP98_STL)
 #  include <functional>
+#  include <unordered_set>
+#  include <unordered_set>
 #endif  // !defined(FLATBUFFERS_CPP98_STL)
 
 // This file defines the data types representing a parsed IDL (Interface
@@ -550,6 +552,7 @@ struct ServiceDef : public Definition {
   bool Deserialize(Parser &parser, const reflection::Service *service);
 
   SymbolTable<RPCCall> calls;
+  std::unordered_set<std::string> rpc_providers;
 };
 
 // Container of options that may apply to any of the source/text generators.
@@ -837,7 +840,7 @@ class Parser : public ParserState {
     // BigBuffers specific extensions
     known_attributes_["nv"] = true;
     known_attributes_["force_write"] = true;
-    known_attributes_["rpc_nng"] = true;
+    known_attributes_["rpc_provider"] = true;
     known_attributes_["csharp_key"] = true;
     known_attributes_["csharp_value_task"] = true;
     known_attributes_["csharp_scalar_ref"] = true;

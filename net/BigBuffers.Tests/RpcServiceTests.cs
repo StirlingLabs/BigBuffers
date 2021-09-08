@@ -23,7 +23,7 @@ namespace BigBuffers.Tests
 {
   public class RpcServiceTests
   {
-    private IAPIFactory<INngMsg> _factory;
+    private IAPIFactory<INngMsg> _factory = null!;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
