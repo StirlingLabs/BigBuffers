@@ -41,7 +41,7 @@ jobs:
         working-directory: net
       - name: Run Net Project Test
         run: |
-          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
+          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions -v n
         working-directory: net
       - name: upload build artifacts
         uses: actions/upload-artifact@v2
@@ -76,7 +76,7 @@ jobs:
         working-directory: net
       - name: Run Net Project Test
         run: |
-          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions
+          dotnet test BigBuffers.sln --no-build -c Release --logger GitHubActions -v n
         working-directory: net
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
