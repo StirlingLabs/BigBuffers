@@ -241,21 +241,57 @@ namespace BigBuffers.JsonParsing
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableDictionary<ushort, MethodInfo> FieldIndexToAdder
-      = FieldAdders.ToImmutableDictionary(m => m.GetCustomAttribute<MetadataIndexAttribute>()!.Index);
+      = ToImmutableDictionarySkipDuplicates(FieldAdders, m => GetMetadataIndexAttribute(m).Index);
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableDictionary<ushort, MethodInfo> FieldIndexToSetter
-      = FieldSetters.ToImmutableDictionary(m => m.GetCustomAttribute<MetadataIndexAttribute>()!.Index);
+      = ToImmutableDictionarySkipDuplicates(FieldSetters, m => GetMetadataIndexAttribute(m).Index);
+
+    private static MetadataIndexAttribute GetMetadataIndexAttribute(MethodInfo m)
+    {
+      var attr = m.GetCustomAttribute<MetadataIndexAttribute>();
+      if (attr is null && m.Name.Contains('_'))
+      {
+        var t = m.ReflectedType!;
+        var ps = t.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var p in ps)
+        {
+          if (p.GetGetMethod(true) != m && p.GetSetMethod(true) != m)
+            continue;
+
+          attr = p.GetCustomAttribute<MetadataIndexAttribute>();
+          break;
+        }
+      }
+      if (attr is null)
+        throw new NotImplementedException($"Missing MetadataIndexAttribute for {m.ReflectedType?.FullName}.{m}");
+      return attr;
+    }
+
+    private static ImmutableDictionary<TKey, TSource> ToImmutableDictionarySkipDuplicates<TSource, TKey>(
+      IEnumerable<TSource> source,
+      Func<TSource, TKey> keySelector
+    ) where TKey : notnull
+    {
+      var b = ImmutableDictionary.CreateBuilder<TKey, TSource>();
+      foreach (var item in source)
+      {
+        var key = keySelector(item);
+        if (b.ContainsKey(key)) continue;
+        b.Add(key, item);
+      }
+      return b.ToImmutable();
+    }
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableDictionary<ushort, MethodInfo> StructFieldsIndex
       = StructFieldProperties.ToImmutableDictionary(
-        m => m.GetCustomAttribute<MetadataIndexAttribute>()!.Index,
-        m => m.GetGetMethod(false)!);
+        p => p.GetCustomAttribute<MetadataIndexAttribute>()!.Index,
+        p => p.GetGetMethod(false)!);
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableDictionary<string, ushort> FieldNameToIndex
-      = FieldAdders.Select(m => m.GetCustomAttribute<MetadataIndexAttribute>()!.Index)
+      = FieldAdders.Select(m => GetMetadataIndexAttribute(m).Index)
         .ToImmutableDictionary(i => Metadata[i].Name);
 
 
@@ -263,14 +299,14 @@ namespace BigBuffers.JsonParsing
     public static readonly ImmutableDictionary<ushort, MethodInfo> FieldVectorStarters
       = Type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
         .Where(m => m.Name.StartsWith("Start") && m.Name.EndsWith("Vector"))
-        .ToImmutableDictionary(m => m.GetCustomAttribute<MetadataIndexAttribute>()!.Index);
+        .ToImmutableDictionary(m => GetMetadataIndexAttribute(m).Index);
 
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableDictionary<ushort, MethodInfo[]> FieldVectorFillers
       = Type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
         .Where(m => m.Name.StartsWith("Fill") && m.Name.EndsWith("Vector"))
-        .Select(m => (m.GetCustomAttribute<MetadataIndexAttribute>()!.Index, Method: m))
+        .Select(m => (GetMetadataIndexAttribute(m).Index, Method: m))
         .GroupBy(kv => kv.Index, kv => kv.Method)
         .ToImmutableDictionary(g => g.Key, g => g.ToArray());
 
@@ -279,7 +315,7 @@ namespace BigBuffers.JsonParsing
     public static readonly ImmutableDictionary<ushort, MethodInfo> FieldVectorCreators
       = Type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
         .Where(m => m.Name.StartsWith("Create") && m.Name.EndsWith("Vector"))
-        .ToImmutableDictionary(m => m.GetCustomAttribute<MetadataIndexAttribute>()!.Index);
+        .ToImmutableDictionary(m => GetMetadataIndexAttribute(m).Index);
 
     public ref readonly (string Name, bool Deprecated, ushort Offset, ushort Size, ushort Align, object Default)
       GetMetadata(ulong index) => ref Metadata[index];
