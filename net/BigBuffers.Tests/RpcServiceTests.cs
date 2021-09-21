@@ -86,7 +86,7 @@ namespace BigBuffers.Tests
     [Theory]
     [NonParallelizable]
     [Order(0)]
-    [Timeout(50)]
+    [Timeout(1000)]
     public async Task NngInProcPairSanityCheck([ValueSource(nameof(GetSanityCheckUrls))] string url, [Range(1, 3)] int run)
     {
       var sanityCheckBytes = Encoding.UTF8.GetBytes("Sanity check");
