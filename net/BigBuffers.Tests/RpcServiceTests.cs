@@ -21,12 +21,15 @@ using StirlingLabs.Utilities.Assertions;
 
 namespace BigBuffers.Tests
 {
+  [Timeout(300000)] // 5 minutes
+  [NonParallelizable]
+  [FixtureLifeCycle(LifeCycle.SingleInstance)]
   public class RpcServiceTests
   {
-    private IAPIFactory<INngMsg> _factory = null!;
+    private static IAPIFactory<INngMsg> _factory = null!;
 
     [OneTimeSetUp]
-    public void OneTimeSetUp()
+    public static void OneTimeSetUp()
     {
 
       var path = Path.GetDirectoryName(typeof(RpcServiceTests).Assembly.Location);
@@ -80,6 +83,7 @@ namespace BigBuffers.Tests
 
     [Theory]
     [NonParallelizable]
+    [Order(0)]
     public async Task NngInProcPairSanityCheck([ValueSource(nameof(GetSanityCheckUrls))] string url, [Range(1, 3)] int run)
     {
       var sanityCheckBytes = Encoding.UTF8.GetBytes("Sanity check");
@@ -114,6 +118,7 @@ namespace BigBuffers.Tests
 
     [Test]
     [NonParallelizable]
+    [Order(1)]
     public async Task GeneralOperations()
     {
       const string url = "inproc://RpcService";
@@ -202,6 +207,7 @@ namespace BigBuffers.Tests
 
     [Theory]
     [NonParallelizable]
+    [Order(2)]
     public async Task GeneralOperations2([Range(1, 100)] int run)
     {
       var logger = run > 3 ? null : TestContext.Out;
@@ -213,7 +219,7 @@ namespace BigBuffers.Tests
         $"[{TimeStamp():F3}] {nameof(GeneralOperations2)} R{run} execution started =================================");
 
       var ctsTest = new CancellationTokenSource(Debugger.IsAttached
-        ? TimeSpan.FromMinutes(30)
+        ? TimeSpan.FromMinutes(5)
         : TimeSpan.FromSeconds(15));
 
       var sw = Stopwatch.StartNew();
