@@ -17,6 +17,7 @@ using FluentAssertions;
 using Generated;
 using nng;
 using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 using StirlingLabs.Utilities.Assertions;
 
 namespace BigBuffers.Tests
@@ -27,6 +28,28 @@ namespace BigBuffers.Tests
   public class RpcServiceTests
   {
     private static IAPIFactory<INngMsg> _factory = null!;
+
+    private int _stopCode;
+
+    [SetUp]
+    public void SetUp()
+    {
+      if (Interlocked.CompareExchange(ref _stopCode, 0, 0) == 0)
+        return;
+
+      TestContext.Error.WriteLine("Exiting process due to previous test failure.");
+      TestContext.Error.Flush();
+      Environment.Exit(1);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+      if (TestContext.CurrentContext.Result.Outcome.Status != TestStatus.Failed)
+        return;
+
+      Interlocked.Exchange(ref _stopCode, 1);
+    }
 
     [OneTimeSetUp]
     public static void OneTimeSetUp()
@@ -84,6 +107,7 @@ namespace BigBuffers.Tests
     [Theory]
     [NonParallelizable]
     [Order(0)]
+    [Timeout(50)]
     public async Task NngInProcPairSanityCheck([ValueSource(nameof(GetSanityCheckUrls))] string url, [Range(1, 3)] int run)
     {
       var sanityCheckBytes = Encoding.UTF8.GetBytes("Sanity check");
