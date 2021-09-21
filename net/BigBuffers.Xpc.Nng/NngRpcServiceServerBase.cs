@@ -8,11 +8,13 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Cloudtoid.Interprocess;
 using JetBrains.Annotations;
 using nng;
 using StirlingLabs.Utilities.Collections;
@@ -22,7 +24,23 @@ namespace BigBuffers.Xpc.Nng
   [PublicAPI]
   public abstract class NngRpcServiceServerBase
   {
+    private static readonly Stopwatch Stopwatch = Stopwatch.StartNew();
+
     protected readonly TextWriter? _logger;
+
+    public bool AllowUpgradingToSharedMemory { get; set; } // = false;
+
+    public long SharedMemoryChannelMinimumSize { get; set; } = 256 * 1024;
+
+    public long SharedMemoryChannelMaximumSize { get; set; } = 256 * 1024 * 1024;
+
+    protected int SharedMemoryUpgradeRequestsOutstanding; // = 0;
+
+    public int SharedMemoryUpgradeRequestsMaximumOutstanding { get; set; } = 4;
+
+    public object SharedMemoryUpgradeRequestLock = new();
+
+    public static TimeSpan SharedMemoryChannelConnectionTimeout = TimeSpan.FromSeconds(10);
     protected IPairSocket Pair { get; }
     protected IAPIFactory<INngMsg> Factory { get; }
     protected abstract ReadOnlySpan<byte> Utf8ServiceId { get; }
@@ -30,16 +48,23 @@ namespace BigBuffers.Xpc.Nng
     private ConcurrentDictionary<(int, long), AsyncProducerConsumerCollection<(INngMsg, ByteBuffer)>> _clientMsgStreams = new();
     private ConcurrentDictionary<(int, long), IAsyncDisposable> _serverMsgStreams = new();
 
+    private ConcurrentDictionary<IChannel, TimeSpan> _sharedMemChannels = new();
+
     private static readonly Regex RxSplitPascalCase = new("(?<=[a-z])([A-Z])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly byte[]
       Utf8ErrorBadRequest = Encoding.UTF8.GetBytes("Bad Request"),
       Utf8ErrorUnauthorized = Encoding.UTF8.GetBytes("Unauthorized"),
+      Utf8ErrorForbidden = Encoding.UTF8.GetBytes("Forbidden"),
       Utf8ErrorNotFound = Encoding.UTF8.GetBytes("Not Found"),
       Utf8ErrorRequestTimeout = Encoding.UTF8.GetBytes("Request Timeout"),
       Utf8ErrorGone = Encoding.UTF8.GetBytes("Gone"),
       Utf8ErrorNotImplemented = Encoding.UTF8.GetBytes("Not Implemented"),
-      Utf8ErrorInternalServerError = Encoding.UTF8.GetBytes("Internal Server Error");
+      Utf8ErrorInternalServerError = Encoding.UTF8.GetBytes("Internal Server Error"),
+      Utf8ErrorTooManyRequests = Encoding.UTF8.GetBytes("Too Many Requests"),
+      Utf8StatusSeeOther = Encoding.UTF8.GetBytes("See Other"),
+      Utf8StatusSwitchingProtocols = Encoding.UTF8.GetBytes("Switching Protocols"),
+      Utf8RequestUpgradeSharedMemory = Encoding.UTF8.GetBytes("Upgrade: Shared Memory");
 
     [Discardable]
     protected static double TimeStamp => SharedCounters.GetTimeSinceStarted().TotalSeconds;
@@ -94,8 +119,281 @@ namespace BigBuffers.Xpc.Nng
       // used as a concurrent set
       ConcurrentDictionary<Task, _> dispatched = new();
 
+      Thread StartSharedMemoryDispatchThreadIfNeeded(string shmId)
+      {
+        var t = new Thread(() => {
+
+          try
+          {
+            _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: dispatcher loop started");
+            while (!cancellationToken.IsCancellationRequested)
+            {
+              _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: listening for new request");
+
+              foreach (var connection in _sharedMemChannels)
+              {
+                var ch = connection.Key;
+                var connected = connection.Value;
+                if (Stopwatch.Elapsed - connected > SharedMemoryChannelConnectionTimeout)
+                  _sharedMemChannels.TryRemove(ch, out var _);
+                if (ch.Subscriber.TryDequeueZeroCopy((buffer, cancellation) => {
+                  ReadOnlySpan<byte> request = stackalloc byte[0];
+                  if (buffer.SecondPart.Length <= 0)
+                    request = buffer.FirstPart;
+                  else
+                  {
+                    // copy out to own buffer
+                    var length = buffer.FirstPart.Length + buffer.SecondPart.Length;
+                    request = length <= 4096 ? stackalloc byte[length] : new byte[length];
+                  }
+
+#if NET5_0_OR_GREATER
+                  _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: received shm request: 0x{Convert.ToHexString(request)}");
+#endif
+
+                  // TODO: not implemented
+
+                  /*
+                  if (cancellationToken.IsCancellationRequested) break;
+
+                  var sync = new SemaphoreSlim(0, 1);
+                  var runner = Task.Run(async () => {
+                    _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: dispatched shm request started");
+                    await Dispatch<TMethodEnum>(Pair.Id, ch, request, sync, cancellationToken);
+                    _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: dispatched shm request completed");
+                  }, cancellationToken);
+                  var added = dispatched.TryAdd(runner, default);
+                  
+                  Debug.Assert(added);
+
+                  _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: synchronizing with dispatch task T{runner.Id}");
+
+                  try
+                  {
+                    await sync.WaitAsync(cancellationToken);
+                  }
+                  catch (OperationCanceledException)
+                  {
+                    Debug.Assert(sync.CurrentCount == 0);
+                    if (cancellationToken.IsCancellationRequested) break;
+                  }
+
+                  _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: synchronized");
+
+                  return true;
+                  */
+
+                  return true;
+                }, cancellationToken))
+                {
+                  // message was handled
+                }
+              }
+
+              // sweep outstanding tasks to prevent leakage over long runtime
+              foreach (var kvp in dispatched)
+              {
+                if (!kvp.Key.IsCompleted)
+                  continue;
+
+                dispatched.TryRemove(kvp.Key, out var _);
+                _logger?.WriteLine(
+                  $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: collected completed dispatch request T{kvp.Key.Id}");
+              }
+            }
+          }
+          finally
+          {
+
+            _logger?.WriteLine(
+              $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: dispatcher loop ending, finished dispatching, waiting on outstanding dispatches");
+            // wait on any remaining outstanding tasks
+            //await Task.WhenAll(dispatched.Keys);
+
+            _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: dispatcher loop ended, no more outstanding dispatches");
+
+          }
+        })
+        {
+          Name = $"Shared Memory Dispatch {shmId}"
+        };
+        t.Start();
+        return t;
+      }
+
       async Task DispatcherLoop()
       {
+        // TODO: use HandleUpgradeToSharedMemory
+        unsafe Task? HandleUpgradeToSharedMemory(INngMsg request, out bool handled)
+        {
+          Task? CheckTooManySharedMemoryRequestsOutstanding(long l)
+          {
+            if (SharedMemoryUpgradeRequestsOutstanding <= SharedMemoryUpgradeRequestsMaximumOutstanding)
+              return null;
+            _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: shared memory upgrade challenge failed, too many outstanding");
+            var ctx = Pair.CreateAsyncContext(Factory).Unwrap();
+            return ctx.Send(TooManyRequestsReply(l))
+              .ContinueWith(_ => {
+                ctx.Aio.Wait();
+                ctx.Dispose();
+              }, cancellationToken);
+          }
+
+          handled = false;
+          var req = request.ParseRequest();
+          var msgId = req.Id();
+          if (req.Locator().SequenceEqual(Utf8RequestUpgradeSharedMemory))
+          {
+            handled = true;
+            var body = req.Body();
+
+            if (!AllowUpgradingToSharedMemory)
+            {
+              var ctx = Pair.CreateAsyncContext(Factory).Unwrap();
+              _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: shared memory upgrade challenge failed, not allowed");
+              return ctx.Send(NotImplementedExceptionReply(msgId,
+                  new NotImplementedException("Upgrade ing to shared memory is not allowed.")))
+                .ContinueWith(_ => {
+                  ctx.Aio.Wait();
+                  ctx.Dispose();
+                }, cancellationToken);
+            }
+
+            var requestedSize = MemoryMarshal.Read<long>(body);
+            if (requestedSize > SharedMemoryChannelMaximumSize / 2)
+              requestedSize = SharedMemoryChannelMaximumSize / 2;
+            else if (requestedSize < SharedMemoryChannelMinimumSize / 2)
+              requestedSize = SharedMemoryChannelMinimumSize / 2;
+
+            if (!Monitor.TryEnter(SharedMemoryUpgradeRequestLock))
+            {
+              var t = CheckTooManySharedMemoryRequestsOutstanding(msgId);
+              if (t is not null) return t;
+            }
+
+            lock (SharedMemoryUpgradeRequestLock)
+            {
+              var t = CheckTooManySharedMemoryRequestsOutstanding(msgId);
+              if (t is not null) return t;
+
+              SharedMemoryUpgradeRequestsOutstanding++;
+
+              var ctx = Pair.CreateAsyncContext(Factory).Unwrap();
+              var clientChallenge = body.Slice(8);
+              if (clientChallenge.Length is < 32 or > 256)
+              {
+                _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: shared memory upgrade challenge failed, bad challenge length");
+                return ctx.Send(NotImplementedExceptionReply(msgId,
+                    new NotImplementedException("Challenge length must be between 32 and 256 characters.")))
+                  .ContinueWith(_ => {
+                    ctx.Aio.Wait();
+                    ctx.Dispose();
+                  }, cancellationToken);
+              }
+              var hashBuf = new byte[clientChallenge.Length + 256];
+              clientChallenge.CopyTo(hashBuf);
+              var serverChallenge = hashBuf.AsSpan().Slice(clientChallenge.Length);
+#if NETSTANDARD2_0
+              using var rng = RandomNumberGenerator.Create();
+              rng.GetBytes(hashBuf, clientChallenge.Length, serverChallenge.Length);
+#else
+              RandomNumberGenerator.Fill(serverChallenge);
+#endif
+              using var hasher = SHA256.Create();
+              var hash = hasher.ComputeHash(hashBuf);
+              var hashLen = hash.Length;
+              var b64UrlLen = (hashLen * 4 + 2) / 3;
+              var b64Len = (hashLen + 2) / 3 * 4;
+#if NETSTANDARD2_0
+              var b64Hash = new char[b64Len];
+              var wrote = Convert.ToBase64CharArray(hash, 0, hash.Length, b64Hash, 0);
+              Debug.Assert(wrote == b64Len);
+#else
+              Span<char> b64Hash = stackalloc char[b64Len];
+              var success = Convert.TryToBase64Chars(hash, b64Hash, out var _);
+              Debug.Assert(success);
+#endif
+              for (var i = 0; i < b64UrlLen; ++i)
+              {
+                ref var c = ref b64Hash[i];
+                switch (c)
+                {
+                  case '+':
+                    c = '-';
+                    continue;
+                  case '/':
+                    c = '_';
+                    continue;
+                }
+              }
+#if NETSTANDARD2_0
+              var b64UrlHash = new string(b64Hash, 0, b64UrlLen);
+#else
+              var b64UrlHash = new string(b64Hash.Slice(0, b64UrlLen));
+#endif
+              var f = new QueueFactory();
+
+              long pid;
+              using (var curProc = Process.GetCurrentProcess())
+                pid = curProc.Id;
+
+              var pidBytes = new ReadOnlySpan<byte>(&pid, 8);
+
+#if NETSTANDARD2_0
+              var b64Pid = new char[12];
+              wrote = Convert.ToBase64CharArray(pidBytes.ToArray(), 0, 8, b64Pid, 0);
+              Debug.Assert(wrote == 12);
+              var b64PidSpan = new Span<char>(b64Pid, 0, ((ReadOnlySpan<char>)b64Pid).TrimEnd('=').TrimEnd('A').Length);
+#else
+              Span<char> b64Pid = stackalloc char[12];
+              success = Convert.TryToBase64Chars(pidBytes, b64Pid, out var _);
+              Debug.Assert(success);
+              var b64PidSpan = b64Pid.Slice(0, ((ReadOnlySpan<char>)b64Pid).TrimEnd('=').TrimEnd('A').Length);
+#endif
+              for (var i = 0; i < b64PidSpan.Length; ++i)
+              {
+                ref var c = ref b64PidSpan[i];
+                switch (c)
+                {
+                  case '+':
+                    c = '-';
+                    continue;
+                  case '/':
+                    c = '_';
+                    continue;
+                }
+              }
+
+#if NETSTANDARD2_0
+              var shmId = new string(b64Pid, 0, b64PidSpan.Length) + b64UrlHash;
+#else
+              var shmId = new string(b64PidSpan) + b64UrlHash;
+#endif
+
+              if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && shmId.Length > 28)
+                shmId = shmId.Substring(0, 28);
+
+              var ch = f.CreateChannel(new(shmId, requestedSize));
+
+              _sharedMemChannels[ch] = Stopwatch.Elapsed;
+
+              _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: shared memory upgrade challenge, created shm {shmId}");
+
+              StartSharedMemoryDispatchThreadIfNeeded(shmId);
+
+              var reply = SwitchProtocolsReply(msgId);
+              reply.Append(pidBytes);
+              reply.Append(serverChallenge);
+              return ctx.Send(reply)
+                .ContinueWith(_ => {
+                  ctx.Aio.Wait();
+                  ctx.Dispose();
+                }, cancellationToken);
+            }
+          }
+          return null;
+        }
+
         try
         {
           _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: dispatcher loop started");
@@ -111,6 +409,7 @@ namespace BigBuffers.Xpc.Nng
 #if NET5_0_OR_GREATER
             _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}: received request: 0x{Convert.ToHexString(request.AsSpan())}");
 #endif
+
             var sync = new SemaphoreSlim(0, 1);
             var runner = Task.Run(async () => {
               _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: dispatched request started");
@@ -231,6 +530,7 @@ namespace BigBuffers.Xpc.Nng
         }
         _logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name}<{typeof(T).Name}> #{MessageId} T{Task.CurrentId}: sending {typeof(T).Name} stream message");
+        // NOTE: disposed of in continuation
         var ctx = Pair.CreateAsyncContext(Factory).Unwrap();
         _active = ctx.Send(Factory.CreateReply(MessageId, item, NngMessageType.Normal))
           .ContinueWith(async result => {
@@ -696,6 +996,20 @@ namespace BigBuffers.Xpc.Nng
       WriteNullByte(reply);
     }
 
+    protected INngMsg SwitchProtocolsReply(long msgId)
+    {
+      var reply = FinalControlReply(msgId, 101, Utf8StatusSwitchingProtocols);
+      WriteNullByte(reply);
+      return reply;
+    }
+
+    protected INngMsg SeeOtherReply(long msgId)
+    {
+      var reply = FinalControlReply(msgId, 303, Utf8StatusSeeOther);
+      WriteNullByte(reply);
+      return reply;
+    }
+
     protected INngMsg BadRequestReply(long msgId, Exception? ex = null)
     {
       var reply = FinalControlReply(msgId, 400, Utf8ErrorBadRequest);
@@ -708,6 +1022,15 @@ namespace BigBuffers.Xpc.Nng
     protected INngMsg UnauthorizedReply(long msgId, Exception? ex = null)
     {
       var reply = FinalControlReply(msgId, 401, Utf8ErrorUnauthorized);
+#if DEBUG
+      AddReplyExceptionMessage(reply, ex);
+#endif
+      return reply;
+    }
+
+    protected INngMsg ForbiddenReply(long msgId, Exception? ex = null)
+    {
+      var reply = FinalControlReply(msgId, 403, Utf8ErrorForbidden);
 #if DEBUG
       AddReplyExceptionMessage(reply, ex);
 #endif
@@ -735,6 +1058,15 @@ namespace BigBuffers.Xpc.Nng
     protected INngMsg GoneReply(long msgId, Exception? ex = null)
     {
       var reply = FinalControlReply(msgId, 410, Utf8ErrorGone);
+#if DEBUG
+      AddReplyExceptionMessage(reply, ex);
+#endif
+      return reply;
+    }
+
+    protected INngMsg TooManyRequestsReply(long msgId, Exception? ex = null)
+    {
+      var reply = FinalControlReply(msgId, 429, Utf8ErrorTooManyRequests);
 #if DEBUG
       AddReplyExceptionMessage(reply, ex);
 #endif

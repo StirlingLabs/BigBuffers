@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Cloudtoid.Interprocess" Version="2.0.0-pre" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" PrivateAssets="all" />
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
     <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
