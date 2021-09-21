@@ -1,5 +1,7 @@
 # Differences from FlatBuffers / FlatC
 
+BigBuffers make far more liberal use of negative values in `uoffsets` than was intended by FlatBuffers, borrowing from flatcc.  The purpose of this change is to encode buffers forward, instead of backward.
+
 Struct type keys are supported on tables.
 
 Each generated entity has a Metadata static class that describes its fields.
@@ -61,7 +63,6 @@ Union enums have metadata identifying their associated type.
 
 Struct fields in factory methods are constructed from tuples.
   - Prefer creation of structs manually if there are nested structs.
-    - There are padding and alignment bugs with the current implementation.
 
 There is a `JsonParser` implementation that constructs a buffer from a `JsonDocument`.
 
@@ -102,7 +103,7 @@ New attributes:
   with each other differently by using keyed field semantics.
 
 - `csharp_value_task` applies to `rpc_service` definitions, causes
-   the generated interface and implementations to.
+   the generated interface and implementations to use `ValueTask` instead of `Task` in C#.
 
 - `csharp_scalar_ref` causes fields to generate ref accessors even
   though when it's defaulted its usage could throw an exception. 
@@ -110,12 +111,10 @@ New attributes:
 - `rpc_provider` causes the generation of an RPC client and RPC server
   stub utilizing one or more providers. e.g. `(rpc_provider: "nng")`
   - `nng`: nanomsg Next Generation
-  - `grpc`: Google's gRPC Remote Procedure Call
+  - `grpc`: Google's gRPC Remote Procedure Call (planned)
 
-- `rpc_grpc` causes the generation of an RPC client and RPC server
-  stub utilizing gRPC.
 
-Planned new attributes:
+Planned new attributes (not yet implemented):
 - `nv` is an incompatible extension that marks a field
   as being inline and implied; it will be absent from the vtable
   but present in the table in it's sorted order before any
