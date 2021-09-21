@@ -29,28 +29,6 @@ namespace BigBuffers.Tests
   {
     private static IAPIFactory<INngMsg> _factory = null!;
 
-    private int _stopCode;
-
-    [SetUp]
-    public void SetUp()
-    {
-      if (Interlocked.CompareExchange(ref _stopCode, 0, 0) == 0)
-        return;
-
-      TestContext.Error.WriteLine("Exiting process due to previous test failure.");
-      TestContext.Error.Flush();
-      Environment.Exit(1);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-      if (TestContext.CurrentContext.Result.Outcome.Status != TestStatus.Failed)
-        return;
-
-      Interlocked.Exchange(ref _stopCode, 1);
-    }
-
     [OneTimeSetUp]
     public static void OneTimeSetUp()
     {
@@ -91,11 +69,12 @@ namespace BigBuffers.Tests
       yield return "tcp://[::1]:" + GetFreeEphemeralTcpPort();
       //yield return "tls+tcp://[::1]:" + GetFreeEphemeralTcpPort();
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        yield return $"ipc://NngSanityCheck/{Environment.ProcessId}";
+        yield return $"ipc://NngSanityCheck-{Environment.ProcessId}";
       else
       {
-        var path = $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/.nng/{Environment.ProcessId}";
-        Directory.CreateDirectory(path);
+        var dir = $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/.nng";
+        var path = $"{dir}/{Environment.ProcessId}";
+        Directory.CreateDirectory(dir);
         yield return $"ipc://{path}";
       }
       yield return "ws://127.0.0.1:" + GetFreeEphemeralTcpPort();
