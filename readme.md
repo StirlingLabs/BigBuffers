@@ -1,6 +1,5 @@
-BigBuffers
-===========
-![I like bug buffers](./docs/images/i-like-big-buffers-and-i-cannot-lie.jpg) 
+![BigBuffers](./docs/images/bigbuffers.jpg) 
+
 
 **BigBuffers** is a fork of **FlatBuffers**, a cross platform serialization library architected for maximum memory efficiency. **BigBuffers** supports buffers >2Gb by using a 64-bit index instead of 32-bit.  Both projects allow you to directly access serialized data without parsing/unpacking it first, while still having great forwards/backwards compatibility but they are not wire-compatible.
 
@@ -9,26 +8,33 @@ BigBuffers
 You can also check out our [docs directory](docs) for comparison.
 
 ## Supported operating systems
+
+Primary platforms (in use by maintainers):
+
 * Windows
 * MacOS X
 * Linux
+
+Secondary platforms (maintainers welcome):
+
 * Android
 * And any others with a recent C++ compiler.
 
 ## Supported programming languages
+
 * C#
-* ~~C~~ out of date; try our fork of flatcc in 64-bit mode
+* ~~C~~ out of date; try [our fork of flatcc](/StirlingLabs/flatcc) in 64-bit mode
 * ~~C++~~ out of date; will bring up next
 * ~~Go~~ out of date; will bring up with or after C++
-* ~~Rust~~
-* ~~JavaScript~~
-* ~~TypeScript~~
-* ~~Dart~~
-* ~~Python~~
-* ~~Java~~
-* ~~Lobster~~
-* ~~Lua~~
-* ~~PHP~~
+* ~~Python~~ out of date; will bring up with or after C++
+* ~~Rust~~ out of date; community ports welcome
+* ~~JavaScript~~ out of date; community ports welcome
+* ~~TypeScript~~ out of date; community ports welcome
+* ~~Dart~~ out of date; community ports welcome
+* ~~Java~~ out of date; community ports welcome
+* ~~Lobster~~ out of date; community ports welcome
+* ~~Lua~~ out of date; community ports welcome
+* ~~PHP~~ out of date; community ports welcome
 
 *and more in progress...*
 
@@ -55,3 +61,5 @@ See [LICENSE.txt](LICENSE.txt) for the full license text.
 * [stackoverflow.com](http://stackoverflow.com/search?q=flatbuffers)
 * [landing page](https://google.github.io/flatbuffers)
 * [LICENSE.txt](https://github.com/google/flatbuffers/blob/master/LICENSE.txt)
+
+![I like bug buffers](./docs/images/i-like-big-buffers-and-i-cannot-lie.jpg) 
