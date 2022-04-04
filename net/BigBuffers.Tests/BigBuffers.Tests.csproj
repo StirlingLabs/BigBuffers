@@ -1,10 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
-
     <IsPackable>false</IsPackable>
-
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Authors>Stirling Labs Team &amp; Contributors</Authors>
     <CollectCoverage>true</CollectCoverage>
@@ -12,13 +9,19 @@
     <CoverletOutput>../coverage/</CoverletOutput>
     <DeterministicReport>true</DeterministicReport>
     <DeterministicSourcePaths>true</DeterministicSourcePaths>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
   </PropertyGroup>
 
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net6'))">
+    <Reference Include="$(TargetFrameworkDirectory)\System.Net.Quic.dll" />
+  </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="6.1.0" />
-    <PackageReference Include="FluentAssertions.Analyzers" Version="0.11.4" />
+    <PackageReference Include="FluentAssertions" Version="6.2.0" />
+    <PackageReference Include="FluentAssertions.Analyzers" Version="0.12.1" />
     <PackageReference Include="GitHubActionsTestLogger" Version="1.2.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
     <PackageReference Include="coverlet.collector" Version="3.1.0">
@@ -27,8 +30,10 @@
     </PackageReference>
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
     <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="21.8.1" />
-    <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
-    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="21.9.3" />
+    <PackageReference Include="StirlingLabs.MsQuic" Version="22.3.9" />
+    <!--<PackageReference Include="nng.NET" Version="1.4.0-rc0" />-->
+    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.3.5" />
+    <!--<PackageReference Include="ZeroMQ" Version="4.3.0" />-->
   </ItemGroup>
 
   <ItemGroup>
@@ -36,7 +41,35 @@
     <ProjectReference Include="..\BigBuffers.Tests.GeneratedFixture\BigBuffers.Tests.GeneratedFixture.csproj" />
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
     <ProjectReference Include="..\BigBuffers.Tests.Monster\BigBuffers.Tests.Monster.csproj" />
-    <ProjectReference Include="..\BigBuffers.Xpc.Nng\BigBuffers.Xpc.Nng.csproj" />
+    <ProjectReference Include="..\BigBuffers.Xpc.Http\BigBuffers.Xpc.Http.csproj">
+      <SetTargetFramework>TargetFramework=$(TargetFramework)</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\BigBuffers.Xpc.Quic\BigBuffers.Xpc.Quic.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="..\LocalBin\*" Exclude="..\LocalBin\.keep">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <Link>%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="..\LocalBin\runtimes\**" Exclude="..\LocalBin\.keep">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <Link>$([System.Text.RegularExpressions.Regex]::Replace('%(RelativeDir)','\.\.[\/\\]LocalBin',''))%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="ZeroMqServiceTests.cs" />
+    <Compile Remove="NngRpcServiceTests.cs" />
+    <Compile Remove="Implementations\RpcService2NngServerImpl.cs" />
+    <Compile Remove="Implementations\RpcServiceNng.cs" />
+    <Compile Remove="Implementations\RpcServiceNngServerImpl.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Implementations" />
   </ItemGroup>
   <Target Name="GenerateHtmlCoverageReport" AfterTargets="GenerateCoverageResultAfterTest">
     <!-- generate markdown coverage report and badges -->

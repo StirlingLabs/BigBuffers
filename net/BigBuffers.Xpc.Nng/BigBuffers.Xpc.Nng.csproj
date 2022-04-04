@@ -1,11 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
-    <LangVersion>9</LangVersion>
+    <TargetFrameworks>net6.0;net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
+    <LangVersion>10</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningsAsErrors>8656</WarningsAsErrors>
     <RootNamespace>BigBuffers.Nng</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)'!=''">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>../artifacts</PackageOutputPath>
   </PropertyGroup>
@@ -24,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" PrivateAssets="all" />
+    <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" PrivateAssets="all" />
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
     <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
     <PackageReference Include="StirlingLabs.Utilities.Collections" Version="21.9.3" />
@@ -38,5 +41,13 @@
   <ImportGroup>
     <Import Project="../Version.proj" />
   </ImportGroup>
+
+  <ItemGroup>
+    <Content Include="..\LocalBin\runtimes\**" Exclude="..\LocalBin\.keep">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <Link>$([System.Text.RegularExpressions.Regex]::Replace('%(RelativeDir)','\.\.[\/\\]LocalBin',''))%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
 
 </Project>

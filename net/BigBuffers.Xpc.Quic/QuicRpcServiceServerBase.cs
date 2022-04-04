@@ -23,16 +23,16 @@ using StirlingLabs.Utilities.Collections;
 namespace BigBuffers.Xpc.Quic;
 
 [PublicAPI]
-public abstract partial class QuicRpcServiceServerBase
+public abstract partial class QuicRpcServiceServerBase : IDisposable
 {
   internal ConcurrentDictionary<QuicRpcServiceServerContext, _> _Clients { get; } = new();
 
   public ICollection<QuicRpcServiceServerContext> Clients => _Clients.Keys;
 
   protected readonly TextWriter? Logger;
-  public QuicListener Listener { get; }
+  public QuicListener Listener { get; private set; }
 
-  protected SizedUtf8String Utf8ServiceId { get; }
+  protected SizedUtf8String Utf8ServiceId { get; private set; }
 
   private static readonly Regex RxSplitPascalCase = new(@"(?<=[a-z])([A-Z])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -249,7 +249,7 @@ public abstract partial class QuicRpcServiceServerBase
         // NOTE: does not wait on the task to complete
         await Task.Factory.StartNew(async () => {
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} started streaming");
-          var t = DispatchServerStreaming(method, msgId, bb, cancellationToken);
+          var t = DispatchServerStreaming(method, msgId, ctx, bb, cancellationToken);
           await t;
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} finished streaming");
         }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
@@ -301,7 +301,7 @@ public abstract partial class QuicRpcServiceServerBase
         // NOTE: does not wait on the task to complete
         await Task.Factory.StartNew(async () => {
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} started streaming");
-          var t = DispatchStreaming(method, msgId, c, cancellationToken);
+          var t = DispatchStreaming(method, msgId, ctx, c, cancellationToken);
           await t;
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} finished streaming");
           ctx.ClientMsgStreams.TryRemove(msgId, out var _);
@@ -625,21 +625,20 @@ public abstract partial class QuicRpcServiceServerBase
     CancellationToken cancellationToken
   ) => Task.FromResult<IMessage?>(null);
 
-  protected virtual Task DispatchServerStreaming<TMethodEnum>(
-    TMethodEnum method,
+  protected virtual Task DispatchServerStreaming<TMethodEnum>(TMethodEnum method,
     long sourceMsgId,
+    QuicRpcServiceServerContext ctx,
     ByteBuffer sourceByteBuffer,
-    CancellationToken cancellationToken
-  ) => Task.CompletedTask;
+    CancellationToken cancellationToken) => Task.CompletedTask;
 
   protected virtual Task DispatchStreaming<TMethodEnum>(
     TMethodEnum method,
     long sourceMsgId,
+    QuicRpcServiceServerContext ctx,
     AsyncProducerConsumerCollection<IMessage> reader,
-    CancellationToken cancellationToken
-  ) => Task.CompletedTask;
+    CancellationToken cancellationToken) => Task.CompletedTask;
 
-  protected abstract ReadOnlySpan<byte> ResolveMethodSignature<TMethodEnum>(TMethodEnum method) where TMethodEnum : Enum;
+  protected abstract SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method) where TMethodEnum : Enum;
 
   protected abstract RpcMethodType ResolveMethodType<TMethodEnum>(TMethodEnum method) where TMethodEnum : Enum;
 
@@ -665,4 +664,17 @@ public abstract partial class QuicRpcServiceServerBase
 
   protected ChannelReader<T> WrapReader<T>(AsyncProducerConsumerCollection<IMessage> r) where T : struct, IBigBufferEntity
     => new EntityQuicMsgChannelReader<T>(r, Logger);
+
+  protected async Task<ReplyMessage> Reply<T>(Task<T> task) where T : struct, IBigBufferEntity
+    => new(new((await task).Model.ByteBuffer.ToSizedMemory()), true);
+
+  public void Dispose()
+  {
+    foreach (var clientKv in _Clients)
+    {
+      var ctx = clientKv.Key;
+      ctx.Dispose();
+    }
+    
+  }
 }

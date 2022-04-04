@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsPackable>false</IsPackable>
     <TargetFrameworks>net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <LangVersion>9</LangVersion>
+    <LangVersion>10</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -80,11 +81,7 @@
     </ItemGroup>
 
     <!-- code generation -->
-    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated"
-          EchoOff="false"
-          Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')"
-          StandardOutputImportance="high" StandardErrorImportance="high"
-          Outputs="Generated/**/*.cs" ContinueOnError="false" />
+    <Exec WorkingDirectory="$(MSBuildThisFileDirectory)/Generated" EchoOff="false" Command="&quot;%(BufC.FullPath)&quot; --gen-all --gen-mutable --gen-compare -n @(FbsFiles -> '&quot;../%(Identity)&quot;', ' ')" StandardOutputImportance="high" StandardErrorImportance="high" Outputs="Generated/**/*.cs" ContinueOnError="false" />
     
     <!-- make sure they get properly compiled and tracked, but not redundantly -->
     <ItemGroup>

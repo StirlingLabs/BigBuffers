@@ -565,7 +565,7 @@ namespace BigBuffers.Xpc.Nng
         if ((msgType & NngMessageType.Control) == 0)
         {
           var added = c.TryAdd((sourceMsg, bb));
-          Debug.Assert(added);
+          //Debug.Assert(added);
 
           if (!added)
           {

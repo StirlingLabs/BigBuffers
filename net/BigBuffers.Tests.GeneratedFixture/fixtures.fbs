@@ -166,10 +166,12 @@ rpc_service RpcService {
   Receive(Empty):Message;
 }
 
-rpc_service RpcService2 (rpc_provider: "nng") {
+/*
+rpc_service RpcService2 (rpc_provider: "quic") {
   Send(Message):Status;
   SendManyAtomic(Message):Status (streaming:"client");
   SendMany(Message):Status (streaming:"bidi");
   Receive(Empty):Message;
   ReceiveMany(Empty):Message (streaming:"server");
 }
+*/

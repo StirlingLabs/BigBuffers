@@ -1,19 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsPackable>false</IsPackable>
     <TargetFrameworks>net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <LangVersion>9</LangVersion>
+    <LangVersion>10</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
-    <ProjectReference Include="..\BigBuffers.Xpc.Nng\BigBuffers.Xpc.Nng.csproj" />
     <ProjectReference Include="..\BigBuffers.Xpc\BigBuffers.Xpc.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <PackageReference Include="nng.NET" Version="1.4.0-rc0" />
   </ItemGroup>
 
   <PropertyGroup>
