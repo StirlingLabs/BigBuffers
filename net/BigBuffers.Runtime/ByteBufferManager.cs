@@ -47,5 +47,11 @@ namespace BigBuffers
 
     public static bool operator !=(ByteBufferManager left, ByteBufferManager right)
       => !left?.Equals(right) ?? right is not null;
+
+    public virtual bool TryGetMemory(out Memory<byte> seg)
+    {
+      Unsafe.SkipInit(out seg);
+      return false;
+    }
   }
 }

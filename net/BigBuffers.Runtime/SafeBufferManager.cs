@@ -67,5 +67,16 @@ namespace BigBuffers
       _safeBuffer.ReleasePointer();
       _safeBuffer = null;
     }
+
+    public override bool TryGetMemory(out Memory<byte> seg)
+    {
+      if (_buffer is null)
+      {
+        Unsafe.SkipInit(out seg);
+        return false;
+      }
+      seg = new(_buffer);
+      return true;
+    }
   }
 }

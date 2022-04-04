@@ -64,5 +64,16 @@ namespace BigBuffers
         return new(_spanPtr, _spanSize);
       }
     }
+
+    public override bool TryGetMemory(out Memory<byte> seg)
+    {
+      if (_buffer is null)
+      {
+        Unsafe.SkipInit(out seg);
+        return false;
+      }
+      seg = new(_buffer);
+      return true;
+    }
   }
 }

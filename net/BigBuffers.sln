@@ -19,9 +19,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration", "Configurat
 ProjectSection(SolutionItems) = preProject
 	nuget.config = nuget.config
 	Version.proj = Version.proj
+	global.json = global.json
 EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.Nng", "BigBuffers.Xpc.Nng\BigBuffers.Xpc.Nng.csproj", "{218CE501-C294-4564-A8A2-36A4FFFE0BD9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.Http", "BigBuffers.Xpc.Http\BigBuffers.Xpc.Http.csproj", "{F11720FB-1143-4E3B-96D8-020F29588A6F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.ZeroMq", "BigBuffers.Xpc.ZeroMq\BigBuffers.Xpc.ZeroMq.csproj", "{CD240556-80AC-44AA-B635-4FA9867F352A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Tests.Nng", "BigBuffers.Tests.Nng\BigBuffers.Tests.Nng.csproj", "{B8FE92AC-325F-4BC4-A15E-635A0951D331}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.Quic", "BigBuffers.Xpc.Quic\BigBuffers.Xpc.Quic.csproj", "{E3B19415-F73A-4C52-9207-356424180650}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,5 +69,21 @@ Global
 		{218CE501-C294-4564-A8A2-36A4FFFE0BD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{218CE501-C294-4564-A8A2-36A4FFFE0BD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{218CE501-C294-4564-A8A2-36A4FFFE0BD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F11720FB-1143-4E3B-96D8-020F29588A6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F11720FB-1143-4E3B-96D8-020F29588A6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F11720FB-1143-4E3B-96D8-020F29588A6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F11720FB-1143-4E3B-96D8-020F29588A6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD240556-80AC-44AA-B635-4FA9867F352A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD240556-80AC-44AA-B635-4FA9867F352A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD240556-80AC-44AA-B635-4FA9867F352A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD240556-80AC-44AA-B635-4FA9867F352A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8FE92AC-325F-4BC4-A15E-635A0951D331}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8FE92AC-325F-4BC4-A15E-635A0951D331}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8FE92AC-325F-4BC4-A15E-635A0951D331}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8FE92AC-325F-4BC4-A15E-635A0951D331}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3B19415-F73A-4C52-9207-356424180650}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3B19415-F73A-4C52-9207-356424180650}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3B19415-F73A-4C52-9207-356424180650}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3B19415-F73A-4C52-9207-356424180650}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

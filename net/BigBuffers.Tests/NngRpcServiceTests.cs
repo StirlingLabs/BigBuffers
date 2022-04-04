@@ -15,17 +15,23 @@ using BigBuffers.Xpc;
 using BigBuffers.Xpc.Nng;
 using FluentAssertions;
 using Generated;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.ObjectModel;
 using nng;
+using nng.Native;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
+using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Assertions;
+using static NngNative.LibNng;
+using nng_aio = NngNative.nng_aio;
+using nng_msg = NngNative.nng_msg;
 
 namespace BigBuffers.Tests
 {
   [Timeout(300000)] // 5 minutes
   [NonParallelizable]
   [FixtureLifeCycle(LifeCycle.SingleInstance)]
-  public class RpcServiceTests
+  public class NngRpcServiceTests
   {
     private static IAPIFactory<INngMsg> _factory = null!;
 
@@ -33,7 +39,7 @@ namespace BigBuffers.Tests
     public static void OneTimeSetUp()
     {
 
-      var path = Path.GetDirectoryName(typeof(RpcServiceTests).Assembly.Location);
+      var path = Path.GetDirectoryName(typeof(NngRpcServiceTests).Assembly.Location);
       var ctx = new NngLoadContext(path);
       _factory = NngLoadContext.Init(ctx);
     }
@@ -64,9 +70,9 @@ namespace BigBuffers.Tests
     public static IEnumerable<string> GetSanityCheckUrls()
     {
       yield return "inproc://NngSanityCheck";
-      yield return "tcp://127.0.0.1:" + GetFreeEphemeralTcpPort();
+      //yield return "tcp://127.0.0.1:" + GetFreeEphemeralTcpPort();
       //yield return "tls+tcp://127.0.0.1:" + GetFreeEphemeralTcpPort();
-      yield return "tcp://[::1]:" + GetFreeEphemeralTcpPort();
+      //yield return "tcp://[::1]:" + GetFreeEphemeralTcpPort();
       //yield return "tls+tcp://[::1]:" + GetFreeEphemeralTcpPort();
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         yield return $"ipc://NngSanityCheck-{Environment.ProcessId}";
@@ -77,17 +83,17 @@ namespace BigBuffers.Tests
         Directory.CreateDirectory(dir);
         yield return $"ipc://{path}";
       }
-      yield return "ws://127.0.0.1:" + GetFreeEphemeralTcpPort();
+      //yield return "ws://127.0.0.1:" + GetFreeEphemeralTcpPort();
       //yield return "wss://127.0.0.1:" + GetFreeEphemeralTcpPort();
-      yield return "ws://[::1]:" + GetFreeEphemeralTcpPort();
+      //yield return "ws://[::1]:" + GetFreeEphemeralTcpPort();
       //yield return "wss://[::1]:" + GetFreeEphemeralTcpPort();
     }
 
     [Theory]
     [NonParallelizable]
     [Order(0)]
-    [Timeout(1000)]
-    public async Task NngInProcPairSanityCheck([ValueSource(nameof(GetSanityCheckUrls))] string url, [Range(1, 3)] int run)
+    [Timeout(5000)]
+    public async Task NngInProcPairSanityCheck([ValueSource(nameof(GetSanityCheckUrls))] string url, [Range(1, 100)] int run)
     {
       var sanityCheckBytes = Encoding.UTF8.GetBytes("Sanity check");
 
@@ -107,18 +113,206 @@ namespace BigBuffers.Tests
         }),
         Task.Run(async () => {
           // client
-          await sync.WaitAsync();
-          using var pair = _factory.PairOpen().Unwrap();
-          pair.Dial(url).Unwrap();
+          if (!await sync.WaitAsync(1000))
+          {
+            Assert.Fail("Client sync wait timeout");
+            return;
+          }
 
-          using var asyncCtx = pair.CreateAsyncContext(_factory).Unwrap();
-          var msg = (await asyncCtx.Receive(default)).Unwrap();
+          for (;;)
+          {
+            using var pair = _factory.PairOpen().Unwrap();
+            var result = pair.Dial(url);
+            if (result.TryError(out var error))
+            {
+              Assert.Warn($"Client failed to connect: {error}");
+              await Task.Delay(1);
+              continue;
+            }
 
-          msg.AsSpan().SequenceEqual(sanityCheckBytes).Should().BeTrue();
+            using var asyncCtx = pair.CreateAsyncContext(_factory).Unwrap();
+            var msg = (await asyncCtx.Receive(default)).Unwrap();
+            msg.AsSpan().SequenceEqual(sanityCheckBytes).Should().BeTrue();
+            break;
+          }
         })
       );
     }
 
+
+    [Theory]
+    [NonParallelizable]
+    [Order(0)]
+    [Timeout(5000)]
+    public async Task NngNativeInProcPairSanityCheck([ValueSource(nameof(GetSanityCheckUrls))] string url, [Range(1, 100)] int run)
+    {
+      var sanityCheckBytes = Encoding.UTF8.GetBytes("Sanity check");
+
+      var sync = new SemaphoreSlim(0, 1);
+
+      var strV = nng_version().ToString();
+      var v = Version.Parse(strV);
+      if (v.Major < 1 || v.Minor < 5)
+        throw new NotSupportedException();
+
+      var u8Url = (Utf8String)url;
+
+      try
+      {
+        async Task ServerFunc()
+        {
+          var errno = 0;
+
+          // server
+          errno = nng_pair0_open(out var socket);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+          //errno = nng_socket_set_string(socket, NNG_OPT_SOCKNAME,  "Server");
+          //if (errno != 0)
+          //  throw new(nng_strerror(errno).ToString());
+          errno = nng_listener_create(out var listener, socket, u8Url);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+          errno = nng_listener_start(listener, 0);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+          sync.Release();
+
+          var done = new SemaphoreSlim(0, 1);
+          unsafe
+          {
+            errno = nng_ctx_open(out var recvCtx, socket);
+            if (errno != 0)
+              throw new(nng_strerror(errno).ToString());
+
+            nng_aio* aio = null;
+            errno = nng_aio_alloc_async(out aio, () => {
+              // ReSharper disable AccessToModifiedClosure
+              Debug.Assert(aio != null);
+              {
+                var msg = nng_aio_get_msg(aio);
+                var len = nng_msg_len(msg);
+                var body = nng_msg_body(msg);
+                var s = new Utf8String((sbyte*)body).Substring(0, len);
+                Assert.Equals("Hello", s.ToString());
+                nng_msg_free(msg);
+                nng_aio_free(aio);
+              }
+              {
+                errno = nng_msg_alloc(out var msg);
+                if (errno != 0)
+                  throw new(nng_strerror(errno).ToString());
+                errno = nng_aio_alloc_async(out aio, () => {
+                  nng_msg_free(msg);
+                  nng_aio_free(aio);
+                  done.Release();
+                });
+                errno = nng_ctx_open(out var sendCtx, socket);
+                if (errno != 0)
+                  throw new(nng_strerror(errno).ToString());
+                var reply = SizedUtf8String.Create("Howdy");
+                errno = nng_msg_append(msg, (byte*)reply.Pointer, reply.Length);
+                if (errno != 0)
+                  throw new(nng_strerror(errno).ToString());
+                nng_aio_set_msg(aio, msg);
+                nng_ctx_send(sendCtx, aio);
+              }
+              // ReSharper restore AccessToModifiedClosure
+            });
+            if (errno != 0)
+              throw new(nng_strerror(errno).ToString());
+            nng_ctx_recv(recvCtx, aio);
+          }
+          await done.WaitAsync();
+          errno = nng_close(socket);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+        }
+
+        async Task ClientFunc()
+        {
+          // client
+          if (!await sync.WaitAsync(1000))
+          {
+            Assert.Fail("Client sync wait timeout");
+            return;
+          }
+
+          // client
+          var errno = nng_pair0_open(out var socket);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+          //errno = nng_socket_set_string(socket, NNG_OPT_SOCKNAME,  "Client");
+          //if (errno != 0)
+          //  throw new(nng_strerror(errno).ToString());
+          errno = nng_dialer_create(out var dialer, socket, u8Url);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+          errno = nng_dialer_start(dialer, 0);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+
+          var done = new SemaphoreSlim(0, 1);
+          unsafe
+          {
+            errno = nng_msg_alloc(out var msg);
+            if (errno != 0)
+              throw new(nng_strerror(errno).ToString());
+            nng_aio* aio = null;
+            errno = nng_aio_alloc_async(out aio, () => {
+              // ReSharper disable AccessToModifiedClosure
+              Debug.Assert(aio != null);
+              nng_msg_free(msg);
+              nng_aio_free(aio);
+
+              errno = nng_ctx_open(out var recvCtx, socket);
+              if (errno != 0)
+                throw new(nng_strerror(errno).ToString());
+
+              {
+                nng_aio* aio = null;
+                errno = nng_aio_alloc_async(out aio, () => {
+                  // ReSharper disable AccessToModifiedClosure
+                  Debug.Assert(aio != null);
+                  var msg = nng_aio_get_msg(aio);
+                  var len = nng_msg_len(msg);
+                  var body = nng_msg_body(msg);
+                  var s = new Utf8String((sbyte*)body).Substring(0, len);
+                  Assert.Equals("Howdy", s.ToString());
+                  nng_msg_free(msg);
+                  nng_aio_free(aio);
+                  done.Release();
+                });
+                nng_ctx_recv(recvCtx, aio);
+              }
+              // ReSharper restore AccessToModifiedClosure
+            });
+            errno = nng_ctx_open(out var sendCtx, socket);
+            if (errno != 0)
+              throw new(nng_strerror(errno).ToString());
+            var reply = SizedUtf8String.Create("Hello");
+            errno = nng_msg_append(msg, (byte*)reply.Pointer, reply.Length);
+            if (errno != 0)
+              throw new(nng_strerror(errno).ToString());
+            nng_aio_set_msg(aio, msg);
+            nng_ctx_send(sendCtx, aio);
+          }
+          await done.WaitAsync();
+          errno = nng_close(socket);
+          if (errno != 0)
+            throw new(nng_strerror(errno).ToString());
+        }
+
+        await Task.WhenAll(
+          Task.Run(ServerFunc),
+          Task.Run(ClientFunc)
+        );
+      }
+      finally
+      {
+        u8Url.Free();
+      }
+    }
     [Test]
     [NonParallelizable]
     [Order(1)]

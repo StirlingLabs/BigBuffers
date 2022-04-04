@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using StirlingLabs.Utilities;
 
@@ -36,6 +37,12 @@ namespace BigBuffers
     {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       get => (ReadOnlyBigSpan<byte>)_buffer;
+    }
+    
+    public override bool TryGetMemory(out Memory<byte> seg)
+    {
+      seg = new(_buffer);
+      return true;
     }
   }
 }

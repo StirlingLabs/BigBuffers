@@ -3,10 +3,13 @@
   <PropertyGroup>
     <TargetFrameworks>net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <LangVersion>9</LangVersion>
+    <LangVersion>10</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningsAsErrors>8656</WarningsAsErrors>
     <RootNamespace>BigBuffers</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)'!=''">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>../artifacts</PackageOutputPath>
   </PropertyGroup>
@@ -27,13 +30,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Fody" Version="6.5.2">
+    <PackageReference Include="Fody" Version="6.6.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="InfoOf.Fody" Version="2.1.0" PrivateAssets="all" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" PrivateAssets="all" />
     <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 
   <ImportGroup>

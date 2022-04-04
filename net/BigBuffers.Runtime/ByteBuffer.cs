@@ -105,6 +105,13 @@ namespace BigBuffers
       _pos = pos;
     }
 
+    public ByteBuffer(Memory<byte> buffer, ulong pos, bool growable = false)
+    {
+      Debug.Assert(!Unsafe.IsNullRef(ref buffer.Span.GetPinnableReference()));
+      Buffer = new MemoryManager(buffer, growable);
+      _pos = pos;
+    }
+
     public ulong Position
     {
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -205,6 +212,12 @@ namespace BigBuffers
     public readonly ReadOnlyBigSpan<byte> ToSizedReadOnlySpan()
       => ToReadOnlySpan(Position, LongLength - Position);
 
+    public readonly Memory<byte> ToSizedMemory()
+      => ToMemory(Position, LongLength - Position);
+
+    public readonly ReadOnlyMemory<byte> ToSizedReadOnlyMemory()
+      => ToReadOnlyMemory(Position, LongLength - Position);
+
     public readonly byte[] ToFullArray()
       => ToArray<byte>(0, LongLength);
 
@@ -212,6 +225,20 @@ namespace BigBuffers
       => Buffer.Span.Slice((nuint)pos, (nuint)len);
     public readonly ReadOnlyBigSpan<byte> ToReadOnlySpan(ulong pos, ulong len)
       => Buffer.ReadOnlySpan.Slice((nuint)pos, (nuint)len);
+
+    public readonly Memory<byte> ToMemory(ulong pos, ulong len)
+    {
+      if (Buffer.TryGetMemory(out var mem))
+        return mem.Slice(checked((int)pos), checked((int)len));
+
+      mem = new(new byte[len]);
+      ToSpan(pos, len).CopyTo(mem.Span);
+      return mem;
+    }
+
+    public readonly ReadOnlyMemory<byte> ToReadOnlyMemory(ulong pos, ulong len)
+      => ToMemory(pos, len);
+
     // Helper functions for the unsafe version.
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

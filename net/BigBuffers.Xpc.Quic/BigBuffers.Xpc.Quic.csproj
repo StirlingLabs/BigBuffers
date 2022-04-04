@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net5.0;netstandard2.1;netstandard2.0</TargetFrameworks>
+    <LangVersion>10</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WarningsAsErrors>8656</WarningsAsErrors>
+    <RootNamespace>BigBuffers.Nng</RootNamespace>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)'!=''">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>../artifacts</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Update="Microsoft.Build.Tasks.Git" Version="1.1.1" />
+    <PackageReference Update="Microsoft.SourceLink.Common" Version="1.1.1" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" PrivateAssets="all" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="21.8.1" />
+    <PackageReference Include="StirlingLabs.MsQuic" Version="22.3.9" />
+    <PackageReference Include="StirlingLabs.Utilities" Version="22.3.0" />
+    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.3.5" />
+    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageReference Include="System.Text.Json" Version="6.0.2" />
+    <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
+    <ProjectReference Include="..\BigBuffers.Xpc\BigBuffers.Xpc.csproj" />
+  </ItemGroup>
+
+  <ImportGroup>
+    <Import Project="../Version.proj" />
+  </ImportGroup>
+
+
+  <Choose>
+    <When Condition="'$(RuntimeIdentifier)'==''">
+      <!-- TODO: include .targets, .props files to select runtime for dependers in sockaddr.Net -->
+    </When>
+    <When Condition="$(RuntimeIdentifier.StartsWith('linux')">
+      <ItemGroup>
+        <!-- TODO: arm64 -->
+        <PackageReference Include="runtime.linux-x64.libsa" Version="22.3.0" PrivateAssets="all" />
+        <PackageReference Include="runtime.linux-x64.openssl.Microsoft.Quic" Version="2.0.0" PrivateAssets="all" />
+      </ItemGroup>
+    </When>
+    <When Condition="$(RuntimeIdentifier.StartsWith('win')">
+      <ItemGroup>
+        <!-- TODO: arm64 -->
+        <PackageReference Include="runtime.win-x64.libsa" Version="22.3.0" PrivateAssets="all" />
+        <PackageReference Include="runtime.win-x64.openssl.Microsoft.Quic" Version="2.0.0" PrivateAssets="all" />
+      </ItemGroup>
+    </When>
+    <When Condition="$(RuntimeIdentifier.StartsWith('osx')">
+      <ItemGroup>
+        <PackageReference Include="runtime.osx-x64.libsa" Version="22.3.0" PrivateAssets="all" />
+        <PackageReference Include="runtime.osx-x64.openssl.Microsoft.Quic" Version="2.0.0" PrivateAssets="all" />
+      </ItemGroup>
+    </When>
+  </Choose>
+</Project>
