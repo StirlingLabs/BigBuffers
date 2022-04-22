@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using StirlingLabs.Native;
 using StirlingLabs.Utilities;
 using System_nuint = System.UIntPtr;
@@ -215,4 +216,10 @@ public sealed class BigMemory<T> : IDisposable where T : unmanaged
 
   public ref T GetPinnableReference()
     => ref BigSpan.GetPinnableReference();
+
+  public void CopyFrom(ReadOnlySpan<byte> data)
+  {
+    var m = _slice = _owner!.Memory.Slice(0, data.Length);
+    data.CopyTo(MemoryMarshal.AsBytes(m.Span));
+  }
 }

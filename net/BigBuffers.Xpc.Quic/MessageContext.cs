@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -10,8 +11,8 @@ using StirlingLabs.Utilities;
 
 namespace BigBuffers.Xpc.Quic;
 
-public struct MessageContext
-{
+public struct MessageContext {
+
   private readonly IQuicRpcServiceContext _serviceCtx;
 
   private int _sentState;
@@ -22,46 +23,55 @@ public struct MessageContext
 
   public IQuicRpcServiceContext ServiceContext => _serviceCtx;
 
-  public MessageContext(IQuicRpcServiceContext serviceCtx)
-  {
+  public MessageContext(IQuicRpcServiceContext serviceCtx) {
     _serviceCtx = serviceCtx;
     _sentState = 0;
     _datagram = null;
   }
 
-
   public Task SendAsync(params ReadOnlyMemory<byte>[] data)
     => SendAsync(false, data);
 
-  public Task SendAsync(bool streamOnly, params ReadOnlyMemory<byte>[] data)
-  {
+  public Task SendAsync(bool streamOnly, params ReadOnlyMemory<byte>[] data) {
     if (Interlocked.CompareExchange(ref _sentState, 1, 0) != 0)
       throw new InvalidOperationException("Can only be sent once.");
 
     var connection = _serviceCtx.Connection;
 
     var frameSize = (ulong)data.Sum(d => d.Length);
-    if (!streamOnly || frameSize <= int.MaxValue)
-    {
+    if (!streamOnly || frameSize <= int.MaxValue) {
       // tbh should probably never consider sending a datagram over 1500b
       var frameSizeInt = unchecked((int)frameSize);
-      if (QuicReadOnlyDatagram.CanCreate(connection, frameSizeInt))
-      {
+      if (QuicReadOnlyDatagram.CanCreate(connection, frameSizeInt)) {
         var memOwner = MemoryPool<byte>.Shared.Rent(frameSizeInt);
         var mem = memOwner.Memory.Slice(0, frameSizeInt);
         var slice = mem.Span;
-        foreach (var d in data)
-        {
+#if NET5_0_OR_GREATER
+        Debug.WriteLine($"Composing Datagram: 0x{string.Join(", 0x", data.Select(d => Convert.ToHexString(d.Span)))}");
+#endif
+        foreach (var d in data) {
           var s = d.Span;
           s.CopyTo(slice);
           slice = slice.Slice(s.Length);
         }
 
-        if (QuicReadOnlyDatagram.TryCreate(connection, memOwner, mem, out _datagram))
-        {
+        if (QuicReadOnlyDatagram.TryCreate(connection, memOwner, mem, out _datagram)) {
+#if NET5_0_OR_GREATER
+          Debug.WriteLine($"Sending Datagram: {Convert.ToHexString(mem.Span)}");
+#endif
           _datagram!.Send();
-          return Task.CompletedTask;
+          return _datagram.WaitForSentAsync();
         }
+        else {
+#if NET5_0_OR_GREATER
+          Debug.WriteLine($"Could Not Create Datagram of {mem.Length} bytes, {Convert.ToHexString(mem.Span)}");
+#endif
+        }
+      }
+      else {
+#if NET5_0_OR_GREATER
+        Debug.WriteLine($"Could Not Create Datagram of {frameSizeInt} bytes");
+#endif
       }
     }
 
@@ -76,4 +86,5 @@ public struct MessageContext
 
     return _serviceCtx.Stream.SendAsync(frame);
   }
+
 }

@@ -10,7 +10,6 @@ using Generated;
 using NUnit.Framework;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Assertions;
-using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers.Tests
 {

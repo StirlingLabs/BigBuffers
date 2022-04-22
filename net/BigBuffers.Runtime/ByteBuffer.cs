@@ -34,7 +34,8 @@ using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Win32.SafeHandles;
 using StirlingLabs.Utilities;
-using StirlingLabs.Utilities.Magic;
+
+using BinaryPrimitives = StirlingLabs.Utilities.BinaryPrimitives;
 
 namespace BigBuffers
 {
@@ -539,9 +540,9 @@ namespace BigBuffers
       => ref Unsafe.AsRef<ByteBuffer>(Unsafe.AsPointer(ref Unsafe.AsRef(this)));
 
     public static ulong AlignOf<T>()
-      => IfType<T>.IsPrimitive()
+      => Type<T>.IsPrimitive()
         ? SizeOf<T>()
-        : IfType<T>.IsAssignableTo<IBigBufferStruct>()
+        : Type<T>.IsAssignableTo<IBigBufferStruct>()
           ? TypeAlignments.GetOrAdd(typeof(T), GetAlignment)
           : sizeof(ulong);
 

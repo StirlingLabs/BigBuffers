@@ -23,16 +23,17 @@ using StirlingLabs.Utilities.Collections;
 namespace BigBuffers.Xpc.Quic;
 
 [PublicAPI]
-public abstract partial class QuicRpcServiceServerBase : IDisposable
-{
+public abstract partial class QuicRpcServiceServerBase : IDisposable {
+
   internal ConcurrentDictionary<QuicRpcServiceServerContext, _> _Clients { get; } = new();
 
   public ICollection<QuicRpcServiceServerContext> Clients => _Clients.Keys;
 
-  protected readonly TextWriter? Logger;
+  protected internal readonly TextWriter? Logger;
+
   public QuicListener Listener { get; private set; }
 
-  protected SizedUtf8String Utf8ServiceId { get; private set; }
+  protected SizedUtf8String Utf8ServiceId { get; }
 
   private static readonly Regex RxSplitPascalCase = new(@"(?<=[a-z])([A-Z])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -48,16 +49,14 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
   [Discardable]
   protected internal static double TimeStamp => SharedCounters.GetTimeSinceStarted().TotalSeconds;
 
-  protected QuicRpcServiceServerBase(string serviceId, QuicListener listener, TextWriter? logger = null)
-  {
+  protected QuicRpcServiceServerBase(string serviceId, QuicListener listener, TextWriter? logger = null) {
     Logger = logger;
     Utf8ServiceId = serviceId ?? throw new ArgumentNullException(nameof(serviceId));
     Listener = listener ?? throw new ArgumentNullException(nameof(listener));
     Listener.ClientConnected += ClientConnectedHandler;
   }
 
-  private void ClientConnectedHandler(QuicListener _, QuicServerConnection connection)
-  {
+  private void ClientConnectedHandler(QuicListener _, QuicServerConnection connection) {
     var ctx = new QuicRpcServiceServerContext(this, connection);
     var success = TryAddClient(ctx);
     Debug.Assert(success);
@@ -67,8 +66,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     => _Clients.TryAdd(client, default);
 
   protected TMethodEnum ParseRequest<TMethodEnum>(RequestMessage req, out ByteBuffer bb)
-    where TMethodEnum : struct, Enum
-  {
+    where TMethodEnum : struct, Enum {
     var method = SelectMethod<TMethodEnum>(req);
     var body = req.Body;
     if (body.Length > 0)
@@ -78,8 +76,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return method;
   }
 
-  protected TMethodEnum SelectMethod<TMethodEnum>(in RequestMessage req) where TMethodEnum : struct, Enum
-  {
+  protected TMethodEnum SelectMethod<TMethodEnum>(in RequestMessage req) where TMethodEnum : struct, Enum {
     var serviceName = req.ServiceId;
 
     if (serviceName != Utf8ServiceId)
@@ -89,8 +86,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
 
     var methods = (TMethodEnum[])typeof(TMethodEnum).GetEnumValues();
 
-    foreach (var method in methods)
-    {
+    foreach (var method in methods) {
       if (Unsafe.As<TMethodEnum, nint>(ref Unsafe.AsRef(method)) == 0)
         continue;
 
@@ -101,7 +97,6 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return default;
   }
 
-
 #if NETSTANDARD2_0
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
   private static unsafe ReadOnlySpan<T> CreateReadOnlySpan<T>(ref T item, int length)
@@ -109,8 +104,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
 #endif
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
-  private void WriteErrorCode(IMessage response, long errCode)
-  {
+  private void WriteErrorCode(IMessage response, long errCode) {
 #if NETSTANDARD2_0
     Append(response, MemoryMarshal.AsBytes(CreateReadOnlySpan(ref errCode, 1)));
 #else
@@ -119,8 +113,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
   }
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
-  private void WriteNullByte(IMessage response)
-  {
+  private void WriteNullByte(IMessage response) {
     byte nullByte = 0;
 #if NETSTANDARD2_0
     Append(response, MemoryMarshal.AsBytes(CreateReadOnlySpan(ref nullByte, 1)));
@@ -129,47 +122,42 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
 #endif
   }
 
-  protected async Task RunAsync<TMethodEnum>(CancellationToken ct = default) where TMethodEnum : struct, Enum
-  {
-    await _messageConsumerReady.Task;
-    Debug.Assert(MessageConsumer is not null);
-    do
-    {
-      if (ct.IsCancellationRequested) break;
-      var mc = MessageConsumer;
-      Debug.Assert(mc is not null);
-      await foreach (var msg in mc)
-      {
-        if (ct.IsCancellationRequested) break;
-        await Dispatch<TMethodEnum>(msg, ct);
-        if (ct.IsCancellationRequested) break;
-      }
-    } while (ct.IsCancellationRequested);
-  }
+  public virtual CancellationToken TryGetCancellationTokenForMessage<TMethodEnum>() => default;
 
-  protected async Task Dispatch<TMethodEnum>(IMessage sourceMsg, CancellationToken cancellationToken)
-    where TMethodEnum : struct, Enum
-  {
+  public abstract Task Dispatch(IMessage sourceMsg, CancellationToken ct = default);
+
+  protected async Task Dispatch<TMethodEnum>(IMessage sourceMsg, CancellationToken cancellationToken = default)
+    where TMethodEnum : struct, Enum {
     var ctx = (QuicRpcServiceServerContext)sourceMsg.Context!;
 
-    async Task SendUnaryReply(IMessage? reply)
-    {
-      reply ??= OnUnhandledMessage(sourceMsg, cancellationToken);
+    if (ctx is null) throw new NotImplementedException();
 
-      if (reply is null)
+    async Task SendUnaryReply(IMessage? msg) {
+      msg ??= OnUnhandledMessage(sourceMsg, cancellationToken);
+
+      if (msg is null) {
         await NotFoundReply(ctx, sourceMsg.Id).SendAsync();
+        return;
+      }
+
+      if (msg is not ReplyMessage reply)
+        throw new NotImplementedException();
+
+      msg.Context = ctx;
+      msg.Id = sourceMsg.Id;
+      msg.Type = MessageType.Reply | MessageType.Final;
+
+      await msg.SendAsync();
     }
 
-    if (sourceMsg is RequestMessage req)
-    {
+    if (sourceMsg is RequestMessage req) {
       var msgId = req.Id;
       var msgType = req.Type;
       var method = ParseRequest<TMethodEnum>(req, out var bb);
 
       var methodType = ResolveMethodType(method);
 
-      async Task Unary()
-      {
+      async Task Unary() {
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} dispatching to unary {method} implementation");
         var dispatch = DispatchUnary(method, msgId, bb, cancellationToken);
@@ -179,70 +167,35 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
         await SendUnaryReply(reply);
       }
 
-      async Task ClientStreaming()
-      {
+      async Task ClientStreaming() {
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched client streaming request is {method}");
 
-        var isNewStream = false;
-        var c = ctx.ClientMsgStreams.GetOrAdd(msgId, _ => {
-          isNewStream = true;
-          var newStream = new AsyncProducerConsumerCollection<IMessage>();
-          OnNewClientStream(ctx, msgId, newStream);
-          return newStream;
-        });
+        var isNewStream = ctx.CreateOrGetMessageStream(msgId, out var c);
 
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched client streaming request is {method} {msgType} and {(isNewStream ? "is" : "isn't")} a new stream");
 
-        if ((msgType & MessageType.Control) == 0)
-        {
-          var added = c.TryAdd(sourceMsg);
-          Debug.Assert(added);
-
-          if (!added)
-          {
-            Logger?.WriteLine(
-              $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: message was not added as the stream was already closed!");
-          }
-        }
-        else
-        {
-          // TODO: handle control messages
-        }
-
-        if ((msgType & MessageType.Final) != 0)
-        {
-          Logger?.WriteLine(
-            $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: message was final so the stream is being closed");
-
-          c.CompleteAdding();
-        }
-
-        if (!isNewStream)
-        {
-          return;
-        }
+        if (!isNewStream) return;
 
         // long await
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} dispatching to client streaming {method} implementation");
-        var dispatch = DispatchClientStreaming(method, msgId, c, cancellationToken);
+        var dispatch = DispatchClientStreaming(method, msgId, c.Messages, cancellationToken);
 
         var reply = await HandleExceptions(dispatch, ctx, msgId, cancellationToken);
 
         await SendUnaryReply(reply);
 
-        ctx.ClientMsgStreams.TryRemove(msgId, out var _);
+        ctx.MessageStreams.TryRemove(msgId, out var stream);
+        stream?.Dispose();
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: marking messages complete due to implementation completed");
         c.CompleteAdding();
         c.Clear();
-
       }
 
-      async Task ServerStreaming()
-      {
+      async Task ServerStreaming() {
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched server streaming request is {method}");
 
@@ -255,13 +208,11 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
         }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
       }
 
-      async Task Streaming()
-      {
-
+      async Task Streaming() {
         var isNewStream = false;
-        var c = ctx.ClientMsgStreams.GetOrAdd(msgId, _ => {
+        var c = ctx.MessageStreams.GetOrAdd(msgId, _ => {
           isNewStream = true;
-          var newStream = new AsyncProducerConsumerCollection<IMessage>();
+          var newStream = new MessageStreamContext(ctx);
           OnNewClientStream(ctx, msgId, newStream);
           return newStream;
         });
@@ -269,42 +220,38 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched bidirectional streaming request is {method} {msgType} and {(isNewStream ? "is" : "isn't")} a new stream");
 
-        if ((msgType & MessageType.Control) == 0)
-        {
+        if ((msgType & MessageType.Control) == 0) {
           var added = c.TryAdd(sourceMsg);
           //Debug.Assert(added);
 
-          if (!added)
-          {
+          if (!added) {
             Logger?.WriteLine(
               $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: message was not added as the stream was already closed!");
           }
         }
-        else
-        {
+        else {
           // TODO: handle control messages
         }
 
-        if ((msgType & MessageType.Final) != 0)
-        {
+        if ((msgType & MessageType.Final) != 0) {
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: message was final so the stream is being closed");
 
           c.CompleteAdding();
         }
 
-        if (!isNewStream)
-        {
+        if (!isNewStream) {
           return;
         }
 
         // NOTE: does not wait on the task to complete
         await Task.Factory.StartNew(async () => {
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} started streaming");
-          var t = DispatchStreaming(method, msgId, ctx, c, cancellationToken);
+          var t = DispatchStreaming(method, msgId, ctx, c.Messages, cancellationToken);
           await t;
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} finished streaming");
-          ctx.ClientMsgStreams.TryRemove(msgId, out var _);
+          ctx.MessageStreams.TryRemove(msgId, out var stream);
+          stream?.Dispose();
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: marking stream complete");
           c.CompleteAdding();
           Debug.Assert(c.IsAddingCompleted);
@@ -314,12 +261,9 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
         }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
       }
 
-      if ((msgType & MessageType.Continuation) != 0)
-      {
-        if (ctx.ClientMsgStreams.TryGetValue(msgId, out var c))
-        {
-          if (!c.TryAdd(sourceMsg))
-          {
+      if ((msgType & MessageType.Continuation) != 0) {
+        if (ctx.MessageStreams.TryGetValue(msgId, out var c)) {
+          if (!c.TryAdd(sourceMsg)) {
             // collection is already complete or completing
             // either the method has already ended or aborted
             Debug.Assert(c.IsAddingCompleted);
@@ -338,8 +282,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
         return;
       }
 
-      switch (methodType)
-      {
+      switch (methodType) {
         // @formatter:off
         case RpcMethodType.Unary: await Unary(); break;
         case RpcMethodType.ClientStreaming: await ClientStreaming(); break;
@@ -354,110 +297,53 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
 
   private FairAsyncConsumerIMux<IMessage>? _messageConsumer;
 
-  private FairAsyncConsumerIMux<IMessage>? MessageConsumer
-  {
+  private FairAsyncConsumerIMux<IMessage>? MessageConsumer {
     get => Interlocked.CompareExchange(ref _messageConsumer, null, null);
     set => Interlocked.Exchange(ref _messageConsumer, value);
   }
 
   private TaskCompletionSource<bool> _messageConsumerReady = new();
 
-  private void OnNewClientStream(QuicRpcServiceServerContext ctx, long msgId, AsyncProducerConsumerCollection<IMessage> newQueue)
-  {
-    var mc = MessageConsumer;
-    if (mc is null)
-    {
-      _messageConsumerReady.SetResult(true);
-      MessageConsumer = new(newQueue);
-      return;
-    }
-    mc.WithLock(c => {
-      var index = c.Index;
-
-      IEnumerable<AsyncProducerConsumerCollection<IMessage>> GetMessageQueues()
-      {
-        var yieldIndex = -1;
-        // order clients by their outbound stream ids, which should always be increasing monotonically 
-        foreach (var client in Clients.OrderBy(x => x.ControlStreamOutbound!.Id))
-        {
-          ++yieldIndex;
-
-          // order the queues by their message id, which should be increasing monotonically
-          var orderedQueues = client.ClientMsgStreams
-            .OrderBy(kv => kv.Key)
-            .Select(kv => kv.Value);
-
-          foreach (var queue in orderedQueues)
-            yield return queue;
-
-          if (client != ctx)
-            continue;
-
-          // to keep a consistent order, if yieldIndex is less than or equal to index (the current, already read item),
-          if (yieldIndex <= index)
-            // the new index should be +1 so the "next item" is not repeated twice
-            index += 1;
-
-          // the new message id will always be higher than previous message queues yielded before this
-          yield return newQueue;
-        }
-      }
-
-      var queues = GetMessageQueues();
-      var newConsumer = new FairAsyncConsumerIMux<IMessage>(queues);
-      newConsumer.WithLock(nc => {
-        MessageConsumer = newConsumer;
-        nc.Index = index;
-      });
-      c.Dispose();
-    });
+  protected internal void OnNewClientStream(QuicRpcServiceServerContext ctx, long msgId, MessageStreamContext newQueue) {
   }
-
 
   protected async Task<IMessage?> HandleExceptions(Func<Task<IMessage?>> fn, IQuicRpcServiceContext ctx, long msgId,
     CancellationToken cancellationToken)
     => await HandleExceptions(fn(), ctx, msgId, cancellationToken);
 
   protected async Task<IMessage?> HandleExceptions(Task<IMessage?> task, IQuicRpcServiceContext ctx, long msgId,
-    CancellationToken cancellationToken)
-  {
-    try
-    {
+    CancellationToken cancellationToken) {
+    try {
       return await task;
     }
-    catch (UnauthorizedAccessException ex)
-    {
+    catch (UnauthorizedAccessException ex) {
       return UnauthorizedReply(ctx, msgId, ex);
     }
-    catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
-    {
+    catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {
       return TimedOutReply(ctx, msgId, ex);
     }
-    catch (NotImplementedException ex)
-    {
+    catch (NotImplementedException ex) {
       return NotImplementedExceptionReply(ctx, msgId, ex);
     }
 #if NET5_0_OR_GREATER
-    catch (HttpRequestException ex)
-    {
+    catch (HttpRequestException ex) {
       return UnhandledHttpExceptionReply(ctx, msgId, ex);
     }
 #endif
-    catch (Exception ex)
-    {
+    catch (Exception ex) {
       return UnhandledExceptionReply(ctx, msgId, ex);
     }
   }
-  protected IMessage FinalControlReply(IQuicRpcServiceContext ctx, long msgId, long errorCode, ReadOnlySpan<byte> message)
-  {
+
+  protected IMessage FinalControlReply(IQuicRpcServiceContext ctx, long msgId, long errorCode, ReadOnlySpan<byte> message) {
     var response = new ReplyMessage(ctx, MessageType.FinalControl, new((nuint)(8 + message.Length + 1)));
     WriteErrorCode(response, errorCode);
     Append(response, message);
     WriteNullByte(response);
     return response;
   }
-  private void Append(IMessage reply, ReadOnlySpan<byte> data)
-  {
+
+  private void Append(IMessage reply, ReadOnlySpan<byte> data) {
     if (data.IsEmpty) return;
 
     var prevSize = reply.Body.Length;
@@ -465,8 +351,8 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     reply.Raw.Resize(prevSize + dataSize);
     data.CopyTo(reply.Raw.BigSpan.Slice(reply.HeaderSize));
   }
-  private void Append(IMessage reply, string? data, bool nullTerminate = false)
-  {
+
+  private void Append(IMessage reply, string? data, bool nullTerminate = false) {
     if (data is null || data.Length == 0)
       return;
 
@@ -477,10 +363,8 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     reply.Raw.Resize(prevSize + dataSize + (nullTerminate ? 1u : 0u));
 #if NETSTANDARD2_0
     var dataLen = data.Length;
-    unsafe
-    {
-      fixed (byte* pRaw = reply.Body)
-      {
+    unsafe {
+      fixed (byte* pRaw = reply.Body) {
         var p = pRaw + prevSize;
         fixed (char* pData = data)
           p += utf8.GetBytes(pData, dataLen, p, (int)dataSize);
@@ -492,9 +376,10 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     utf8.GetBytes(data, (Span<byte>)reply.Body.Slice(prevSize));
 #endif
   }
-  private void AddReplyExceptionMessage(IMessage reply, Exception? ex = null)
-  {
+
+  private void AddReplyExceptionMessage(IMessage reply, Exception? ex = null) {
     if (ex is null) return;
+
     var exTypeName = ex.GetType().Name;
     var exMessage = ex.Message;
 
@@ -508,10 +393,8 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
 #if NETSTANDARD2_0
     var exTypeNameLen = exTypeName.Length;
     var exMessageLen = exMessage.Length;
-    unsafe
-    {
-      fixed (byte* pRaw = reply.Body)
-      {
+    unsafe {
+      fixed (byte* pRaw = reply.Body) {
         var p = pRaw + prevSize;
         fixed (char* pExTypeName = exTypeName)
           p += utf8.GetBytes(pExTypeName, exTypeNameLen, p, (int)exTypeNameSize);
@@ -533,8 +416,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
 #endif
   }
 
-  protected IMessage BadRequestReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null)
-  {
+  protected IMessage BadRequestReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null) {
     var reply = FinalControlReply(ctx, msgId, 400, Utf8ErrorBadRequest);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -542,8 +424,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return reply;
   }
 
-  protected IMessage UnauthorizedReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null)
-  {
+  protected IMessage UnauthorizedReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null) {
     var reply = FinalControlReply(ctx, msgId, 401, Utf8ErrorUnauthorized);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -551,8 +432,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return reply;
   }
 
-  protected IMessage NotFoundReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null)
-  {
+  protected IMessage NotFoundReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null) {
     var reply = FinalControlReply(ctx, msgId, 404, Utf8ErrorNotFound);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -560,8 +440,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return reply;
   }
 
-  protected IMessage TimedOutReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null)
-  {
+  protected IMessage TimedOutReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null) {
     var reply = FinalControlReply(ctx, msgId, 408, Utf8ErrorRequestTimeout);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -569,8 +448,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return reply;
   }
 
-  protected IMessage GoneReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null)
-  {
+  protected IMessage GoneReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null) {
     var reply = FinalControlReply(ctx, msgId, 410, Utf8ErrorGone);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -578,8 +456,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
     return reply;
   }
 
-  protected IMessage NotImplementedExceptionReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null)
-  {
+  protected IMessage NotImplementedExceptionReply(IQuicRpcServiceContext ctx, long msgId, Exception? ex = null) {
     var reply = FinalControlReply(ctx, msgId, 501, Utf8ErrorNotImplemented);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -588,8 +465,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
   }
 
 #if NET5_0_OR_GREATER
-  protected IMessage UnhandledHttpExceptionReply(IQuicRpcServiceContext ctx, long msgId, HttpRequestException ex)
-  {
+  protected IMessage UnhandledHttpExceptionReply(IQuicRpcServiceContext ctx, long msgId, HttpRequestException ex) {
     // ReSharper disable once ConstantNullCoalescingCondition
     ex ??= new("An exception was not provided.");
     var statusCode = ex.StatusCode ?? HttpStatusCode.InternalServerError;
@@ -602,8 +478,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
   }
 #endif
 
-  protected IMessage UnhandledExceptionReply(IQuicRpcServiceContext ctx, long msgId, Exception ex)
-  {
+  protected IMessage UnhandledExceptionReply(IQuicRpcServiceContext ctx, long msgId, Exception ex) {
     var reply = FinalControlReply(ctx, msgId, 500, Utf8ErrorInternalServerError);
 #if DEBUG
     AddReplyExceptionMessage(reply, ex);
@@ -656,8 +531,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
   protected virtual IMessage? OnUnhandledMessage(CancellationToken cancellationToken)
     => null;
 
-  protected static T Track<T>(T disposable, ICollection<IAsyncDisposable> collection) where T : IAsyncDisposable
-  {
+  protected static T Track<T>(T disposable, ICollection<IAsyncDisposable> collection) where T : IAsyncDisposable {
     collection.Add(disposable);
     return disposable;
   }
@@ -668,13 +542,11 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable
   protected async Task<ReplyMessage> Reply<T>(Task<T> task) where T : struct, IBigBufferEntity
     => new(new((await task).Model.ByteBuffer.ToSizedMemory()), true);
 
-  public void Dispose()
-  {
-    foreach (var clientKv in _Clients)
-    {
+  public void Dispose() {
+    foreach (var clientKv in _Clients) {
       var ctx = clientKv.Key;
       ctx.Dispose();
     }
-    
   }
+
 }

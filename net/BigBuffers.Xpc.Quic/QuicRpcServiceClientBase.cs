@@ -23,23 +23,21 @@ namespace BigBuffers.Xpc.Quic;
 [PublicAPI]
 public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
 {
-  protected abstract SizedUtf8String Utf8ServiceId { get; }
+  protected SizedUtf8String Utf8ServiceId { get; }
 
-  private readonly ConcurrentDictionary<long, AsyncProducerConsumerCollection<ReplyMessage>> _outstandingReplies = new();
-
-  protected QuicRpcServiceClientBase(QuicPeerConnection connection, TextWriter logger)
-    : base(connection, logger, false) { }
+  protected QuicRpcServiceClientBase(SizedUtf8String name, QuicPeerConnection connection, TextWriter? logger)
+    : base(connection, logger, false) => Utf8ServiceId = name;
 
   protected IAsyncEnumerable<IMessage> GetReplies(long msgId)
   {
-    var messages = _outstandingReplies.GetOrAdd(msgId, _ => new(new ConcurrentQueue<ReplyMessage>()));
+    var messages = MessageStreams.GetOrAdd(msgId, _ => new(this));
 
     return messages.GetConsumer();
   }
 
   protected void ClearReplies(long msgId)
   {
-    if (_outstandingReplies.TryRemove(msgId, out var q))
+    if (MessageStreams.TryRemove(msgId, out var q))
       q.Clear();
   }
 
@@ -61,9 +59,9 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
       RpcMethod = ResolveMethodSignature(method)
     };
 
-    await req.SendAsync();
-
     var replies = GetReplies(req.Id);
+
+    await req.SendAsync();
 
     try
     {

@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using JetBrains.Annotations;
-using StirlingLabs.Utilities.Magic;
+using StirlingLabs.Utilities;
 
 namespace BigBuffers.JsonParsing
 {
@@ -27,17 +27,17 @@ namespace BigBuffers.JsonParsing
     public void Parse(JsonElement element)
     {
       var items = new TVector[element.GetArrayLength()];
-      if (IfType<TVector>.Is<bool>()) ParseBooleans(element, items);
-      else if (IfType<TVector>.Is<byte>()) ParseBytes(element, items);
-      else if (IfType<TVector>.Is<sbyte>()) ParseSBytes(element, items);
-      else if (IfType<TVector>.Is<short>()) ParseShorts(element, items);
-      else if (IfType<TVector>.Is<ushort>()) ParseUShorts(element, items);
-      else if (IfType<TVector>.Is<int>()) ParseInts(element, items);
-      else if (IfType<TVector>.Is<uint>()) ParseUInts(element, items);
-      else if (IfType<TVector>.Is<long>()) ParseLongs(element, items);
-      else if (IfType<TVector>.Is<ulong>()) ParseULongs(element, items);
-      else if (IfType<TVector>.Is<float>()) ParseSingles(element, items);
-      else if (IfType<TVector>.Is<double>()) ParseDoubles(element, items);
+      if (Type<TVector>.Is<bool>()) ParseBooleans(element, items);
+      else if (Type<TVector>.Is<byte>()) ParseBytes(element, items);
+      else if (Type<TVector>.Is<sbyte>()) ParseSBytes(element, items);
+      else if (Type<TVector>.Is<short>()) ParseShorts(element, items);
+      else if (Type<TVector>.Is<ushort>()) ParseUShorts(element, items);
+      else if (Type<TVector>.Is<int>()) ParseInts(element, items);
+      else if (Type<TVector>.Is<uint>()) ParseUInts(element, items);
+      else if (Type<TVector>.Is<long>()) ParseLongs(element, items);
+      else if (Type<TVector>.Is<ulong>()) ParseULongs(element, items);
+      else if (Type<TVector>.Is<float>()) ParseSingles(element, items);
+      else if (Type<TVector>.Is<double>()) ParseDoubles(element, items);
       else throw new NotImplementedException(typeof(TVector).ToString());
       Runtime.Assert(_parser.DeferredActions.TryAdd(() => _filler(_placeholder, items)));
     }

@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
-using StirlingLabs.Utilities.Magic;
 using static BigBuffers.Debug;
 
 namespace BigBuffers
@@ -227,9 +226,9 @@ namespace BigBuffers
     public void Fill<T>(ReadOnlyBigSpan<Offset<T>> s, uint alignment = 0)
       where T : struct, IBigBufferEntity
     {
-      if (IfType<T>.IsAssignableTo<IBigBufferStruct>())
+      if (Type<T>.IsAssignableTo<IBigBufferStruct>())
         throw new InvalidOperationException($"Use the {nameof(FillInline)} method for vectors of struct types instead.");
-      if (IfType<T>.IsAssignableTo<IBigBufferTable>())
+      if (Type<T>.IsAssignableTo<IBigBufferTable>())
       {
         if (alignment == 0) alignment = sizeof(ulong);
         Builder.StartVector(sizeof(ulong), s.Length);
@@ -279,7 +278,7 @@ namespace BigBuffers
       var elemSize = (ulong)Unsafe.SizeOf<T>();
       if (alignment == 0) alignment = (uint)Math.Min(sizeof(ulong), elemSize);
       var length = s.Length;
-      if (IfType<T>.Is<string>())
+      if (Type<T>.Is<string>())
       {
         var placeholders = new Placeholder[length];
 
@@ -298,7 +297,7 @@ namespace BigBuffers
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as string);
       }
-      else if (IfType<T>.Is<string[]>())
+      else if (Type<T>.Is<string[]>())
       {
         var placeholders = new Placeholder[length];
 
@@ -319,7 +318,7 @@ namespace BigBuffers
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as string[], alignment);
       }
-      else if (IfType<T>.IsAssignableTo<Array>())
+      else if (Type<T>.IsAssignableTo<Array>())
       {
         var placeholders = new Placeholder[length];
 
@@ -339,7 +338,7 @@ namespace BigBuffers
         for (var i = (nuint)0; i < length; ++i)
           placeholders[i].Fill(s[i] as Array, alignment);
       }
-      else if (IfType<T>.IsAssignableTo<StringOffset>())
+      else if (Type<T>.IsAssignableTo<StringOffset>())
       {
         Builder.StartVector(elemSize, length);
         var sos = s.CastAs<StringOffset>();
@@ -353,7 +352,7 @@ namespace BigBuffers
         IsAtLeastMinimumAlignment(offsetValue, sizeof(ulong));
         Builder.ByteBuffer.Put(Offset, offsetValue);
       }
-      else if (IfType<T>.IsAssignableTo<IVectorOffset>())
+      else if (Type<T>.IsAssignableTo<IVectorOffset>())
       {
         throw new NotImplementedException(); // ???
       }

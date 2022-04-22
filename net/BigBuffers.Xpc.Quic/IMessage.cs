@@ -8,9 +8,9 @@ namespace BigBuffers.Xpc.Quic;
 [PublicAPI]
 public interface IMessage
 {
-  long Id { get; }
+  long Id { get; set; }
 
-  MessageType Type { get; }
+  MessageType Type { get; set; }
 
   BigMemory<byte> Raw { get; }
 
@@ -26,5 +26,5 @@ public interface IMessage
 
   ref byte GetPinnableReference();
 
-  IQuicRpcServiceContext? Context { get; }
+  IQuicRpcServiceContext? Context { get; set; }
 }

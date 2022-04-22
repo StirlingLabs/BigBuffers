@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
-using StirlingLabs.Utilities.Magic;
+using StirlingLabs.Utilities;
 using static BigBuffers.JsonParsing.JsonParser;
 
 namespace BigBuffers.JsonParsing
@@ -13,7 +13,7 @@ namespace BigBuffers.JsonParsing
   {
     private static void CreateStructFieldParsers()
     {
-      Debug.Assert(IfType<T>.IsAssignableTo<IBigBufferStruct>());
+      Debug.Assert(Type<T>.IsAssignableTo<IBigBufferStruct>());
       FieldParsers.Clear();
 
       for (var i = (ushort)0; i < Metadata.Length; i++)

@@ -55,13 +55,12 @@ public class RequestMessage : IMessage
     _context = null;
 
     var span = raw.BigSpan;
-    var sizeSize = (uint)VarIntSqlite4.GetDecodedLength(span[0u]);
-    var typeSize = (uint)VarIntSqlite4.GetDecodedLength(span[sizeSize]);
-    Type = (MessageType)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(sizeSize, typeSize));
+    var typeSize = (uint)VarIntSqlite4.GetDecodedLength(span[0u]);
+    Type = (MessageType)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(0, typeSize));
+    var idSize = (uint)VarIntSqlite4.GetDecodedLength(span[typeSize]);
+    Id = (long)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(typeSize, idSize));
 
-    var idSize = (uint)VarIntSqlite4.GetDecodedLength(span[sizeSize + typeSize]);
-    Id = (long)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(sizeSize + typeSize, idSize));
-    var headerSize = sizeSize + typeSize + idSize;
+    var headerSize = typeSize + idSize;
 
     if (!withoutLocator)
     {
@@ -137,11 +136,14 @@ public class RequestMessage : IMessage
     rpcMethod.CopyTo(s.Slice(typeLen + idLen + locSizeLen + serviceId.Length + 1));
 
     {
-      if (!Raw.TryGetMemoryOwner(out var owner) || owner is null || !Raw.TryGetMemory(out var mem))
+      Raw.TryGetMemoryOwner(out var owner);
+      if (!Raw.TryGetMemory(out var mem))
         throw new NotImplementedException();
       var slice = mem.Slice(checked((int)HeaderSize), (int)BodySize);
-      return ctx.SendAsync(StreamOnly, header, slice)
-        .ContinueWith(_ => owner.Dispose());
+      var sendTask = ctx.SendAsync(StreamOnly, header, slice);
+      return owner is not null
+        ? sendTask.ContinueWith(_ => owner.Dispose())
+        : sendTask;
     }
   }
 }

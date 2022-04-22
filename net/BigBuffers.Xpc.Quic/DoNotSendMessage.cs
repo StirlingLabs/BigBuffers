@@ -8,9 +8,15 @@ namespace BigBuffers.Xpc.Quic;
 [PublicAPI]
 public sealed class DoNotSendMessage : IMessage
 {
-  public long Id => throw new NotSupportedException();
+  public long Id {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
 
-  public MessageType Type => throw new NotSupportedException();
+  public MessageType Type {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
 
   public BigMemory<byte> Raw => throw new NotSupportedException();
 
@@ -34,5 +40,9 @@ public sealed class DoNotSendMessage : IMessage
 
   public ref byte GetPinnableReference() => throw new NotSupportedException();
 
-  public IQuicRpcServiceContext Context => throw new NotSupportedException();
+  public IQuicRpcServiceContext Context {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+
 }

@@ -13,7 +13,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using JetBrains.Annotations;
 using StirlingLabs.Utilities;
-using StirlingLabs.Utilities.Magic;
 using static BigBuffers.JsonParsing.JsonParser;
 
 namespace BigBuffers.JsonParsing
@@ -158,7 +157,7 @@ namespace BigBuffers.JsonParsing
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly Action<BigBufferBuilder>? Starter =
-      IfType<T>.IsAssignableTo<IBigBufferStruct>()
+      Type<T>.IsAssignableTo<IBigBufferStruct>()
         ? null
         :
 #if NETSTANDARD
@@ -174,7 +173,7 @@ namespace BigBuffers.JsonParsing
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly Func<BigBufferBuilder, Offset<T>>? Ender =
-      IfType<T>.IsAssignableTo<IBigBufferStruct>()
+      Type<T>.IsAssignableTo<IBigBufferStruct>()
         ? null
         :
 #if NETSTANDARD
@@ -210,7 +209,7 @@ namespace BigBuffers.JsonParsing
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ulong ByteSize
-      = IfType<T>.IsAssignableTo<IBigBufferTable>()
+      = Type<T>.IsAssignableTo<IBigBufferTable>()
         ? 0
         : (ulong)(typeof(T)
           .GetProperty("ByteSize", BindingFlags.Public | BindingFlags.Static)!
@@ -218,7 +217,7 @@ namespace BigBuffers.JsonParsing
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableArray<MethodInfo> FieldAdders
-      = IfType<T>.IsAssignableTo<IBigBufferStruct>()
+      = Type<T>.IsAssignableTo<IBigBufferStruct>()
         ? ImmutableArray<MethodInfo>.Empty
         : Type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
           .Where(m => m.Name.StartsWith("Add"))
@@ -226,14 +225,14 @@ namespace BigBuffers.JsonParsing
 
     // ReSharper disable once StaticMemberInGenericType
     public static readonly ImmutableArray<MethodInfo> FieldSetters
-      = IfType<T>.IsAssignableTo<IBigBufferTable>()
+      = Type<T>.IsAssignableTo<IBigBufferTable>()
         ? ImmutableArray<MethodInfo>.Empty
         : Type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
           .Where(m => m.Name.StartsWith("Set") || m.Name.StartsWith("set_"))
           .ToImmutableArray();
 
     public static readonly ImmutableArray<PropertyInfo> StructFieldProperties
-      = IfType<T>.IsAssignableTo<IBigBufferTable>()
+      = Type<T>.IsAssignableTo<IBigBufferTable>()
         ? ImmutableArray<PropertyInfo>.Empty
         : Type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
           .Where(m => typeof(IBigBufferStruct).IsAssignableFrom(m.PropertyType))
@@ -461,7 +460,7 @@ namespace BigBuffers.JsonParsing
 
     static JsonParser()
     {
-      if (IfType<T>.IsAssignableTo<IBigBufferTable>())
+      if (Type<T>.IsAssignableTo<IBigBufferTable>())
         CreateTableFieldParsers();
       else
         CreateStructFieldParsers();
@@ -542,7 +541,7 @@ namespace BigBuffers.JsonParsing
 #endif
       try
       {
-        if (IfType<T>.IsAssignableTo<IBigBufferTable>())
+        if (Type<T>.IsAssignableTo<IBigBufferTable>())
         {
           Starter!(Builder);
           foreach (var prop in element.EnumerateObject())
@@ -556,7 +555,7 @@ namespace BigBuffers.JsonParsing
           }
           Ender!(Builder);
         }
-        else if (IfType<T>.IsAssignableTo<IBigBufferStruct>())
+        else if (Type<T>.IsAssignableTo<IBigBufferStruct>())
         {
           foreach (var prop in element.EnumerateObject())
           {

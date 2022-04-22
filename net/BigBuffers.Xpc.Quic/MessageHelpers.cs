@@ -12,8 +12,7 @@ public static class MessageHelpers
   }
   public static MessageType GetMessageType(ReadOnlyBigSpan<byte> span)
   {
-    var sizeSize = (uint)VarIntSqlite4.GetDecodedLength(span[0u]);
-    var typeSize = (uint)VarIntSqlite4.GetDecodedLength(span[sizeSize]);
-    return (MessageType)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(sizeSize, typeSize));
+    var typeSize = (uint)VarIntSqlite4.GetDecodedLength(span[0u]);
+    return (MessageType)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(0, typeSize));
   }
 }

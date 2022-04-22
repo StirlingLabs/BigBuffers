@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using StirlingLabs.Utilities;
-using StirlingLabs.Utilities.Magic;
 
 namespace BigBuffers
 {
@@ -11,7 +10,7 @@ namespace BigBuffers
     public static TResult __union<TResult>(ref this Model model, ulong offset)
       where TResult : class
     {
-      if (!IfType<TResult>.Is<string>())
+      if (!Type<TResult>.Is<string>())
         throw new NotImplementedException();
 
       return model.__string(offset) as TResult;

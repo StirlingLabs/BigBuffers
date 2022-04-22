@@ -12,5 +12,6 @@ public enum MessageType : ulong
   Final = 1 << 1,
   FinalControl = Control | Final,
   Continuation = 1 << 2,
-  Reply = 1 << 3
+  Reply = 1 << 3,
+  Exception = 1 << 4
 }
