@@ -99,7 +99,8 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
         var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId)
         {
           ServiceId = Utf8ServiceId,
-          RpcMethod = ResolveMethodSignature(method)
+          RpcMethod = ResolveMethodSignature(method),
+          StreamOnly = true
         };
 
         await req.SendAsync();
@@ -108,7 +109,8 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
       var final = new RequestMessage(this, MessageType.FinalControl, new(), msgId)
       {
         ServiceId = Utf8ServiceId,
-        RpcMethod = ResolveMethodSignature(method)
+        RpcMethod = ResolveMethodSignature(method),
+        StreamOnly = true
       };
 
       await final.SendAsync();
@@ -192,7 +194,8 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
         var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId)
         {
           ServiceId = Utf8ServiceId,
-          RpcMethod = ResolveMethodSignature(method)
+          RpcMethod = ResolveMethodSignature(method),
+          StreamOnly = true
         };
 
         await req.SendAsync();
@@ -201,7 +204,8 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
       var final = new RequestMessage(this, MessageType.FinalControl, new(), msgId)
       {
         ServiceId = Utf8ServiceId,
-        RpcMethod = ResolveMethodSignature(method)
+        RpcMethod = ResolveMethodSignature(method),
+        StreamOnly = true
       };
 
       await final.SendAsync();

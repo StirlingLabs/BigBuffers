@@ -60,11 +60,13 @@ public sealed class MessageStreamContext : IDisposable {
   }
 
   public void Clear() {
-    Messages.Clear();
+    if (!Messages.IsDisposed)
+      Messages.Clear();
   }
 
   public void CompleteAdding() {
-    Messages.CompleteAdding();
+    if (!Messages.IsDisposed)
+      Messages.CompleteAdding();
   }
 
 }
@@ -109,6 +111,9 @@ public class MessageStreamContextConsumer : IAsyncConsumer<IMessage> {
 
   public async ValueTask WaitForAvailableAsync(bool continueOnCapturedContext, CancellationToken cancellationToken)
     => await _consumer.WaitForAvailableAsync(continueOnCapturedContext, cancellationToken);
+
+  public async ValueTask<bool> TryWaitForAvailableAsync(bool continueOnCapturedContext, CancellationToken cancellationToken)
+    => await _consumer.TryWaitForAvailableAsync(continueOnCapturedContext, cancellationToken);
 
   public bool IsEmpty
     => _consumer.IsEmpty;

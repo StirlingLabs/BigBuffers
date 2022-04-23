@@ -27,10 +27,9 @@ using StirlingLabs.Utilities.Collections;
 namespace BigBuffers.Tests;
 
 [SingleThreaded]
-public class QuicRpcServiceTests
-{
-  static QuicRpcServiceTests()
-  {
+public class QuicRpcServiceTests {
+
+  static QuicRpcServiceTests() {
     ProfileOptimization.SetProfileRoot(Environment.CurrentDirectory);
     ProfileOptimization.StartProfile(nameof(QuicRpcServiceTests));
   }
@@ -38,16 +37,17 @@ public class QuicRpcServiceTests
   private static double TimeStamp => SharedCounters.GetTimeSinceStarted().TotalSeconds;
 
   private static int _lastIssuedFreeEphemeralTcpPort = -1;
+
   private static readonly Type? QuicConnectionAbortedExceptionType =
     Type.GetType(
       "System.Net.Quic.QuicConnectionAbortedException, System.Net.Quic, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
+
   private static readonly Type? QuicOperationAbortedExceptionType =
     Type.GetType(
       "System.Net.Quic.QuicOperationAbortedException, System.Net.Quic, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a");
-  private static int GetFreeEphemeralTcpPort()
-  {
-    bool IsFree(int realPort)
-    {
+
+  private static int GetFreeEphemeralTcpPort() {
+    bool IsFree(int realPort) {
       var properties = IPGlobalProperties.GetIPGlobalProperties();
       var listeners = properties.GetActiveTcpListeners();
       var openPorts = listeners.Select(item => item.Port).ToArray();
@@ -74,11 +74,7 @@ public class QuicRpcServiceTests
   [Theory]
   [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
   [NonParallelizable]
-  public async Task CreateAndDispatch(
-    [Range(0, 10)] int run
-  )
-  {
-
+  public async Task UnaryRoundTrip([Range(0, 10)] int run) {
     var isDebug = Debugger.IsAttached;
     var logger = run <= 1 || isDebug
       ? new DebugTestContextWriter(TestContext.Out)
@@ -86,14 +82,14 @@ public class QuicRpcServiceTests
 
     TaskScheduler.UnobservedTaskException += (_, args) => {
       var aex = args.Exception;
-      if (aex.InnerExceptions.Count == 1)
-      {
+      if (aex.InnerExceptions.Count == 1) {
         var ex = aex.InnerException;
         var exType = ex.GetType();
         if (exType.IsAssignableTo(QuicConnectionAbortedExceptionType)
             || exType.IsAssignableTo(QuicOperationAbortedExceptionType))
           return;
       }
+
       Debugger.Break();
     };
 
@@ -133,8 +129,7 @@ public class QuicRpcServiceTests
 
     listener.Start(ep);
 
-    try
-    {
+    try {
       var client = new QuicRpcServiceTestImpl.QuicRpcServiceTestClientImpl("Test", clientConnection, logger);
 
       await clientConnection.ConnectAsync("::1", (ushort)ep.Port);
@@ -164,8 +159,7 @@ public class QuicRpcServiceTests
 
       TestContext.WriteLine("Received \"Hello\" successfully");
     }
-    finally
-    {
+    finally {
       TestContext.WriteLine("Shutting down...");
       clientConnection.Close();
       listener.Stop();
@@ -175,83 +169,203 @@ public class QuicRpcServiceTests
     TestContext.WriteLine("Disposing...");
   }
 
-  public static class QuicRpcServiceTestImpl
-  {
-    private enum Method : long
-    {
+  private static readonly byte[] _clientStreamingReplyExpected =
+    Convert.FromBase64String(
+      "4P////////84AAAAAAAAACAAAAAAAAAAAwAAAAAAAA"
+      + "AKACAACAAYABAAAAAAAAAA+P////////8EAAgAAAAA"
+      + "ABAAAAAAAAAAUkU6IEhlbGxvLCBIZWxsbwAAAAAAAA"
+      + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      + "AAA=");
+
+  [Test]
+  //[Timeout(15000)]
+  [Theory]
+  [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
+  [NonParallelizable]
+  public async Task ClientStreamingRoundTrip([Range(0, 10)] int run) {
+    var isDebug = Debugger.IsAttached;
+    var logger = run <= 1 || isDebug
+      ? new DebugTestContextWriter(TestContext.Out)
+      : null; //TestContext.Out;
+
+    TaskScheduler.UnobservedTaskException += (_, args) => {
+      var aex = args.Exception;
+      if (aex.InnerExceptions.Count == 1) {
+        var ex = aex.InnerException;
+        var exType = ex.GetType();
+        if (exType.IsAssignableTo(QuicConnectionAbortedExceptionType)
+            || exType.IsAssignableTo(QuicOperationAbortedExceptionType))
+          return;
+      }
+
+      Debugger.Break();
+    };
+
+    //var bigDelays = run <= 5;
+
+    var testTimeoutMs = 5000;
+    var cts =
+      Debugger.IsAttached ? new() : new CancellationTokenSource(testTimeoutMs);
+
+    var testName = TestContext.CurrentContext.Test.FullName;
+    using var reg = new QuicRegistration(testName);
+    using var listenerCfg = new QuicServerConfiguration(reg, "Test");
+    using var listener = new QuicListener(listenerCfg);
+    var asmDir = Path.GetDirectoryName(new Uri(typeof(QuicRpcServiceTests).Assembly.Location).LocalPath)!;
+    var p12Path = Path.Combine(asmDir, "localhost.p12");
+    var cert = new QuicCertificate(policy => {
+      policy.RevocationMode = X509RevocationMode.NoCheck;
+      policy.DisableCertificateDownloads = false;
+      policy.VerificationFlags |= X509VerificationFlags.AllowUnknownCertificateAuthority
+        | X509VerificationFlags.IgnoreCertificateAuthorityRevocationUnknown
+        | X509VerificationFlags.IgnoreCtlSignerRevocationUnknown
+        | X509VerificationFlags.IgnoreRootRevocationUnknown
+        | X509VerificationFlags.IgnoreEndRevocationUnknown;
+    }, File.OpenRead(p12Path));
+    listenerCfg.ConfigureCredentials(cert);
+
+    using var server = new QuicRpcServiceTestImpl.QuicRpcServiceTestServerImpl("Test", listener, logger);
+
+    var port = GetFreeEphemeralTcpPort();
+
+    var ep = new IPEndPoint(IPAddress.IPv6Any, port);
+
+    using var clientCfg = new QuicClientConfiguration(reg, "Test");
+    clientCfg.ConfigureCredentials();
+
+    using var clientConnection = new QuicClientConnection(clientCfg);
+
+    listener.Start(ep);
+
+    try {
+      var client = new QuicRpcServiceTestImpl.QuicRpcServiceTestClientImpl("Test", clientConnection, logger);
+
+      await clientConnection.ConnectAsync("::1", (ushort)ep.Port);
+
+      TestContext.WriteLine("Building message message to send");
+      var bb = new BigBufferBuilder();
+      Message.StartMessage(bb);
+      Message.AddSubject(bb, bb.MarkStringPlaceholder(out var subj));
+      Message.AddBody(bb, bb.MarkOffsetPlaceholder(out Placeholder<Empty> e).Value);
+      Message.AddBodyType(bb, MessageBody.Empty);
+      Message.EndMessage(bb);
+      Empty.StartEmpty(bb);
+      e.Fill(Empty.EndEmpty(bb));
+      subj.Fill("Hello");
+
+      var ct = cts.Token;
+
+      var testExecCtx = TestExecutionContext.CurrentContext;
+
+      var messageReader = new EnumerableChannelReader<Message>(new Message[] { new(0, bb.ByteBuffer), new(0, bb.ByteBuffer) });
+
+      TestContext.WriteLine("Sending 2 Hello messages");
+
+      var result = await client.ClientStreaming(messageReader, ct);
+
+      TestContext.WriteLine("Received a message");
+      
+      void X() {
+        var resultBytes = ((IBigBufferTable)result).Model.ByteBuffer.ToSizedReadOnlySpan();
+        #if NET5_0_OR_GREATER
+        TestContext.WriteLine("E0FFFFFFFFFFFFFF3800000000000000200000000000000003000000000000000A002000080018001000000000000000F8FFFFFFFFFFFFFF0400080000000000100000000000000052453A2048656C6C6F2C2048656C6C6F00000000000000000000000000000000000000000000000000000000000000000000000000000000");
+        TestContext.WriteLine(Convert.ToHexString((ReadOnlySpan<byte>) resultBytes));
+        #endif
+        Assert.IsTrue(resultBytes.CompareMemory(_clientStreamingReplyExpected) == 0, "Reply should be uniform.");
+      }
+
+      X();
+
+      result.Subject.Should().Be("RE: Hello, Hello");
+
+      TestContext.WriteLine("Received \"Hello\" successfully");
+    }
+    finally {
+      TestContext.WriteLine("Shutting down...");
+      clientConnection.Close();
+      listener.Stop();
+      reg.Shutdown(0);
+    }
+
+    TestContext.WriteLine("Disposing...");
+  }
+
+  public static class QuicRpcServiceTestImpl {
+
+    private enum Method : long {
+
       Unary = 1,
+
       ClientStreaming = 2,
+
       ServerStreaming = 3,
+
       BidirectionalStreaming = 4
+
     }
 
     private static readonly SizedUtf8String SignatureUnary = "Unary";
+
     private static readonly SizedUtf8String SignatureClientStreaming = "ClientStreaming";
+
     private static readonly SizedUtf8String SignatureServerStreaming = "ServerStreaming";
+
     private static readonly SizedUtf8String SignatureBidirectionalStreaming = "BidirectionalStreaming";
 
     private static SizedUtf8String StaticResolveMethodSignature(Method method)
-      => method switch
-      {
+      => method switch {
         Method.Unary => SignatureUnary,
         Method.ClientStreaming => SignatureClientStreaming,
         Method.ServerStreaming => SignatureServerStreaming,
         Method.BidirectionalStreaming => SignatureBidirectionalStreaming,
         _ => throw new ArgumentOutOfRangeException(nameof(method))
-
       };
 
-    public sealed class QuicRpcServiceTestClientImpl : QuicRpcServiceClientBase
-    {
-      public QuicRpcServiceTestClientImpl(SizedUtf8String name, QuicPeerConnection connection, TextWriter? logger = null)
-        : base(name, connection, logger) { }
+    public sealed class QuicRpcServiceTestClientImpl : QuicRpcServiceClientBase {
 
-      protected override SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method)
-      {
+      public QuicRpcServiceTestClientImpl(SizedUtf8String name, QuicPeerConnection connection, TextWriter? logger = null)
+        : base(name, connection, logger) {
+      }
+
+      protected override SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method) {
         if (method is not Method m)
           throw new InvalidOperationException();
 
         return StaticResolveMethodSignature(m);
       }
 
-      public async Task<Message> Unary(Message m, CancellationToken ct = default)
-        => await UnaryRequest<Method, Message, Message>(Method.Unary, m, ct);
+      public async Task<Message> Unary(Message message, CancellationToken ct = default)
+        => await UnaryRequest<Method, Message, Message>(Method.Unary, message, ct);
 
-      public async Task<Message> ClientStreaming(ChannelReader<Message> msgs, CancellationToken ct = default)
-      {
-        throw new NotImplementedException();
-      }
+      public async Task<Message> ClientStreaming(ChannelReader<Message> messages, CancellationToken ct = default)
+        => await ClientStreamingRequest<Method, Message, Message>(Method.ClientStreaming, messages, ct);
 
       public async Task ServerStreaming(Message m, ChannelWriter<Message> writer, CancellationToken ct = default)
-      {
-        throw new NotImplementedException();
-      }
+        => await ServerStreamingRequest<Method, Message, Message>(Method.ServerStreaming, m, ct).WriteTo(writer, ct);
 
-      public async Task BidirectionalStreaming(ChannelReader<Message> msgs, ChannelWriter<Message> writer, CancellationToken ct = default)
-      {
-        throw new NotImplementedException();
-      }
+      public async Task BidirectionalStreaming(ChannelReader<Message> messages, ChannelWriter<Message> writer, CancellationToken ct = default)
+        => await StreamingRequest<Method, Message, Message>(Method.BidirectionalStreaming, messages, ct).WriteTo(writer, ct);
+
     }
 
-    public sealed class QuicRpcServiceTestServerImpl : QuicRpcServiceServerBase
-    {
+    public sealed class QuicRpcServiceTestServerImpl : QuicRpcServiceServerBase {
+
       public QuicRpcServiceTestServerImpl(string name, QuicListener listener, TextWriter? logger = null)
-        : base(name, listener, logger) { }
-      protected override SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method)
-      {
+        : base(name, listener, logger) {
+      }
+
+      protected override SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method) {
         if (method is not Method m)
           throw new InvalidOperationException();
 
         return StaticResolveMethodSignature(m);
       }
 
-      protected override RpcMethodType ResolveMethodType<TMethodEnum>(TMethodEnum method)
-      {
+      protected override RpcMethodType ResolveMethodType<TMethodEnum>(TMethodEnum method) {
         if (method is not Method m)
           throw new InvalidOperationException();
 
-        return m switch
-        {
+        return m switch {
           Method.Unary => RpcMethodType.Unary,
           Method.ClientStreaming => RpcMethodType.ClientStreaming,
           Method.ServerStreaming => RpcMethodType.ServerStreaming,
@@ -263,7 +377,8 @@ public class QuicRpcServiceTests
       public override Task RunAsync(CancellationToken cancellationToken)
         => RunAsync<Method>(cancellationToken);
 
-      public async Task RunAsync<TMethodEnum>(CancellationToken cancellationToken) {}
+      public async Task RunAsync<TMethodEnum>(CancellationToken cancellationToken) {
+      }
 
       public override async Task Dispatch(IMessage sourceMsg, CancellationToken ct = default)
         => await Dispatch<Method>(sourceMsg, ct);
@@ -273,11 +388,10 @@ public class QuicRpcServiceTests
         long sourceMsgId,
         ByteBuffer sourceByteBuffer,
         CancellationToken cancellationToken
-      )
-      {
+      ) {
         if (method is not Method m) throw new InvalidOperationException();
-        return m switch
-        {
+
+        return m switch {
           Method.Unary => await Reply(Unary(new(0, sourceByteBuffer), cancellationToken)),
           _ => throw new ArgumentOutOfRangeException(nameof(method))
         };
@@ -288,11 +402,10 @@ public class QuicRpcServiceTests
         long sourceMsgId,
         AsyncProducerConsumerCollection<IMessage> reader,
         CancellationToken cancellationToken
-      )
-      {
+      ) {
         if (method is not Method m) throw new InvalidOperationException();
-        return m switch
-        {
+
+        return m switch {
           Method.ClientStreaming => await Reply(ClientStreaming(WrapReader<@Message>(reader), cancellationToken)),
           _ => throw new ArgumentOutOfRangeException(nameof(method))
         };
@@ -302,13 +415,12 @@ public class QuicRpcServiceTests
         long sourceMsgId,
         QuicRpcServiceServerContext ctx,
         ByteBuffer sourceByteBuffer,
-        CancellationToken cancellationToken)
-      {
+        CancellationToken cancellationToken) {
         if (method is not Method m) throw new InvalidOperationException();
+
         var ads = new List<IAsyncDisposable>(1);
 
-        async Task CleanUpContinuation(Task _)
-        {
+        async Task CleanUpContinuation(Task _) {
           foreach (var ad in ads) await ad.DisposeAsync();
         }
 
@@ -317,8 +429,7 @@ public class QuicRpcServiceTests
         ChannelWriter<T> Writer<T>() where T : struct, IBigBufferEntity
           => Track(new QuicMsgStreamWriter<T>(ctx, sourceMsgId, Logger), ads);
 
-        return m switch
-        {
+        return m switch {
           Method.ServerStreaming => CleanUpAfter(ServerStreaming(new(0, sourceByteBuffer), Writer<@Message>(), cancellationToken)),
           _ => throw new ArgumentOutOfRangeException(nameof(method))
         };
@@ -328,13 +439,12 @@ public class QuicRpcServiceTests
         long sourceMsgId,
         QuicRpcServiceServerContext ctx,
         AsyncProducerConsumerCollection<IMessage> reader,
-        CancellationToken cancellationToken)
-      {
+        CancellationToken cancellationToken) {
         if (method is not Method m) throw new InvalidOperationException();
+
         var ads = new List<IAsyncDisposable>(1);
 
-        async Task CleanUpContinuation(Task _)
-        {
+        async Task CleanUpContinuation(Task _) {
           foreach (var ad in ads) await ad.DisposeAsync();
         }
 
@@ -343,8 +453,7 @@ public class QuicRpcServiceTests
         ChannelWriter<T> Writer<T>() where T : struct, IBigBufferEntity
           => Track(new QuicMsgStreamWriter<T>(ctx, sourceMsgId, Logger), ads);
 
-        return m switch
-        {
+        return m switch {
           Method.BidirectionalStreaming => CleanUpAfter(BidirectionalStreaming(WrapReader<@Message>(reader),
             Writer<@Message>(), cancellationToken)),
           _ => throw new ArgumentOutOfRangeException(nameof(method))
@@ -353,8 +462,7 @@ public class QuicRpcServiceTests
 
       // below is non-generated user impl
 
-      public async Task<Message> Unary(Message m, CancellationToken ct = default)
-      {
+      public async Task<Message> Unary(Message m, CancellationToken ct = default) {
         var bb = new BigBufferBuilder();
         Message.StartMessage(bb);
         Message.AddSubject(bb, bb.MarkStringPlaceholder(out var subj));
@@ -367,8 +475,7 @@ public class QuicRpcServiceTests
         return reply;
       }
 
-      public async Task<Message> ClientStreaming(ChannelReader<Message> msgs, CancellationToken ct = default)
-      {
+      public async Task<Message> ClientStreaming(ChannelReader<Message> msgs, CancellationToken ct = default) {
         var subjects = new List<string>();
         await foreach (var msg in msgs.AsConsumingAsyncEnumerable(ct))
           subjects.Add(msg.Subject);
@@ -385,10 +492,8 @@ public class QuicRpcServiceTests
         return reply;
       }
 
-      public async Task ServerStreaming(Message m, ChannelWriter<Message> writer, CancellationToken ct = default)
-      {
-        try
-        {
+      public async Task ServerStreaming(Message m, ChannelWriter<Message> writer, CancellationToken ct = default) {
+        try {
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: ServerStreaming started");
 
@@ -437,8 +542,7 @@ public class QuicRpcServiceTests
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: ServerStreaming finished");
         }
-        finally
-        {
+        finally {
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: ServerStreaming completing");
           writer.Complete();
@@ -447,15 +551,12 @@ public class QuicRpcServiceTests
         }
       }
 
-      public async Task BidirectionalStreaming(ChannelReader<Message> msgs, ChannelWriter<Message> writer, CancellationToken ct = default)
-      {
-        try
-        {
+      public async Task BidirectionalStreaming(ChannelReader<Message> msgs, ChannelWriter<Message> writer, CancellationToken ct = default) {
+        try {
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: BidirectionalStreaming started");
 
-          await foreach (var msg in msgs.AsConsumingAsyncEnumerable(ct))
-          {
+          await foreach (var msg in msgs.AsConsumingAsyncEnumerable(ct)) {
             var subject = msg.Subject;
             Logger?.WriteLine(
               $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: BidirectionalStreaming got {subject}");
@@ -482,8 +583,7 @@ public class QuicRpcServiceTests
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: BidirectionalStreaming finished");
         }
-        finally
-        {
+        finally {
           Logger?.WriteLine(
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: BidirectionalStreaming completing");
           writer.Complete();
@@ -491,6 +591,9 @@ public class QuicRpcServiceTests
             $"[{TimeStamp:F3}] {GetType().Name} T{Task.CurrentId}: BidirectionalStreaming completed");
         }
       }
+
     }
+
   }
+
 }

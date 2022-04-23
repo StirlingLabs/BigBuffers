@@ -32,12 +32,8 @@ public sealed class QuicRpcServiceServerContext : QuicRpcServiceContext, IDispos
     return true;
   }
   
-  protected override void NewMessageStreamHandler(long msgId) {
-    var gotMsg = MessageStreams[msgId].TryTakeMessage(out var msg);
-    Debug.Assert(gotMsg);
-    Server.Dispatch(msg);
-  }
-  
+  protected override void NewMessageStreamHandler(IMessage msg)
+    => Server.Dispatch(msg);
 
   public void Dispose() {
     while (!MessageStreams.IsEmpty) {

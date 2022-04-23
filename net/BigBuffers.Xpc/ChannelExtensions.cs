@@ -27,7 +27,7 @@ namespace BigBuffers
           break;
       }
 
-      Debug.Assert(reader.Completion.IsCompleted);
+      //Debug.Assert(reader.Completion.IsCompleted);
     }
 
     public static async Task WriteTo<T>(this IAsyncEnumerable<T> enumerable, ChannelWriter<T> writer,

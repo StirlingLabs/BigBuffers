@@ -230,7 +230,7 @@ public abstract class QuicRpcServiceContext : IQuicRpcServiceContext {
       }
       finally {
         if (isNewStream)
-          NewMessageStreamHandler(msgId);
+          NewMessageStreamHandler(msg);
       }
     });
 
@@ -254,11 +254,11 @@ public abstract class QuicRpcServiceContext : IQuicRpcServiceContext {
       }
       finally {
         if (isNewStream)
-          NewMessageStreamHandler(msgId);
+          NewMessageStreamHandler(msg);
       }
     });
 
-  protected virtual void NewMessageStreamHandler(long msgId) {
+  protected virtual void NewMessageStreamHandler(IMessage msg) {
     // ok
   }
 
@@ -282,7 +282,7 @@ public abstract class QuicRpcServiceContext : IQuicRpcServiceContext {
       }
       finally {
         if (isNewStream)
-          NewMessageStreamHandler(msgId);
+          NewMessageStreamHandler(msg);
       }
     });
 
@@ -310,7 +310,7 @@ public abstract class QuicRpcServiceContext : IQuicRpcServiceContext {
     }
     finally {
       if (isNewStream)
-        NewMessageStreamHandler(msgId);
+        NewMessageStreamHandler(msg);
     }
   }
 

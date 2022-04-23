@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -72,7 +73,17 @@ public class EntityQuicMsgChannelReader<T> : ChannelReader<T> where T : struct, 
     if (!_collection.IsCompleted)
     {
       _logger?.WriteLine($"[{QuicRpcServiceServerBase.TimeStamp:F3}] {GetType().Name}<{typeof(T).Name}> T{Task.CurrentId}: waiting to read");
-      await _collection.WaitForAvailableAsync(false, cancellationToken);
+      try {
+        if (!await _collection.TryWaitForAvailableAsync(false, cancellationToken))
+          return false;
+      }
+      catch (OperationCanceledException) {
+        if (_collection.IsCompleted)
+          return false;
+
+        throw;
+      }
+
       if (!_collection.IsCompleted)
       {
         _logger?.WriteLine($"[{QuicRpcServiceServerBase.TimeStamp:F3}] {GetType().Name}<{typeof(T).Name}> T{Task.CurrentId}: waiting completed");

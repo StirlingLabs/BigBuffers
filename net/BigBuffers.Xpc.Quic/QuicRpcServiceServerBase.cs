@@ -171,16 +171,19 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched client streaming request is {method}");
 
-        var isNewStream = ctx.CreateOrGetMessageStream(msgId, out var c);
+        ctx.CreateOrGetMessageStream(msgId, out var c);
 
+        var isFirstMsg = c.MessageCounter == 0; 
+        
         Logger?.WriteLine(
-          $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched client streaming request is {method} {msgType} and {(isNewStream ? "is" : "isn't")} a new stream");
+          $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched client streaming request is {method} {msgType} and {(isFirstMsg ? "is" : "isn't")} a new stream");
 
-        if (!isNewStream) return;
+        if (!isFirstMsg) return;
 
         // long await
         Logger?.WriteLine(
           $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} dispatching to client streaming {method} implementation");
+        
         var dispatch = DispatchClientStreaming(method, msgId, c.Messages, cancellationToken);
 
         var reply = await HandleExceptions(dispatch, ctx, msgId, cancellationToken);
@@ -317,12 +320,20 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
       return await task;
     }
     catch (UnauthorizedAccessException ex) {
+      if (Debugger.IsAttached)
+        throw;
+
       return UnauthorizedReply(ctx, msgId, ex);
     }
     catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {
+      if (Debugger.IsAttached)
+        throw;
+
       return TimedOutReply(ctx, msgId, ex);
     }
     catch (NotImplementedException ex) {
+      if (Debugger.IsAttached)
+        throw;
       return NotImplementedExceptionReply(ctx, msgId, ex);
     }
 #if NET5_0_OR_GREATER
@@ -331,6 +342,9 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
     }
 #endif
     catch (Exception ex) {
+      if (Debugger.IsAttached)
+        throw;
+
       return UnhandledExceptionReply(ctx, msgId, ex);
     }
   }
