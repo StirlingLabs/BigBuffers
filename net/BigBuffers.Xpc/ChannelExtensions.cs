@@ -23,8 +23,14 @@ namespace BigBuffers
         if (cancellationToken.IsCancellationRequested || reader.Completion.IsCompleted)
           break;
 
-        if (!await reader.WaitToReadAsync(cancellationToken))
-          break;
+        var sw = Stopwatch.StartNew();
+        try {
+          if (!await reader.WaitToReadAsync(cancellationToken))
+            break;
+        }
+        finally {
+          Debug.WriteLine($"ChannelExtensions.AsConsumingAsyncEnumerable, reader.WaitToReadAsync: {sw.ElapsedMilliseconds}ms");
+        }
       }
 
       //Debug.Assert(reader.Completion.IsCompleted);
@@ -51,8 +57,14 @@ namespace BigBuffers
           if (cancellationToken.IsCancellationRequested)
             break;
 
-          if (!await writer.WaitToWriteAsync(cancellationToken))
-            break;
+          var sw = Stopwatch.StartNew();
+          try {
+            if (!await writer.WaitToWriteAsync(cancellationToken))
+              break;
+          }
+          finally {
+            Debug.WriteLine($"ChannelExtensions.WriteTo, writer.WaitToWriteAsync: {sw.ElapsedMilliseconds}ms");
+          }
         }
         writer.TryComplete();
       }

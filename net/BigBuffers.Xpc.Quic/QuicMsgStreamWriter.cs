@@ -46,7 +46,7 @@ public class QuicMsgStreamWriter<T> : ChannelWriter<T>, IAsyncDisposable, IDispo
     _logger?.WriteLine(
       $"[{TimeStamp:F3}] {GetType().Name}<{typeof(T).Name}> #{MessageId} T{Task.CurrentId}: sending {typeof(T).Name} stream message");
 
-    _active = new ReplyMessage(Context, MessageType.Normal,
+    _active = new ReplyMessage(Context, MessageType.Reply,
       new(item.Model.ByteBuffer.ToSizedMemory()),
       MessageId).SendAsync();
     return true;
@@ -87,7 +87,7 @@ public class QuicMsgStreamWriter<T> : ChannelWriter<T>, IAsyncDisposable, IDispo
 
     _logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name}<{typeof(T).Name}> #{MessageId} T{Task.CurrentId}: trying to close");
 
-    var final = new ReplyMessage(Context, MessageType.FinalControl, new(), MessageId);
+    var final = new ReplyMessage(Context, MessageType.FinalControlReply, new(), MessageId);
 #if NET5_0_OR_GREATER
     _logger?.WriteLine(
       $"[{TimeStamp:F3}] {GetType().Name}<{typeof(T).Name}> #{MessageId} T{Task.CurrentId}: sending {typeof(T).Name} final control stream message: 0x{Convert.ToHexString((Span<byte>)final.Raw.BigSpan)}");

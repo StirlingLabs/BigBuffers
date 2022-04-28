@@ -60,7 +60,13 @@ public struct MessageContext {
           Debug.WriteLine($"Sending Datagram: {Convert.ToHexString(mem.Span)}");
 #endif
           _datagram!.Send();
-          return _datagram.WaitForSentAsync();
+          var sw = Stopwatch.StartNew();
+          try {
+            return _datagram.WaitForSentAsync();
+          }
+          finally {
+            Debug.WriteLine($"MessageContext.SendAsync, _datagram.WaitForSentAsync: {sw.ElapsedMilliseconds}ms");
+          }
         }
         else {
 #if NET5_0_OR_GREATER

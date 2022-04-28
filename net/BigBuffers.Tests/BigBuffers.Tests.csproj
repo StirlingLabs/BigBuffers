@@ -20,14 +20,9 @@
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.6.0" />
-    <PackageReference Include="FluentAssertions.Analyzers" Version="0.17.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="GitHubActionsTestLogger" Version="1.4.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="FluentAssertions.Analyzers" Version="0.17.2" PrivateAssets="all" />
+    <PackageReference Include="GitHubActionsTestLogger" Version="1.4.1" PrivateAssets="all" />
+    <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="NUnit" Version="3.13.3" />

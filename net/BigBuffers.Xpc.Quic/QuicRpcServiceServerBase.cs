@@ -212,40 +212,20 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
       }
 
       async Task Streaming() {
-        var isNewStream = false;
-        var c = ctx.MessageStreams.GetOrAdd(msgId, _ => {
-          isNewStream = true;
-          var newStream = new MessageStreamContext(ctx);
-          OnNewClientStream(ctx, msgId, newStream);
-          return newStream;
-        });
-
         Logger?.WriteLine(
-          $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched bidirectional streaming request is {method} {msgType} and {(isNewStream ? "is" : "isn't")} a new stream");
+          $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched streaming request is {method}");
 
-        if ((msgType & MessageType.Control) == 0) {
-          var added = c.TryAdd(sourceMsg);
-          //Debug.Assert(added);
+        ctx.CreateOrGetMessageStream(msgId, out var c);
 
-          if (!added) {
-            Logger?.WriteLine(
-              $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: message was not added as the stream was already closed!");
-          }
-        }
-        else {
-          // TODO: handle control messages
-        }
+        var isFirstMsg = c.MessageCounter == 0; 
+        
+        Logger?.WriteLine(
+          $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched streaming request is {method} {msgType} and {(isFirstMsg ? "is" : "isn't")} a new stream");
 
-        if ((msgType & MessageType.Final) != 0) {
-          Logger?.WriteLine(
-            $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: message was final so the stream is being closed");
-
-          c.CompleteAdding();
-        }
-
-        if (!isNewStream) {
-          return;
-        }
+        if (!isFirstMsg) return;
+        
+        Logger?.WriteLine(
+          $"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: dispatched server streaming request is {method}");
 
         // NOTE: does not wait on the task to complete
         await Task.Factory.StartNew(async () => {
@@ -253,15 +233,8 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
           var t = DispatchStreaming(method, msgId, ctx, c.Messages, cancellationToken);
           await t;
           Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} finished streaming");
-          ctx.MessageStreams.TryRemove(msgId, out var stream);
-          stream?.Dispose();
-          Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: marking stream complete");
-          c.CompleteAdding();
-          Debug.Assert(c.IsAddingCompleted);
-          c.Clear();
-          Debug.Assert(c.IsCompleted);
-          Logger?.WriteLine($"[{TimeStamp:F3}] {GetType().Name} #{msgId} T{Task.CurrentId}: {method} cleaned up");
         }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
+        
       }
 
       if ((msgType & MessageType.Continuation) != 0) {

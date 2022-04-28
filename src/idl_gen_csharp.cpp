@@ -1449,11 +1449,10 @@ class CSharpGenerator : public BaseGenerator {
     code += interface_name;
     code += " : IBigBuffersService {\n";
 
-    Value *serviceIsValueTask = service_def.attributes.Lookup("csharp_value_task");
+    Value *svc_is_value_task = service_def.attributes.Lookup("csharp_value_task");
 
     int index = 0;
     for (auto &it : service_def.calls.vec) {
-
       auto& call = *it;
       const StructDef* req = call.request;
       const StructDef* rsp = call.response;
@@ -1470,13 +1469,22 @@ class CSharpGenerator : public BaseGenerator {
 
       auto streaming = call.attributes.Lookup("streaming");
 
-      if (streaming && (streaming->constant == "server" || streaming->constant == "bidi")) {
-        if (serviceIsValueTask || call.attributes.Lookup("csharp_value_task"))
+      auto req_is_plural = streaming
+                           && (streaming->constant == "client"
+                               || streaming->constant == "bidi");
+
+      const auto rsp_is_plural
+          = streaming
+            && (streaming->constant == "server"
+                || streaming->constant == "bidi");
+
+      if (rsp_is_plural) {
+        if (svc_is_value_task || call.attributes.Lookup("csharp_value_task"))
           code += "  System.Threading.Tasks.ValueTask @";
         else
           code += "  System.Threading.Tasks.Task @";
       } else {
-        if (serviceIsValueTask || call.attributes.Lookup("csharp_value_task"))
+        if (svc_is_value_task || call.attributes.Lookup("csharp_value_task"))
           code += "  System.Threading.Tasks.ValueTask<";
         else
           code += "  System.Threading.Tasks.Task<";
@@ -1487,7 +1495,8 @@ class CSharpGenerator : public BaseGenerator {
 
       code += call.name;
       code += "(";
-      if (streaming && (streaming->constant == "client" || streaming->constant == "bidi")) {
+
+      if (req_is_plural) {
         code += "System.Threading.Channels.ChannelReader<";
         code += WrapInNameSpace(*req);
         code += ">";
@@ -1495,12 +1504,15 @@ class CSharpGenerator : public BaseGenerator {
         code += WrapInNameSpace(*req);
       }
       code += " @";
-      code += MakeCamel(req->name, false);
-      if (streaming && (streaming->constant == "server" || streaming->constant == "bidi")) {
+      std::string req_name = req->name + (req_is_plural ? "Requests" : "Request");
+      code += MakeCamel(req_name, false);
+
+      if (rsp_is_plural) {
         code += ", System.Threading.Channels.ChannelWriter<";
         code += WrapInNameSpace(*rsp);
         code += "> @";
-        code += MakeCamel(rsp->name, false);
+        std::string rsp_name = rsp->name + "Responses";
+        code += MakeCamel(rsp_name, false);
       }
       code += ", System.Threading.CancellationToken cancellationToken);\n";
     }
@@ -1614,6 +1626,8 @@ class CSharpGenerator : public BaseGenerator {
 
     // client method implementation
     {
+      std::unordered_set<std::string> param_names;
+
       int index = 0;
       for (auto &it : service_def.calls.vec) {
         auto &call = *it;
@@ -1653,8 +1667,12 @@ class CSharpGenerator : public BaseGenerator {
           code += WrapInNameSpace(req);
         }
         code += " @";
-        auto req_name_camel = MakeCamel(req.name, false);
-        auto rsp_name_camel = isServerStreaming ? MakeCamel(rsp.name, false) : "";
+        std::string req_name = req.name;
+        int counter = 1;
+        while(!param_names.insert(req_name).second)
+          req_name = req.name + NumToString(++counter);
+        auto req_name_camel = MakeCamel(req_name, false);
+        auto rsp_name_camel = isServerStreaming ? MakeCamel(req_name, false) : "";
         code += req_name_camel;
         if (isServerStreaming) {
           code += ", System.Threading.Channels.ChannelWriter<";
