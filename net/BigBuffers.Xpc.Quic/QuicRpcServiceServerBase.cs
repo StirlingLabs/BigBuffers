@@ -33,7 +33,7 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
 
   public QuicListener Listener { get; private set; }
 
-  protected SizedUtf8String Utf8ServiceId { get; }
+  protected SizedUtf8String ServiceId { get; }
 
   private static readonly Regex RxSplitPascalCase = new(@"(?<=[a-z])([A-Z])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -51,20 +51,23 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
 
   protected QuicRpcServiceServerBase(string serviceId, QuicListener listener, TextWriter? logger = null) {
     Logger = logger;
-    Utf8ServiceId = serviceId ?? throw new ArgumentNullException(nameof(serviceId));
+    ServiceId = serviceId ?? throw new ArgumentNullException(nameof(serviceId));
     Listener = listener ?? throw new ArgumentNullException(nameof(listener));
     Listener.ClientConnected += ClientConnectedHandler;
   }
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   private void ClientConnectedHandler(QuicListener _, QuicServerConnection connection) {
     var ctx = new QuicRpcServiceServerContext(this, connection);
     var success = TryAddClient(ctx);
     Debug.Assert(success);
   }
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   private bool TryAddClient(QuicRpcServiceServerContext client)
     => _Clients.TryAdd(client, default);
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected TMethodEnum ParseRequest<TMethodEnum>(RequestMessage req, out ByteBuffer bb)
     where TMethodEnum : struct, Enum {
     var method = SelectMethod<TMethodEnum>(req);
@@ -76,10 +79,11 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
     return method;
   }
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected TMethodEnum SelectMethod<TMethodEnum>(in RequestMessage req) where TMethodEnum : struct, Enum {
     var serviceName = req.ServiceId;
 
-    if (serviceName != Utf8ServiceId)
+    if (serviceName != ServiceId)
       return default;
 
     var procName = req.RpcMethod;
@@ -274,7 +278,9 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
   private FairAsyncConsumerIMux<IMessage>? _messageConsumer;
 
   private FairAsyncConsumerIMux<IMessage>? MessageConsumer {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     get => Interlocked.CompareExchange(ref _messageConsumer, null, null);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     set => Interlocked.Exchange(ref _messageConsumer, value);
   }
 
@@ -283,10 +289,12 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
   protected internal void OnNewClientStream(QuicRpcServiceServerContext ctx, long msgId, MessageStreamContext newQueue) {
   }
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected async Task<IMessage?> HandleExceptions(Func<Task<IMessage?>> fn, IQuicRpcServiceContext ctx, long msgId,
     CancellationToken cancellationToken)
     => await HandleExceptions(fn(), ctx, msgId, cancellationToken);
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected async Task<IMessage?> HandleExceptions(Task<IMessage?> task, IQuicRpcServiceContext ctx, long msgId,
     CancellationToken cancellationToken) {
     try {
@@ -504,28 +512,23 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
 
   protected abstract RpcMethodType ResolveMethodType<TMethodEnum>(TMethodEnum method) where TMethodEnum : Enum;
 
-  /// <summary>
-  /// Listens for and processes incoming procedure calls into method invocations. 
-  /// </summary>
-  /// <remarks>
-  /// Should implement by invoking <see cref="RunAsync{TMethodEnum}"/>.
-  /// </remarks>
-  public abstract Task RunAsync(CancellationToken cancellationToken);
-
   protected virtual IMessage? OnUnhandledMessage(IMessage msg, CancellationToken cancellationToken)
     => OnUnhandledMessage(cancellationToken);
 
   protected virtual IMessage? OnUnhandledMessage(CancellationToken cancellationToken)
     => null;
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected static T Track<T>(T disposable, ICollection<IAsyncDisposable> collection) where T : IAsyncDisposable {
     collection.Add(disposable);
     return disposable;
   }
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected ChannelReader<T> WrapReader<T>(AsyncProducerConsumerCollection<IMessage> r) where T : struct, IBigBufferEntity
     => new EntityQuicMsgChannelReader<T>(r, Logger);
 
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
   protected async Task<ReplyMessage> Reply<T>(Task<T> task) where T : struct, IBigBufferEntity
     => new(new((await task).Model.ByteBuffer.ToSizedMemory()), true);
 

@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Text;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -44,6 +45,7 @@ public class RequestMessage : IMessage
     _context = new(serviceCtx);
     Id = id;
     Type = type;
+    Debug.Assert((Type & MessageType.Reply) == 0);
     Raw = raw;
     StreamOnly = false;
     HeaderSize = 0;
@@ -57,6 +59,7 @@ public class RequestMessage : IMessage
     var span = raw.BigSpan;
     var typeSize = (uint)VarIntSqlite4.GetDecodedLength(span[0u]);
     Type = (MessageType)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(0, typeSize));
+    Debug.Assert((Type & MessageType.Reply) == 0);
     var idSize = (uint)VarIntSqlite4.GetDecodedLength(span[typeSize]);
     Id = (long)VarIntSqlite4.Decode((ReadOnlySpan<byte>)span.Slice(typeSize, idSize));
 

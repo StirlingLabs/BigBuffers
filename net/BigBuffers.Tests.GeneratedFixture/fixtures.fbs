@@ -161,12 +161,12 @@ table Status {
   code:StatusCode;
 }
 
-rpc_service RpcService {
+rpc_service RpcService (rpc_provider: "quic") {
   Send(Message):Status;
   Receive(Empty):Message;
 }
 
-rpc_service RpcService2 {
+rpc_service RpcService2 (rpc_provider: "quic") {
   Send(Message):Status;
   SendManyAtomic(Message):Status (streaming:"client");
   SendMany(Message):Status (streaming:"bidi");
@@ -174,7 +174,7 @@ rpc_service RpcService2 {
   ReceiveMany(Empty):Message (streaming:"server");
 }
 
-rpc_service RpcService3 {
+rpc_service RpcService3 (rpc_provider: "quic") {
   Unary(TextMessage):TextMessage;
   ClientStreaming(TextMessage):TextMessage (streaming:"client");
   ServerStreaming(TextMessage):TextMessage (streaming:"server");

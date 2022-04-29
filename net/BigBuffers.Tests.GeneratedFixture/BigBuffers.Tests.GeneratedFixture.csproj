@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BigBuffers.Runtime\BigBuffers.Runtime.csproj" />
+    <ProjectReference Include="..\BigBuffers.Xpc.Quic\BigBuffers.Xpc.Quic.csproj" />
     <ProjectReference Include="..\BigBuffers.Xpc\BigBuffers.Xpc.csproj" />
   </ItemGroup>
 

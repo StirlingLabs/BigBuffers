@@ -14,7 +14,7 @@ using StirlingLabs.Utilities.Collections;
 
 namespace BigBuffers.Tests;
 
-public static class ExampleQuicRpcService {
+public static partial class ExampleQuicRpcService {
 
   private enum Method : long {
 
@@ -45,7 +45,7 @@ public static class ExampleQuicRpcService {
       _ => throw new ArgumentOutOfRangeException(nameof(method))
     };
 
-  public sealed class Client : QuicRpcServiceClientBase, IExampleQuicService {
+  public sealed partial class Client : QuicRpcServiceClientBase, IExampleQuicService {
 
     public Client(SizedUtf8String name, QuicPeerConnection connection, TextWriter? logger = null)
       : base(name, connection, logger) {
@@ -72,7 +72,7 @@ public static class ExampleQuicRpcService {
 
   }
 
-  public sealed class Server : QuicRpcServiceServerBase, IExampleQuicService {
+  public sealed partial class Server : QuicRpcServiceServerBase, IExampleQuicService {
 
     private readonly IExampleQuicService _implementation;
 

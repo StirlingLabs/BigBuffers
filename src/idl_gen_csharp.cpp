@@ -196,8 +196,8 @@ class CSharpGenerator : public BaseGenerator {
 
         GenServiceInterface(service_def, &declcode, parser_.opts);
 
-        if (rpc_providers.count("nng"))
-          GenNngRpcServiceImpl(service_def, &declcode, parser_.opts);
+        if (rpc_providers.count("quic"))
+          GenQuicRpcServiceImpl(service_def, &declcode, parser_.opts);
 
       } else {
         // leave rpc_providers empty, generate no provider code
@@ -284,7 +284,8 @@ class CSharpGenerator : public BaseGenerator {
         "//  " +
         std::string(FlatBuffersGeneratedWarning()) +
         "\n"
-        "// </auto-generated>\n\n";
+        "// </auto-generated>\n\n"
+        "#nullable enable\n";
 
     std::string namespace_name = FullNamespace(".", ns);
     if (!namespace_name.empty()) {
@@ -1425,8 +1426,8 @@ class CSharpGenerator : public BaseGenerator {
 
     code += "using global::BigBuffers.Xpc;\n";
 
-    if (service_def.rpc_providers.count("nng"))
-      code += "using global::BigBuffers.Xpc.Nng;\n";
+    if (service_def.rpc_providers.count("quic"))
+      code += "using global::BigBuffers.Xpc.Quic;\n";
 
     if (service_def.rpc_providers.count("grpc"))
       code += "using global::BigBuffers.Xpc.Grpc;\n";
@@ -1556,7 +1557,7 @@ class CSharpGenerator : public BaseGenerator {
            : rpcUnaryRequest;
   }
 
-  void GenNngRpcServiceImpl(ServiceDef &service_def, std::string *code_ptr,
+  void GenQuicRpcServiceImpl(ServiceDef &service_def, std::string *code_ptr,
                             const IDLOptions &opts) const {
     (void(opts));
     if (service_def.generated) return;
@@ -1575,21 +1576,21 @@ class CSharpGenerator : public BaseGenerator {
 
     auto service_id = service_def.name;
     auto service_id_camel = MakeCamel(service_id);
-    auto container_class_name = service_id_camel + "Nng";
-    auto container_class_ref = WrapInNameSpace(service_def) + "Nng";
+    auto container_class_name = service_id_camel + "Quic";
+    auto container_class_ref = WrapInNameSpace(service_def) + "Quic";
     auto interface_name = "I" + service_id_camel;
 
     code += "static partial class "+container_class_name+" {\n"
             "  private static readonly System.Type ServiceInterfaceType = typeof("+interface_name+");\n"
-            "  private static readonly byte[]\n";
+            "  private static readonly StirlingLabs.Utilities.SizedUtf8String\n";
 
     // locator components
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;
       auto call_name_camel = MakeCamel(call.name);
-      code += "    Utf8Call"+call_name_camel+" = System.Text.Encoding.UTF8.GetBytes(\""+call.name+"\"),\n";
+      code += "    Signature"+call_name_camel+" = \""+call.name+"\",\n";
     }
-    code += "    Utf8ServiceId = System.Text.Encoding.UTF8.GetBytes(\""+WrapInNameSpace(service_def,false)+"\");\n"
+    code += "    ServiceId = \""+WrapInNameSpace(service_def,false)+"\";\n"
 
     // method enum
             "  private enum Method : long {\n";
@@ -1604,32 +1605,31 @@ class CSharpGenerator : public BaseGenerator {
     code += "  }\n"
 
     // StaticResolveMethodSignature
-            "  private static System.ReadOnlySpan<byte> StaticResolveMethodSignature("+container_class_ref+".Method method)\n"
+            "  private static StirlingLabs.Utilities.SizedUtf8String StaticResolveMethodSignature("+container_class_ref+".Method method)\n"
             "    => method switch {\n";
     {
       for (auto &it : service_def.calls.vec) {
         auto &call = *it;
         auto call_name_camel = MakeCamel(call.name);
-        code += "      "+container_class_ref+".Method." + call_name_camel + " => Utf8Call" + call_name_camel + ",\n";
+        code += "      "+container_class_ref+".Method." + call_name_camel + " => Signature" + call_name_camel + ",\n";
       }
     }
     code += "      _ => throw new System.ArgumentOutOfRangeException(nameof(method))\n"
             "    };\n"
 
     // client class
-            "  public partial class Client : BigBuffers.Xpc.Nng.NngRpcServiceClientBase, "+interface_name+" {\n"
-            "    public Client(nng.IPairSocket pair, nng.IAPIFactory<nng.INngMsg> factory, System.IO.TextWriter logger = null)\n"
-            "      : base(pair, factory, logger) { }\n"
-            "    protected override System.ReadOnlySpan<byte> Utf8ServiceId => "+container_class_ref+".Utf8ServiceId;\n"
-            "    protected override System.ReadOnlySpan<byte> ResolveMethodSignature<TMethodEnum>(TMethodEnum method)\n"
+            "  public partial class Client : BigBuffers.Xpc.Quic.QuicRpcServiceClientBase, "+interface_name+" {\n"
+            "    public Client(StirlingLabs.Utilities.SizedUtf8String name, StirlingLabs.MsQuic.QuicPeerConnection connection, System.IO.TextWriter? logger = null)\n"
+            "      : base(name, connection, logger) { }\n"
+            "    protected override StirlingLabs.Utilities.SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method)\n"
             "      => method is "+container_class_ref+".Method m ? "+container_class_ref+".StaticResolveMethodSignature(m) : throw new System.InvalidOperationException();\n";
 
     // client method implementation
     {
-      std::unordered_set<std::string> param_names;
 
       int index = 0;
       for (auto &it : service_def.calls.vec) {
+        std::unordered_set<std::string> param_names;
         auto &call = *it;
         auto call_name_camel = MakeCamel(call.name);
         const StructDef& req = *call.request;
@@ -1668,11 +1668,15 @@ class CSharpGenerator : public BaseGenerator {
         }
         code += " @";
         std::string req_name = req.name;
+        std::string rsp_name = rsp.name;
         int counter = 1;
         while(!param_names.insert(req_name).second)
           req_name = req.name + NumToString(++counter);
+        counter = 1;
+        while(!param_names.insert(rsp_name).second)
+          rsp_name = rsp.name + NumToString(++counter);
         auto req_name_camel = MakeCamel(req_name, false);
-        auto rsp_name_camel = isServerStreaming ? MakeCamel(req_name, false) : "";
+        auto rsp_name_camel = isServerStreaming ? MakeCamel(rsp_name, false) : "";
         code += req_name_camel;
         if (isServerStreaming) {
           code += ", System.Threading.Channels.ChannelWriter<";
@@ -1696,13 +1700,12 @@ class CSharpGenerator : public BaseGenerator {
     code += "  }\n";
 
     // server base class
-    code += "  public abstract partial class Server : BigBuffers.Xpc.Nng.NngRpcServiceServerBase, "+interface_name+" {\n"
-            "    protected Server(nng.IPairSocket pair, nng.IAPIFactory<nng.INngMsg> factory, System.IO.TextWriter logger = null)\n"
-            "      : base(pair, factory, logger) { }\n"
-            "    public override async System.Threading.Tasks.Task RunAsync(System.Threading.CancellationToken cancellationToken)\n"
-            "      => await base.RunAsync<"+container_class_ref+".Method>(cancellationToken);\n"
-            "    protected override System.ReadOnlySpan<byte> Utf8ServiceId => "+container_class_ref+".Utf8ServiceId;\n"
-            "    protected override System.ReadOnlySpan<byte> ResolveMethodSignature<TMethodEnum>(TMethodEnum method)\n"
+    code += "  public sealed partial class Server : BigBuffers.Xpc.Quic.QuicRpcServiceServerBase, "+interface_name+" {\n"
+            "    private readonly "+interface_name+" _implementation;\n"
+            "    protected Server("+interface_name+" implementation, string name, StirlingLabs.MsQuic.QuicListener listener, System.IO.TextWriter? logger = null)\n"
+            "      : base(name, listener, logger) => _implementation = implementation;\n"
+    // ResolveMethodSignature
+            "    protected override StirlingLabs.Utilities.SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method)\n"
             "      => method is "+container_class_ref+".Method m ? "+container_class_ref+".StaticResolveMethodSignature(m) : throw new System.InvalidOperationException();\n"
 
     // ResolveMethodType
@@ -1716,15 +1719,18 @@ class CSharpGenerator : public BaseGenerator {
       code += "        "+container_class_ref+".Method."+call_name_camel+" => BigBuffers.Xpc.RpcMethodType." + rpc_call_type + ",\n";
     }
     code += "        _ => throw new System.ArgumentOutOfRangeException(nameof(method))\n"
-            "      };\n";
-    code += "    }\n"
+            "      };\n"
+            "    }\n"
+            "\n"
+
+    // Dispatch
+            "    public override async Task Dispatch(BigBuffers.Xpc.Quic.IMessage sourceMsg, CancellationToken ct = default)\n"
+            "      => await Dispatch<Method>(sourceMsg, ct);"
 
     // DispatchUnary
-            "    protected override async System.Threading.Tasks.Task<nng.INngMsg> DispatchUnary<TMethodEnum>(TMethodEnum method, long msgId,"
+            "    protected override async System.Threading.Tasks.Task<BigBuffers.Xpc.Quic.IMessage?> DispatchUnary<TMethodEnum>(TMethodEnum method, long msgId,"
                 " ByteBuffer sourceByteBuffer, System.Threading.CancellationToken cancellationToken) {\n"
             "      if (method is not "+container_class_ref+".Method m) throw new System.InvalidOperationException();\n"
-            "      async System.Threading.Tasks.Task<nng.INngMsg> Reply<T>(System.Threading.Tasks.Task<T> task) where T : struct, IBigBufferEntity"
-                " => Factory.CreateReply(msgId, await task);\n"
             "      return m switch {\n";
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;
@@ -1734,16 +1740,14 @@ class CSharpGenerator : public BaseGenerator {
       code += "        "+container_class_ref+".Method."+call_name_camel+" => await Reply("+call_name_camel+"(new(0, sourceByteBuffer), cancellationToken)),\n";
     }
     code += "        _ => throw new System.ArgumentOutOfRangeException(nameof(method))\n"
-            "      };\n";
-    code += "    }\n"
+            "      };\n"
+            "    }\n"
 
     // DispatchClientStreaming
-            "    protected override async System.Threading.Tasks.Task<nng.INngMsg> DispatchClientStreaming<TMethodEnum>(TMethodEnum method, long msgId,"
-                " StirlingLabs.Utilities.Collections.AsyncProducerConsumerCollection<(nng.INngMsg, ByteBuffer)> reader, System.Threading.CancellationToken cancellationToken)\n"
+            "    protected override async System.Threading.Tasks.Task<BigBuffers.Xpc.Quic.IMessage?> DispatchClientStreaming<TMethodEnum>(TMethodEnum method, long msgId,"
+                " StirlingLabs.Utilities.Collections.AsyncProducerConsumerCollection<BigBuffers.Xpc.Quic.IMessage> reader, System.Threading.CancellationToken cancellationToken)\n"
             "    {\n"
             "      if (method is not "+container_class_ref+".Method m) throw new System.InvalidOperationException();\n"
-            "      async System.Threading.Tasks.Task<nng.INngMsg> Reply<T>(System.Threading.Tasks.Task<T> task) where T : struct, BigBuffers.IBigBufferEntity"
-                " => Factory.CreateReply(msgId, await task);\n"
             "      return m switch {\n";
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;
@@ -1759,7 +1763,7 @@ class CSharpGenerator : public BaseGenerator {
 
     // DispatchServerStreaming
     code += "    protected override System.Threading.Tasks.Task DispatchServerStreaming<TMethodEnum>(TMethodEnum method, long msgId,"
-                " ByteBuffer sourceByteBuffer, System.Threading.CancellationToken cancellationToken) {\n"
+                " QuicRpcServiceServerContext ctx, ByteBuffer sourceByteBuffer, System.Threading.CancellationToken cancellationToken) {\n"
             "      if (method is not "+container_class_ref+".Method m) throw new System.InvalidOperationException();\n"
             "      var ads = new System.Collections.Generic.List<System.IAsyncDisposable>(1);\n"
             "      async System.Threading.Tasks.Task CleanUpContinuation(System.Threading.Tasks.Task _) {\n"
@@ -1767,7 +1771,7 @@ class CSharpGenerator : public BaseGenerator {
             "      }\n"
             "      System.Threading.Tasks.Task CleanUpAfter(System.Threading.Tasks.Task t) => t.ContinueWith(CleanUpContinuation);\n"
             "      System.Threading.Channels.ChannelWriter<T> Writer<T>() where T : struct, BigBuffers.IBigBufferEntity"
-                " => Track(new BigBuffers.Xpc.Nng.NngRpcServiceServerBase.NngMsgStreamWriter<T>(this, msgId, _logger), ads);\n"
+                " => Track(new BigBuffers.Xpc.Quic.QuicMsgStreamWriter<T>(ctx, msgId, Logger), ads);\n"
             "      return m switch {\n";
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;
@@ -1783,7 +1787,8 @@ class CSharpGenerator : public BaseGenerator {
 
     // DispatchStreaming
     code += "    protected override System.Threading.Tasks.Task DispatchStreaming<TMethodEnum>(TMethodEnum method, long msgId,"
-                " StirlingLabs.Utilities.Collections.AsyncProducerConsumerCollection<(nng.INngMsg, ByteBuffer)> reader, System.Threading.CancellationToken cancellationToken) {\n"
+                " QuicRpcServiceServerContext ctx, StirlingLabs.Utilities.Collections.AsyncProducerConsumerCollection<BigBuffers.Xpc.Quic.IMessage> reader,"
+                " System.Threading.CancellationToken cancellationToken) {\n"
             "      if (method is not "+container_class_ref+".Method m) throw new System.InvalidOperationException();\n"
             "      var ads = new System.Collections.Generic.List<System.IAsyncDisposable>(1);\n"
             "      async System.Threading.Tasks.Task CleanUpContinuation(System.Threading.Tasks.Task _) {\n"
@@ -1791,7 +1796,7 @@ class CSharpGenerator : public BaseGenerator {
             "      }\n"
             "      System.Threading.Tasks.Task CleanUpAfter(System.Threading.Tasks.Task t) => t.ContinueWith(CleanUpContinuation);\n"
             "      System.Threading.Channels.ChannelWriter<T> Writer<T>() where T : struct, IBigBufferEntity =>"
-                " Track(new BigBuffers.Xpc.Nng.NngRpcServiceServerBase.NngMsgStreamWriter<T>(this, msgId, _logger), ads);\n"
+                " Track(new BigBuffers.Xpc.Quic.QuicMsgStreamWriter<T>(ctx, msgId, Logger), ads);\n"
             "      return m switch {\n";
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;
@@ -1819,16 +1824,31 @@ class CSharpGenerator : public BaseGenerator {
 
         auto streaming = call.attributes.Lookup("streaming");
 
-        if (streaming && (streaming->constant == "server" || streaming->constant == "bidi")) {
+        bool hasRspParam = streaming && (streaming->constant == "server" || streaming->constant == "bidi");
+
+        std::unordered_set<std::string> param_names;
+        std::string req_name = req->name;
+        int counter = 1;
+        while(!param_names.insert(req_name).second)
+          req_name = req->name + NumToString(++counter);
+        std::string rsp_name = hasRspParam ? rsp->name : std::string();
+
+        if (hasRspParam) {
+          counter = 1;
+          while (!param_names.insert(rsp_name).second)
+            rsp_name = rsp->name + NumToString(++counter);
+        }
+
+        if (hasRspParam) {
           if (serviceIsValueTask || call.attributes.Lookup("csharp_value_task"))
-            code += "    public abstract System.Threading.Tasks.ValueTask @";
+            code += "    public System.Threading.Tasks.ValueTask @";
           else
-            code += "    public abstract System.Threading.Tasks.Task @";
+            code += "    public System.Threading.Tasks.Task @";
         } else {
           if (serviceIsValueTask || call.attributes.Lookup("csharp_value_task"))
-            code += "    public abstract System.Threading.Tasks.ValueTask<";
+            code += "    public System.Threading.Tasks.ValueTask<";
           else
-            code += "    public abstract System.Threading.Tasks.Task<";
+            code += "    public System.Threading.Tasks.Task<";
           code += WrapInNameSpace(*rsp);
           code += "> @";
         }
@@ -1843,14 +1863,22 @@ class CSharpGenerator : public BaseGenerator {
           code += WrapInNameSpace(*req);
         }
         code += " @";
-        code += MakeCamel(req->name, false);
-        if (streaming && (streaming->constant == "server" || streaming->constant == "bidi")) {
+        code += MakeCamel(req_name, false);
+        if (hasRspParam) {
           code += ", System.Threading.Channels.ChannelWriter<";
           code += WrapInNameSpace(*rsp);
           code += "> @";
-          code += MakeCamel(rsp->name, false);
+          code += MakeCamel(rsp_name, false);
         }
-        code += ", System.Threading.CancellationToken cancellationToken);\n";
+        code += ", System.Threading.CancellationToken cancellationToken)\n";
+        code += "      => _implementation." + call.name + "(";
+        code += MakeCamel(req_name, false);
+        code +=", ";
+        if (hasRspParam) {
+          code += MakeCamel(rsp_name, false);
+          code +=", ";
+        }
+        code +="cancellationToken);\n";
       }
     }
     code += "  }\n";

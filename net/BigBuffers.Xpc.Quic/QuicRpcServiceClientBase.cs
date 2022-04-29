@@ -21,22 +21,20 @@ using StirlingLabs.Utilities.Collections;
 namespace BigBuffers.Xpc.Quic;
 
 [PublicAPI]
-public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
-{
-  protected SizedUtf8String Utf8ServiceId { get; }
+public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext {
+
+  protected SizedUtf8String ServiceId { get; }
 
   protected QuicRpcServiceClientBase(SizedUtf8String name, QuicPeerConnection connection, TextWriter? logger)
-    : base(connection, logger, false) => Utf8ServiceId = name;
+    : base(connection, logger, false) => ServiceId = name;
 
-  protected IAsyncEnumerable<IMessage> GetReplies(long msgId)
-  {
+  protected IAsyncEnumerable<IMessage> GetReplies(long msgId) {
     var messages = MessageStreams.GetOrAdd(msgId, _ => new(this));
 
     return messages.GetConsumer();
   }
 
-  protected void ClearReplies(long msgId)
-  {
+  protected void ClearReplies(long msgId) {
     if (MessageStreams.TryRemove(msgId, out var q))
       q.Clear();
   }
@@ -47,15 +45,13 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
     CancellationToken cancellationToken)
     where TMethodEnum : struct, Enum
     where TRequest : struct, IBigBufferTable
-    where TReply : struct, IBigBufferTable
-  {
+    where TReply : struct, IBigBufferTable {
     var msgId = SharedCounters.ReadAndIncrementMessageCount();
 
     var bigMemory = new BigMemory<byte>(item.Model.ByteBuffer.ToSizedMemory());
 
-    var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId)
-    {
-      ServiceId = Utf8ServiceId,
+    var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId) {
+      ServiceId = ServiceId,
       RpcMethod = ResolveMethodSignature(method)
     };
 
@@ -63,16 +59,13 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
 
     await req.SendAsync();
 
-    try
-    {
-      await foreach (var replyMsg in replies.WithCancellation(cancellationToken))
-      {
+    try {
+      await foreach (var replyMsg in replies.WithCancellation(cancellationToken)) {
         if (HandleMessage(replyMsg, out TReply result, true))
           return result;
       }
     }
-    finally
-    {
+    finally {
       ClearReplies(msgId);
     }
 
@@ -84,51 +77,22 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
     CancellationToken cancellationToken)
     where TMethodEnum : struct, Enum
     where TRequest : struct, IBigBufferTable
-    where TReply : struct, IBigBufferTable
-  {
+    where TReply : struct, IBigBufferTable {
     var msgId = SharedCounters.ReadAndIncrementMessageCount();
 
     var items = itemsReader.AsConsumingAsyncEnumerable(cancellationToken);
 
-    var sending = Task.Run(async () => {
-
-      await foreach (var item in items.WithCancellation(cancellationToken))
-      {
-        var bigMemory = new BigMemory<byte>(item.Model.ByteBuffer.ToSizedMemory());
-
-        var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId)
-        {
-          ServiceId = Utf8ServiceId,
-          RpcMethod = ResolveMethodSignature(method),
-          StreamOnly = true
-        };
-
-        await req.SendAsync();
-      }
-
-      var final = new RequestMessage(this, MessageType.FinalControl, new(), msgId)
-      {
-        ServiceId = Utf8ServiceId,
-        RpcMethod = ResolveMethodSignature(method),
-        StreamOnly = true
-      };
-
-      await final.SendAsync();
-
-    }, cancellationToken);
+    var sending = OutboundMessageStream(method, msgId, items, cancellationToken);
 
     var replies = GetReplies(msgId);
 
-    try
-    {
-      await foreach (var replyMsg in replies.WithCancellation(cancellationToken))
-      {
+    try {
+      await foreach (var replyMsg in replies.WithCancellation(cancellationToken)) {
         if (HandleMessage(replyMsg, out TReply result, true))
           return result;
       }
     }
-    finally
-    {
+    finally {
       await sending;
 
       ClearReplies(msgId);
@@ -138,19 +102,48 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
     throw new("The request completed with no reply.");
   }
 
+  private Task OutboundMessageStream<TMethodEnum, TRequest>
+  (
+    TMethodEnum method,
+    long msgId,
+    IAsyncEnumerable<TRequest> items,
+    CancellationToken cancellationToken
+  )
+    where TMethodEnum : struct, Enum
+    where TRequest : struct, IBigBufferTable
+    => Task.Run(async () => {
+      await foreach (var item in items.WithCancellation(cancellationToken)) {
+        var bigMemory = new BigMemory<byte>(item.Model.ByteBuffer.ToSizedMemory());
+
+        var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId) {
+          ServiceId = ServiceId,
+          RpcMethod = ResolveMethodSignature(method),
+          StreamOnly = true
+        };
+
+        await req.SendAsync();
+      }
+
+      var final = new RequestMessage(this, MessageType.FinalControl, new(), msgId) {
+        ServiceId = ServiceId,
+        RpcMethod = ResolveMethodSignature(method),
+        StreamOnly = true
+      };
+
+      await final.SendAsync();
+    }, cancellationToken);
+
   protected async IAsyncEnumerable<TReply> ServerStreamingRequest<TMethodEnum, TReply, TRequest>(TMethodEnum method, TRequest item,
     [EnumeratorCancellation] CancellationToken cancellationToken)
     where TMethodEnum : struct, Enum
     where TRequest : struct, IBigBufferTable
-    where TReply : struct, IBigBufferTable
-  {
+    where TReply : struct, IBigBufferTable {
     var msgId = SharedCounters.ReadAndIncrementMessageCount();
 
     var bigMemory = new BigMemory<byte>(item.Model.ByteBuffer.ToSizedMemory());
 
-    var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId)
-    {
-      ServiceId = Utf8ServiceId,
+    var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId) {
+      ServiceId = ServiceId,
       RpcMethod = ResolveMethodSignature(method)
     };
 
@@ -158,16 +151,13 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
 
     var replies = GetReplies(req.Id);
 
-    try
-    {
-      await foreach (var replyMsg in replies.WithCancellation(cancellationToken))
-      {
+    try {
+      await foreach (var replyMsg in replies.WithCancellation(cancellationToken)) {
         if (HandleMessage(replyMsg, out TReply result, false))
           yield return result;
       }
     }
-    finally
-    {
+    finally {
       ClearReplies(msgId);
     }
   }
@@ -178,55 +168,26 @@ public abstract class QuicRpcServiceClientBase : QuicRpcServiceContext
     [EnumeratorCancellation] CancellationToken cancellationToken)
     where TMethodEnum : struct, Enum
     where TRequest : struct, IBigBufferTable
-    where TReply : struct, IBigBufferTable
-  {
-
+    where TReply : struct, IBigBufferTable {
     var msgId = SharedCounters.ReadAndIncrementMessageCount();
 
     var items = itemsReader.AsConsumingAsyncEnumerable(cancellationToken);
 
-    var sending = Task.Run(async () => {
-
-      await foreach (var item in items.WithCancellation(cancellationToken))
-      {
-        var bigMemory = new BigMemory<byte>(item.Model.ByteBuffer.ToSizedMemory());
-
-        var req = new RequestMessage(this, MessageType.Normal, bigMemory, msgId)
-        {
-          ServiceId = Utf8ServiceId,
-          RpcMethod = ResolveMethodSignature(method),
-          StreamOnly = true
-        };
-
-        await req.SendAsync();
-      }
-
-      var final = new RequestMessage(this, MessageType.FinalControl, new(), msgId)
-      {
-        ServiceId = Utf8ServiceId,
-        RpcMethod = ResolveMethodSignature(method),
-        StreamOnly = true
-      };
-
-      await final.SendAsync();
-
-    }, cancellationToken);
+    var sending = OutboundMessageStream(method, msgId, items, cancellationToken);
 
     var replies = GetReplies(msgId);
 
-    try
-    {
-      await foreach (var replyMsg in replies.WithCancellation(cancellationToken))
-      {
+    try {
+      await foreach (var replyMsg in replies.WithCancellation(cancellationToken)) {
         if (HandleMessage(replyMsg, out TReply result, false))
           yield return result;
       }
     }
-    finally
-    {
+    finally {
       await sending;
 
       ClearReplies(msgId);
     }
   }
+
 }
