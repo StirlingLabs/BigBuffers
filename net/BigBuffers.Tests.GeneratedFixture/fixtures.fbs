@@ -175,8 +175,8 @@ rpc_service RpcService2 (rpc_provider: "quic") {
 }
 
 rpc_service RpcService3 (rpc_provider: "quic") {
-  Unary(TextMessage):TextMessage;
-  ClientStreaming(TextMessage):TextMessage (streaming:"client");
-  ServerStreaming(TextMessage):TextMessage (streaming:"server");
-  BidirectionalStreaming(TextMessage):TextMessage (streaming:"bidi");
+  Unary(Message):Message;
+  ClientStreaming(Message):Message (streaming:"client");
+  ServerStreaming(Message):Message (streaming:"server");
+  BidirectionalStreaming(Message):Message (streaming:"bidi");
 }

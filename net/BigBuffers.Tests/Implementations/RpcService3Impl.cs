@@ -6,7 +6,7 @@ using Generated;
 
 namespace BigBuffers.Tests;
 
-public sealed class ExampleQuicServiceImpl : IExampleQuicService {
+public sealed class RpcService3Impl : IRpcService3 {
   
   public async Task<Message> Unary(Message m, CancellationToken ct = default) {
     var bb = new BigBufferBuilder();

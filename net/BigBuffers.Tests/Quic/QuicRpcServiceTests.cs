@@ -191,7 +191,7 @@ public class QuicRpcServiceTests {
 
     var service = new ExampleQuicServiceImpl();
 
-    using var server = new ExampleQuicRpcService.Server(service, "Test", listener, logger);
+    using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
     var port = GetFreeEphemeralTcpPort();
 
@@ -206,7 +206,7 @@ public class QuicRpcServiceTests {
 
     var sw = Stopwatch.StartNew();
     try {
-      var client = new ExampleQuicRpcService.Client("Test", clientConnection, logger);
+      var client = new RpcService3Quic.Client(clientConnection,"Test", logger);
 
       await clientConnection.ConnectAsync("::1", (ushort)ep.Port);
 
@@ -280,7 +280,7 @@ public class QuicRpcServiceTests {
 
     var service = new ExampleQuicServiceImpl();
 
-    using var server = new ExampleQuicRpcService.Server(service, "Test", listener, logger);
+    using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
     var port = GetFreeEphemeralTcpPort();
 
@@ -294,7 +294,7 @@ public class QuicRpcServiceTests {
     listener.Start(ep);
 
     try {
-      var client = new ExampleQuicRpcService.Client("Test", clientConnection, logger);
+      var client = new RpcService3Quic.Client(clientConnection, "Test", logger);
 
       await clientConnection.ConnectAsync("::1", (ushort)ep.Port);
 
@@ -371,7 +371,7 @@ public class QuicRpcServiceTests {
 
     var service = new ExampleQuicServiceImpl();
 
-    using var server = new ExampleQuicRpcService.Server(service, "Test", listener, logger);
+    using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
     var port = GetFreeEphemeralTcpPort();
 
@@ -385,7 +385,7 @@ public class QuicRpcServiceTests {
     listener.Start(ep);
 
     try {
-      var client = new ExampleQuicRpcService.Client("Test", clientConnection, logger);
+      var client = new RpcService3Quic.Client(clientConnection, "Test", logger);
 
       await clientConnection.ConnectAsync("::1", (ushort)ep.Port);
 
@@ -467,7 +467,7 @@ public class QuicRpcServiceTests {
 
     var service = new ExampleQuicServiceImpl();
 
-    using var server = new ExampleQuicRpcService.Server(service, "Test", listener, logger);
+    using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
     var port = GetFreeEphemeralTcpPort();
 
@@ -481,7 +481,7 @@ public class QuicRpcServiceTests {
     listener.Start(ep);
 
     try {
-      var client = new ExampleQuicRpcService.Client("Test", clientConnection, logger);
+      var client = new RpcService3Quic.Client(clientConnection, "Test", logger);
 
       await clientConnection.ConnectAsync("::1", (ushort)ep.Port);
 
