@@ -173,6 +173,33 @@ std::string ConCatPathFileName(const std::string &path,
   return filepath;
 }
 
+void ReplaceAll(std::string &subject, const std::string_view replaced, const std::string_view replacement) {
+  const auto replacedLen = replaced.size();
+  const auto replacementLen = replacement.size();
+  std::string::size_type pos = 0;
+  while ((pos = subject.find(replaced, pos)) != std::string::npos) {
+    subject.replace(pos, replacedLen, replacement);
+    pos += replacementLen;
+  }
+}
+
+void ReplaceAll(std::string &subject, const char replaced, const std::string_view replacement) {
+  const auto replacementLen = replacement.size();
+  std::string::size_type pos = 0;
+  while ((pos = subject.find(replaced, pos)) != std::string::npos) {
+    subject.replace(pos, 1, replacement);
+    pos += replacementLen;
+  }
+}
+
+void ReplaceAll(std::string &subject, const char replaced, const char replacement) {
+  std::string::size_type pos = 0;
+  while ((pos = subject.find(replaced, pos)) != std::string::npos) {
+    subject[pos] = replacement;
+    pos += 1;
+  }
+}
+
 std::string PosixPath(const char *path) {
   std::string p = path;
   std::replace(p.begin(), p.end(), '\\', '/');

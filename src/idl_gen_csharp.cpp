@@ -1590,7 +1590,12 @@ class CSharpGenerator : public BaseGenerator {
       auto call_name_camel = MakeCamel(call.name);
       code += "    Signature"+call_name_camel+" = \""+call.name+"\",\n";
     }
-    code += "    ServiceId = \""+WrapInNameSpace(service_def,false)+"\";\n"
+
+    auto service_locator = WrapInNameSpace(service_def,false);
+
+    ReplaceAll(service_locator, "@", "");
+
+    code += "    StaticServiceId = \""+service_locator+"\";\n"
 
     // method enum
             "  private enum Method : long {\n";
@@ -1619,8 +1624,8 @@ class CSharpGenerator : public BaseGenerator {
 
     // client class
             "  public partial class Client : BigBuffers.Xpc.Quic.QuicRpcServiceClientBase, "+interface_name+" {\n"
-            "    public Client(StirlingLabs.Utilities.SizedUtf8String name, StirlingLabs.MsQuic.QuicPeerConnection connection, System.IO.TextWriter? logger = null)\n"
-            "      : base(name, connection, logger) { }\n"
+            "    public Client(StirlingLabs.MsQuic.QuicPeerConnection connection, StirlingLabs.Utilities.SizedUtf8String name = default, System.IO.TextWriter? logger = null)\n"
+            "      : base(name != default ? name : StaticServiceId, connection, logger) { }\n"
             "    protected override StirlingLabs.Utilities.SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method)\n"
             "      => method is "+container_class_ref+".Method m ? "+container_class_ref+".StaticResolveMethodSignature(m) : throw new System.InvalidOperationException();\n";
 
@@ -1702,8 +1707,8 @@ class CSharpGenerator : public BaseGenerator {
     // server base class
     code += "  public sealed partial class Server : BigBuffers.Xpc.Quic.QuicRpcServiceServerBase, "+interface_name+" {\n"
             "    private readonly "+interface_name+" _implementation;\n"
-            "    protected Server("+interface_name+" implementation, string name, StirlingLabs.MsQuic.QuicListener listener, System.IO.TextWriter? logger = null)\n"
-            "      : base(name, listener, logger) => _implementation = implementation;\n"
+            "    public Server("+interface_name+" implementation, StirlingLabs.MsQuic.QuicListener listener, StirlingLabs.Utilities.SizedUtf8String name = default, System.IO.TextWriter? logger = null)\n"
+            "      : base(name != default ? name : StaticServiceId, listener, logger) => _implementation = implementation;\n"
     // ResolveMethodSignature
             "    protected override StirlingLabs.Utilities.SizedUtf8String ResolveMethodSignature<TMethodEnum>(TMethodEnum method)\n"
             "      => method is "+container_class_ref+".Method m ? "+container_class_ref+".StaticResolveMethodSignature(m) : throw new System.InvalidOperationException();\n"
@@ -1767,11 +1772,11 @@ class CSharpGenerator : public BaseGenerator {
             "      if (method is not "+container_class_ref+".Method m) throw new System.InvalidOperationException();\n"
             "      var ads = new System.Collections.Generic.List<System.IAsyncDisposable>(1);\n"
             "      async System.Threading.Tasks.Task CleanUpContinuation(System.Threading.Tasks.Task _) {\n"
-            "        foreach (var ad in ads) await ad.DisposeAsync();\n"
+            "        foreach (var ad in ads!) await ad.DisposeAsync();\n"
             "      }\n"
             "      System.Threading.Tasks.Task CleanUpAfter(System.Threading.Tasks.Task t) => t.ContinueWith(CleanUpContinuation);\n"
             "      System.Threading.Channels.ChannelWriter<T> Writer<T>() where T : struct, BigBuffers.IBigBufferEntity"
-                " => Track(new BigBuffers.Xpc.Quic.QuicMsgStreamWriter<T>(ctx, msgId, Logger), ads);\n"
+                " => Track(new BigBuffers.Xpc.Quic.QuicMsgStreamWriter<T>(ctx, msgId, Logger), ads!);\n"
             "      return m switch {\n";
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;
@@ -1792,11 +1797,11 @@ class CSharpGenerator : public BaseGenerator {
             "      if (method is not "+container_class_ref+".Method m) throw new System.InvalidOperationException();\n"
             "      var ads = new System.Collections.Generic.List<System.IAsyncDisposable>(1);\n"
             "      async System.Threading.Tasks.Task CleanUpContinuation(System.Threading.Tasks.Task _) {\n"
-            "        foreach (var ad in ads) await ad.DisposeAsync();\n"
+            "        foreach (var ad in ads!) await ad.DisposeAsync();\n"
             "      }\n"
             "      System.Threading.Tasks.Task CleanUpAfter(System.Threading.Tasks.Task t) => t.ContinueWith(CleanUpContinuation);\n"
             "      System.Threading.Channels.ChannelWriter<T> Writer<T>() where T : struct, IBigBufferEntity =>"
-                " Track(new BigBuffers.Xpc.Quic.QuicMsgStreamWriter<T>(ctx, msgId, Logger), ads);\n"
+                " Track(new BigBuffers.Xpc.Quic.QuicMsgStreamWriter<T>(ctx, msgId, Logger), ads!);\n"
             "      return m switch {\n";
     for (auto &it : service_def.calls.vec) {
       auto &call = *it;

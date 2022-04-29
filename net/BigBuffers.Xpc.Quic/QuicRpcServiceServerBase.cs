@@ -49,9 +49,10 @@ public abstract partial class QuicRpcServiceServerBase : IDisposable {
   [Discardable]
   protected internal static double TimeStamp => SharedCounters.GetTimeSinceStarted().TotalSeconds;
 
-  protected QuicRpcServiceServerBase(string serviceId, QuicListener listener, TextWriter? logger = null) {
+  protected QuicRpcServiceServerBase(SizedUtf8String serviceId, QuicListener listener, TextWriter? logger = null) {
+    if (serviceId == default) throw new ArgumentNullException(nameof(serviceId));
     Logger = logger;
-    ServiceId = serviceId ?? throw new ArgumentNullException(nameof(serviceId));
+    ServiceId = serviceId;
     Listener = listener ?? throw new ArgumentNullException(nameof(listener));
     Listener.ClientConnected += ClientConnectedHandler;
   }

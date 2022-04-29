@@ -466,6 +466,11 @@ std::string StripFileName(const std::string &filepath);
 std::string ConCatPathFileName(const std::string &path,
                                const std::string &filename);
 
+// Replaces any string with another string
+void ReplaceAll(std::string &subject, const std::string_view replaced, const std::string_view replacement);
+void ReplaceAll(std::string &subject, const char replaced, const std::string_view replacement);
+void ReplaceAll(std::string &subject, const char replaced, const char replacement);
+
 // Replaces any '\\' separators with '/'
 std::string PosixPath(const char *path);
 std::string PosixPath(const std::string &path);
