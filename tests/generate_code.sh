@@ -17,18 +17,18 @@ set -e
 
 commandline="'$*'"
 
-if [[ $commandline == *"--cpp-std c++0x"* ]]; then
-  TEST_CPP_FLAGS="--cpp-std c++0x"
-else
-  # --cpp-std is defined by flatc default settings.
-  TEST_CPP_FLAGS=
-fi
+#if [[ $commandline == *"--cpp-std c++0x"* ]]; then
+#  TEST_CPP_FLAGS="--cpp-std c++0x"
+#else
+#  # --cpp-std is defined by flatc default settings.
+#  TEST_CPP_FLAGS=
+#fi
 
-TEST_CPP_FLAGS="--gen-compare --cpp-ptr-type flatbuffers::unique_ptr $TEST_CPP_FLAGS"
+#TEST_CPP_FLAGS="--gen-compare --cpp-ptr-type flatbuffers::unique_ptr $TEST_CPP_FLAGS"
 TEST_CS_FLAGS="--cs-gen-json-serializer"
-TEST_TS_FLAGS="--gen-name-strings"
+#TEST_TS_FLAGS="--gen-name-strings"
 TEST_BASE_FLAGS="--reflect-names --gen-mutable --gen-object-api"
-TEST_RUST_FLAGS="$TEST_BASE_FLAGS --gen-all --gen-name-strings"
+#TEST_RUST_FLAGS="$TEST_BASE_FLAGS --gen-all --gen-name-strings"
 TEST_NOINCL_FLAGS="$TEST_BASE_FLAGS --no-includes"
 
 
