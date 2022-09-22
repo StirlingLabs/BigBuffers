@@ -392,32 +392,32 @@ function(register_generated_output file_name)
   set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS ${tmp})
 endfunction(register_generated_output)
 
-function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
-  if(FLATBUFFERS_BUILD_LEGACY)
-    set(OPT ${OPT};--cpp-std c++0x)
-  else()
-    # --cpp-std is defined by bufc default settings.
-  endif()
-  message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
-  get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
-  string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
-  add_custom_command(
-    OUTPUT ${GEN_HEADER}
-    COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
-            --cpp --gen-mutable --gen-object-api --reflect-names
-            --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
-            ${OPT}
-            -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
-            -o "${SRC_FBS_DIR}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS bufc
-    COMMENT "Run generation: '${GEN_HEADER}'")
-  register_generated_output(${GEN_HEADER})
-endfunction()
+#function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
+#  if(FLATBUFFERS_BUILD_LEGACY)
+#    set(OPT ${OPT};--cpp-std c++0x)
+#  else()
+#    # --cpp-std is defined by bufc default settings.
+#  endif()
+#  message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
+#  get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
+#  string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
+#  add_custom_command(
+#    OUTPUT ${GEN_HEADER}
+#    COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
+#            --cpp --gen-mutable --gen-object-api --reflect-names
+#            --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
+#            ${OPT}
+#            -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
+#            -o "${SRC_FBS_DIR}"
+#            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
+#    DEPENDS bufc
+#    COMMENT "Run generation: '${GEN_HEADER}'")
+#  register_generated_output(${GEN_HEADER})
+#endfunction()
 
-function(compile_flatbuffers_schema_to_cpp SRC_FBS)
-  compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare")
-endfunction()
+#function(compile_flatbuffers_schema_to_cpp SRC_FBS)
+#  compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare")
+#endfunction()
 
 function(compile_flatbuffers_schema_to_binary SRC_FBS)
   message(STATUS "`${SRC_FBS}`: add generation of binary (.bfbs) schema")
@@ -463,86 +463,86 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
   register_generated_output(${GEN_BFBS_HEADER})
 endfunction()
 
-if(FLATBUFFERS_BUILD_TESTS)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+#if(FLATBUFFERS_BUILD_TESTS)
+#  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+#  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+#
+#  # TODO Add (monster_test.fbs monsterdata_test.json)->monsterdata_test.mon
+#  #compile_flatbuffers_schema_to_cpp(tests/monster_test.fbs)
+#  compile_flatbuffers_schema_to_binary(tests/monster_test.fbs)
+#  #compile_flatbuffers_schema_to_cpp_opt(tests/namespace_test/namespace_test1.fbs "--no-includes;--gen-compare;--gen-name-strings")
+#  #compile_flatbuffers_schema_to_cpp_opt(tests/namespace_test/namespace_test2.fbs "--no-includes;--gen-compare;--gen-name-strings")
+#  #compile_flatbuffers_schema_to_cpp_opt(tests/union_vector/union_vector.fbs "--no-includes;--gen-compare;--gen-name-strings")
+#  #compile_flatbuffers_schema_to_cpp(tests/optional_scalars.fbs)
+#  #compile_flatbuffers_schema_to_cpp_opt(tests/native_type_test.fbs "")
+#  #compile_flatbuffers_schema_to_cpp_opt(tests/arrays_test.fbs "--scoped-enums;--gen-compare")
+#  compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
+#  compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
+#  #if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
+#  #  compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
+#  #endif()
+#  include_directories(${CMAKE_CURRENT_BINARY_DIR}/tests)
+#  add_executable(flattests ${FlatBuffers_Tests_SRCS})
+#  add_dependencies(flattests generated_code)
+#  set_property(TARGET flattests
+#    PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+#    FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
+#  if(FLATBUFFERS_CODE_SANITIZE)
+#    add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
+#  endif()
+#
+#  #compile_flatbuffers_schema_to_cpp(samples/monster.fbs)
+#  compile_flatbuffers_schema_to_binary(samples/monster.fbs)
+#  include_directories(${CMAKE_CURRENT_BINARY_DIR}/samples)
+#  add_executable(flatsamplebinary ${FlatBuffers_Sample_Binary_SRCS})
+#  add_dependencies(flatsamplebinary generated_code)
+#  add_executable(flatsampletext ${FlatBuffers_Sample_Text_SRCS})
+#  add_dependencies(flatsampletext generated_code)
+#  add_executable(flatsamplebfbs ${FlatBuffers_Sample_BFBS_SRCS})
+#  add_dependencies(flatsamplebfbs generated_code)
+#
+#  if(FLATBUFFERS_BUILD_CPP17)
+#    # Don't generate header for flattests_cpp17 target.
+#    # This target uses "generated_cpp17/monster_test_generated.h"
+#    # produced by direct call of generate_code.bat(sh) script.
+#    add_executable(flattests_cpp17 ${FlatBuffers_Tests_CPP17_SRCS})
+#    add_dependencies(flattests_cpp17 generated_code)
+#    target_compile_features(flattests_cpp17 PRIVATE cxx_std_17)
+#    target_compile_definitions(flattests_cpp17 PRIVATE
+#      FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+#      FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1
+#    )
+#    if(FLATBUFFERS_CODE_SANITIZE)
+#      add_fsanitize_to_target(flattests_cpp17 ${FLATBUFFERS_CODE_SANITIZE})
+#    endif()
+#  endif(FLATBUFFERS_BUILD_CPP17)
+#endif()
 
-  # TODO Add (monster_test.fbs monsterdata_test.json)->monsterdata_test.mon
-  compile_flatbuffers_schema_to_cpp(tests/monster_test.fbs)
-  compile_flatbuffers_schema_to_binary(tests/monster_test.fbs)
-  compile_flatbuffers_schema_to_cpp_opt(tests/namespace_test/namespace_test1.fbs "--no-includes;--gen-compare;--gen-name-strings")
-  compile_flatbuffers_schema_to_cpp_opt(tests/namespace_test/namespace_test2.fbs "--no-includes;--gen-compare;--gen-name-strings")
-  compile_flatbuffers_schema_to_cpp_opt(tests/union_vector/union_vector.fbs "--no-includes;--gen-compare;--gen-name-strings")
-  compile_flatbuffers_schema_to_cpp(tests/optional_scalars.fbs)
-  compile_flatbuffers_schema_to_cpp_opt(tests/native_type_test.fbs "")
-  compile_flatbuffers_schema_to_cpp_opt(tests/arrays_test.fbs "--scoped-enums;--gen-compare")
-  compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
-  compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
-  if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
-    compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
-  endif()
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/tests)
-  add_executable(flattests ${FlatBuffers_Tests_SRCS})
-  add_dependencies(flattests generated_code)
-  set_property(TARGET flattests
-    PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
-    FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
-  if(FLATBUFFERS_CODE_SANITIZE)
-    add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
-  endif()
-
-  compile_flatbuffers_schema_to_cpp(samples/monster.fbs)
-  compile_flatbuffers_schema_to_binary(samples/monster.fbs)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/samples)
-  add_executable(flatsamplebinary ${FlatBuffers_Sample_Binary_SRCS})
-  add_dependencies(flatsamplebinary generated_code)
-  add_executable(flatsampletext ${FlatBuffers_Sample_Text_SRCS})
-  add_dependencies(flatsampletext generated_code)
-  add_executable(flatsamplebfbs ${FlatBuffers_Sample_BFBS_SRCS})
-  add_dependencies(flatsamplebfbs generated_code)
-
-  if(FLATBUFFERS_BUILD_CPP17)
-    # Don't generate header for flattests_cpp17 target.
-    # This target uses "generated_cpp17/monster_test_generated.h"
-    # produced by direct call of generate_code.bat(sh) script.
-    add_executable(flattests_cpp17 ${FlatBuffers_Tests_CPP17_SRCS})
-    add_dependencies(flattests_cpp17 generated_code)
-    target_compile_features(flattests_cpp17 PRIVATE cxx_std_17)
-    target_compile_definitions(flattests_cpp17 PRIVATE
-      FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
-      FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1
-    )
-    if(FLATBUFFERS_CODE_SANITIZE)
-      add_fsanitize_to_target(flattests_cpp17 ${FLATBUFFERS_CODE_SANITIZE})
-    endif()
-  endif(FLATBUFFERS_BUILD_CPP17)
-endif()
-
-if(FLATBUFFERS_BUILD_GRPCTEST)
-  if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-shadow")
-  endif()
-  if(NOT GRPC_INSTALL_PATH)
-    message(SEND_ERROR "GRPC_INSTALL_PATH variable is not defined. See grpc/README.md")
-  endif()
-  if(NOT PROTOBUF_DOWNLOAD_PATH)
-    message(SEND_ERROR "PROTOBUF_DOWNLOAD_PATH variable is not defined. See grpc/README.md")
-  endif()
-  INCLUDE_DIRECTORIES(${GRPC_INSTALL_PATH}/include)
-  INCLUDE_DIRECTORIES(${PROTOBUF_DOWNLOAD_PATH}/src)
-  find_package(Threads REQUIRED)
-  list(APPEND CMAKE_PREFIX_PATH ${GRPC_INSTALL_PATH})
-  find_package(absl CONFIG REQUIRED)
-  find_package(protobuf CONFIG REQUIRED)
-  find_package(gRPC CONFIG REQUIRED)
-  add_executable(grpctest ${FlatBuffers_GRPCTest_SRCS})
-  add_dependencies(grpctest generated_code)
-  target_link_libraries(grpctest PRIVATE gRPC::grpc++_unsecure gRPC::grpc_unsecure gRPC::gpr pthread dl)
-  if(FLATBUFFERS_CODE_SANITIZE AND NOT WIN32)
-    # GRPC test has problems with alignment and will fail under ASAN/UBSAN.
-    # add_fsanitize_to_target(grpctest ${FLATBUFFERS_CODE_SANITIZE})
-  endif()
-endif()
+#if(FLATBUFFERS_BUILD_GRPCTEST)
+#  if(CMAKE_COMPILER_IS_GNUCXX)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-shadow")
+#  endif()
+#  if(NOT GRPC_INSTALL_PATH)
+#    message(SEND_ERROR "GRPC_INSTALL_PATH variable is not defined. See grpc/README.md")
+#  endif()
+#  if(NOT PROTOBUF_DOWNLOAD_PATH)
+#    message(SEND_ERROR "PROTOBUF_DOWNLOAD_PATH variable is not defined. See grpc/README.md")
+#  endif()
+#  INCLUDE_DIRECTORIES(${GRPC_INSTALL_PATH}/include)
+#  INCLUDE_DIRECTORIES(${PROTOBUF_DOWNLOAD_PATH}/src)
+#  find_package(Threads REQUIRED)
+#  list(APPEND CMAKE_PREFIX_PATH ${GRPC_INSTALL_PATH})
+#  find_package(absl CONFIG REQUIRED)
+#  find_package(protobuf CONFIG REQUIRED)
+#  find_package(gRPC CONFIG REQUIRED)
+#  add_executable(grpctest ${FlatBuffers_GRPCTest_SRCS})
+#  add_dependencies(grpctest generated_code)
+#  target_link_libraries(grpctest PRIVATE gRPC::grpc++_unsecure gRPC::grpc_unsecure gRPC::gpr pthread dl)
+#  if(FLATBUFFERS_CODE_SANITIZE AND NOT WIN32)
+#    # GRPC test has problems with alignment and will fail under ASAN/UBSAN.
+#    # add_fsanitize_to_target(grpctest ${FLATBUFFERS_CODE_SANITIZE})
+#  endif()
+#endif()
 
 include(CMake/Version.cmake)
 
