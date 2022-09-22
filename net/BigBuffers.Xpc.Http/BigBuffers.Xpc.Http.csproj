@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.4.5" />
+    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.5.0" />
   </ItemGroup>
 
 </Project>

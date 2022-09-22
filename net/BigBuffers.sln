@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.Http", "BigB
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.Quic", "BigBuffers.Xpc.Quic\BigBuffers.Xpc.Quic.csproj", "{E3B19415-F73A-4C52-9207-356424180650}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigBuffers.Xpc.Shm", "BigBuffers.Xpc.Shm\BigBuffers.Xpc.Shm.csproj", "{7FF48857-F704-4D72-AFF5-AC4BDCDC6CEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,5 +69,9 @@ Global
 		{E3B19415-F73A-4C52-9207-356424180650}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E3B19415-F73A-4C52-9207-356424180650}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E3B19415-F73A-4C52-9207-356424180650}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FF48857-F704-4D72-AFF5-AC4BDCDC6CEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FF48857-F704-4D72-AFF5-AC4BDCDC6CEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FF48857-F704-4D72-AFF5-AC4BDCDC6CEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FF48857-F704-4D72-AFF5-AC4BDCDC6CEE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -28,11 +28,14 @@
     <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" PrivateAssets="all" />
     <PackageReference Include="StirlingLabs.BigSpans" Version="22.5.0" />
     <PackageReference Include="StirlingLabs.SafeShm.Net" Version="22.7.1" />
-    <PackageReference Include="StirlingLabs.Utilities" Version="22.8.0" />
+    <PackageReference Include="StirlingLabs.Utilities" Version="22.8.3" />
     <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.5.0" />
-    <PackageReference Include="StirlingLabs.Utilities.Extensions" Version="22.8.0" />
-    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.8.0" />
-    <PackageReference Include="StirlingLabs.Utilities.NativeLibrary" Version="22.8.0" />
+    <PackageReference Include="StirlingLabs.Utilities.Extensions" Version="22.8.3" />
+    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.8.3" />
+    <PackageReference Include="StirlingLabs.Utilities.NativeLibrary" Version="22.8.3" />
+    <PackageReference Include="StirlingLabs.libLLVM" Version="14.0.6.4" />
+    <PackageReference Include="StirlingLabs.LLVMSharp" Version="14.0.6.44479" />
+    <PackageReference Include="StirlingLabs.LLVMSharp.Interop" Version="14.0.6.44479" />
   </ItemGroup>
 
   <ItemGroup>

@@ -34,13 +34,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
-    <PackageReference Include="StirlingLabs.BigSpans" Version="22.4.1" />
-    <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="22.4.1" />
-    <PackageReference Include="StirlingLabs.MsQuic" Version="22.4.7" />
-    <PackageReference Include="StirlingLabs.Utilities" Version="22.4.9" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="22.5.0" />
+    <PackageReference Include="StirlingLabs.BigSpans.NUnit" Version="22.5.0" />
+    <PackageReference Include="StirlingLabs.MsQuic" Version="22.5.1" />
+    <PackageReference Include="StirlingLabs.Utilities" Version="22.8.3" />
     <!--<PackageReference Include="nng.NET" Version="1.4.0-rc0" />-->
-    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.4.5" />
-    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.4.9" />
+    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.5.0" />
+    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.7.2" />
     <!--<PackageReference Include="ZeroMQ" Version="4.3.0" />-->
   </ItemGroup>
   

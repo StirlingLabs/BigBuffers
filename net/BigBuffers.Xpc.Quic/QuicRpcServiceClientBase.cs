@@ -13,7 +13,6 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Microsoft.Quic;
 using StirlingLabs.MsQuic;
 using StirlingLabs.Utilities;
 using StirlingLabs.Utilities.Collections;

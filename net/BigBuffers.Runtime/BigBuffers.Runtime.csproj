@@ -29,12 +29,13 @@
     </PackageReference>
     <PackageReference Include="InfoOf.Fody" Version="2.1.1" PrivateAssets="all" />
     <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" PrivateAssets="all" />
-    <PackageReference Include="StirlingLabs.BigSpans" Version="22.4.1" />
-    <PackageReference Include="StirlingLabs.Utilities" Version="22.4.9" />
-    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.4.9" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="22.5.0" />
+    <PackageReference Include="StirlingLabs.Utilities" Version="22.9.0" />
+    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.9.0" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
     <PackageReference Include="System.Text.Json" Version="6.0.3" />
+    <PackageReference Include="StirlingLabs.XKCP.NET" Version="22.9.0" />
   </ItemGroup>
 
   <ImportGroup>

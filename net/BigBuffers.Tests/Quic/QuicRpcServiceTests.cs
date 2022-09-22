@@ -189,7 +189,7 @@ public class QuicRpcServiceTests {
     using var listener = new QuicListener(listenerCfg);
     listenerCfg.ConfigureCredentials(Cert);
 
-    var service = new ExampleQuicServiceImpl();
+    var service = new RpcService3Impl();
 
     using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
@@ -278,7 +278,7 @@ public class QuicRpcServiceTests {
     using var listener = new QuicListener(listenerCfg);
     listenerCfg.ConfigureCredentials(Cert);
 
-    var service = new ExampleQuicServiceImpl();
+    var service = new RpcService3Impl();
 
     using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
@@ -369,7 +369,7 @@ public class QuicRpcServiceTests {
     using var listener = new QuicListener(listenerCfg);
     listenerCfg.ConfigureCredentials(Cert);
 
-    var service = new ExampleQuicServiceImpl();
+    var service = new RpcService3Impl();
 
     using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
@@ -465,7 +465,7 @@ public class QuicRpcServiceTests {
     using var listener = new QuicListener(listenerCfg);
     listenerCfg.ConfigureCredentials(Cert);
 
-    var service = new ExampleQuicServiceImpl();
+    var service = new RpcService3Impl();
 
     using var server = new RpcService3Quic.Server(service, listener, "Test", logger);
 
