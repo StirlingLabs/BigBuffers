@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
     <PackageReference Update="Microsoft.Build.Tasks.Git" Version="1.1.1" />
     <PackageReference Update="Microsoft.SourceLink.Common" Version="1.1.1" />
     <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.1.1" />
@@ -23,14 +23,13 @@
 
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" PrivateAssets="all" />
-    <PackageReference Include="StirlingLabs.BigSpans" Version="22.5.0" />
-    <PackageReference Include="StirlingLabs.MsQuic" Version="22.5.1" />
-    <PackageReference Include="StirlingLabs.sockaddr.Net" Version="22.5.4" />
-    <PackageReference Include="StirlingLabs.Utilities" Version="22.9.0" />
-    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.5.0" />
-    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.9.0" />
+    <PackageReference Include="StirlingLabs.BigSpans" Version="22.9.4" />
+    <PackageReference Include="StirlingLabs.MsQuic" Version="22.10.0" />
+    <PackageReference Include="StirlingLabs.Utilities" Version="22.10.0" />
+    <PackageReference Include="StirlingLabs.Utilities.Collections" Version="22.10.0" />
+    <PackageReference Include="StirlingLabs.Utilities.Magic" Version="22.10.0" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
-    <PackageReference Include="System.Text.Json" Version="6.0.3" />
+    <PackageReference Include="System.Text.Json" Version="6.0.6" />
     <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
   </ItemGroup>
 
@@ -42,31 +41,4 @@
   <ImportGroup>
     <Import Project="../Version.proj" />
   </ImportGroup>
-
-
-  <Choose>
-    <When Condition="'$(RuntimeIdentifier)'==''">
-      <!-- TODO: include .targets, .props files to select runtime for dependers in sockaddr.Net -->
-    </When>
-    <When Condition="$(RuntimeIdentifier.StartsWith('linux')">
-      <ItemGroup>
-        <!-- TODO: arm64 -->
-        <PackageReference Include="runtime.linux-x64.libsa" Version="22.3.0" PrivateAssets="all" />
-        <PackageReference Include="runtime.linux-x64.openssl.Microsoft.Quic" Version="2.0.0" PrivateAssets="all" />
-      </ItemGroup>
-    </When>
-    <When Condition="$(RuntimeIdentifier.StartsWith('win')">
-      <ItemGroup>
-        <!-- TODO: arm64 -->
-        <PackageReference Include="runtime.win-x64.libsa" Version="22.3.0" PrivateAssets="all" />
-        <PackageReference Include="runtime.win-x64.openssl.Microsoft.Quic" Version="2.0.0" PrivateAssets="all" />
-      </ItemGroup>
-    </When>
-    <When Condition="$(RuntimeIdentifier.StartsWith('osx')">
-      <ItemGroup>
-        <PackageReference Include="runtime.osx-x64.libsa" Version="22.3.0" PrivateAssets="all" />
-        <PackageReference Include="runtime.osx-x64.openssl.Microsoft.Quic" Version="2.0.0" PrivateAssets="all" />
-      </ItemGroup>
-    </When>
-  </Choose>
 </Project>
