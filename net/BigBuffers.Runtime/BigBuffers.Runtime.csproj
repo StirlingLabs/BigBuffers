@@ -35,7 +35,7 @@
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
     <PackageReference Include="System.Text.Json" Version="6.0.3" />
-    <PackageReference Include="StirlingLabs.XKCP.NET" Version="22.9.2" />
+    <PackageReference Include="StirlingLabs.XKCP.NET" Version="22.10.0" />
   </ItemGroup>
 
   <ImportGroup>
