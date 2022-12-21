@@ -1,5 +1,7 @@
 ![BigBuffers](./docs/images/bigbuffers.jpg) 
 
+BigBuffers has been deprecated and is replaced internally by [CloudBuffers](https://github.com/StirlingLabs/CloudBufffers) and [Unlocal](https://github.com/StirlingLabs/Unlocal), which we expect to open source.
+
 **BigBuffers** is a cross platform serialization library architected for maximum memory efficiency and large data sets. 
 
 **BigBuffers** is a fork of **FlatBuffers** with 64 bit indexes, to supports buffers >2Gb.  Both projects allow you to directly access serialized data without parsing/unpacking it first, while still having great forwards/backwards compatibility... but they are not wire-compatible. 
